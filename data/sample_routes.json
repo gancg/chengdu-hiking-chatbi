@@ -1,0 +1,594 @@
+[
+  {
+    "route": {
+      "id": "qingcheng-back-mountain",
+      "name": "青城后山环线",
+      "start_location": "都江堰市青城后山",
+      "end_location": "都江堰市青城后山",
+      "latitude": 30.913,
+      "longitude": 103.489,
+      "distance_km": 12.0,
+      "ascent_m": 650,
+      "highest_altitude_m": 1600,
+      "hiking_minutes": 330,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "夏", "秋"],
+      "scenery": ["森林", "溪流", "古镇"],
+      "risks": ["雨天石阶湿滑"],
+      "transport_modes": ["self_drive", "public_transit", "carpool"],
+      "parking": "景区停车场",
+      "supplies": "沿途有补给点",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "大部分路段有信号",
+      "camping": "不建议",
+      "source_url": "https://example.org/routes/qingcheng",
+      "source_name": "演示审核数据",
+      "collected_at": "2026-06-10T10:00:00+08:00",
+      "updated_at": "2026-06-10T10:00:00+08:00",
+      "confidence": 0.86,
+      "reviewed": true
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "景区门票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 20,
+          "max_cny": 20,
+          "source_url": "https://example.org/routes/qingcheng",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "name": "景区中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 30,
+          "max_cny": 30,
+          "source_url": "https://example.org/routes/qingcheng",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "self_drive",
+          "name": "往返油费",
+          "cost_type": "fuel",
+          "billing_unit": "vehicle",
+          "min_cny": 70,
+          "max_cny": 100,
+          "source_url": "https://example.org/traffic/qingcheng",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "self_drive",
+          "name": "往返过路费",
+          "cost_type": "toll",
+          "billing_unit": "vehicle",
+          "min_cny": 20,
+          "max_cny": 30,
+          "source_url": "https://example.org/traffic/qingcheng",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "public_transit",
+          "name": "往返动车费",
+          "cost_type": "train",
+          "billing_unit": "person",
+          "min_cny": 20,
+          "max_cny": 30,
+          "source_url": "https://example.org/traffic/qingcheng",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "public_transit",
+          "name": "往返大巴费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 20,
+          "max_cny": 30,
+          "source_url": "https://example.org/traffic/qingcheng",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "carpool",
+          "name": "拼车往返费",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 60,
+          "max_cny": 90,
+          "source_url": "https://example.org/traffic/qingcheng",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 5,
+      "weekday_extra_max": 20,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 50,
+      "holiday_extra_min": 50,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 35,
+      "common_bottlenecks": ["成灌高速都江堰出口", "青城山景区道路"],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://example.org/traffic/qingcheng",
+      "updated_at": "2026-06-10T10:00:00+08:00",
+      "confidence": 0.72
+    }
+  },
+  {
+    "route": {
+      "id": "zhaogong-mountain",
+      "name": "赵公山西线",
+      "start_location": "都江堰市赵公山西线起点",
+      "end_location": "都江堰市赵公山西线起点",
+      "latitude": 30.91,
+      "longitude": 103.54,
+      "distance_km": 14.5,
+      "ascent_m": 1250,
+      "highest_altitude_m": 2434,
+      "hiking_minutes": 480,
+      "difficulty": "hard",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "秋", "冬"],
+      "scenery": ["森林", "云海", "雪山"],
+      "risks": ["爬升较大", "雨雪天气路滑", "部分路段信号弱"],
+      "transport_modes": ["self_drive", "carpool", "group_tour"],
+      "parking": "村内有限停车位",
+      "supplies": "起点附近补给",
+      "has_toilet": false,
+      "has_supply_shop": true,
+      "signal": "部分路段信号弱",
+      "camping": "需确认当地规定",
+      "source_url": "https://example.org/routes/zhaogong",
+      "source_name": "演示审核数据",
+      "collected_at": "2026-06-10T10:00:00+08:00",
+      "updated_at": "2026-06-10T10:00:00+08:00",
+      "confidence": 0.8,
+      "reviewed": true
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "停车费",
+          "cost_type": "parking",
+          "billing_unit": "vehicle",
+          "min_cny": 10,
+          "max_cny": 20,
+          "source_url": "https://example.org/routes/zhaogong",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "name": "垃圾处理费",
+          "cost_type": "waste",
+          "billing_unit": "group",
+          "min_cny": 10,
+          "max_cny": 10,
+          "source_url": "https://example.org/routes/zhaogong",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "self_drive",
+          "name": "往返油费",
+          "cost_type": "fuel",
+          "billing_unit": "vehicle",
+          "min_cny": 80,
+          "max_cny": 120,
+          "source_url": "https://example.org/traffic/zhaogong",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "self_drive",
+          "name": "往返过路费",
+          "cost_type": "toll",
+          "billing_unit": "vehicle",
+          "min_cny": 20,
+          "max_cny": 30,
+          "source_url": "https://example.org/traffic/zhaogong",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "carpool",
+          "name": "拼车往返费",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 80,
+          "max_cny": 130,
+          "source_url": "https://example.org/traffic/zhaogong",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "团队交通费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 100,
+          "max_cny": 160,
+          "source_url": "https://example.org/traffic/zhaogong",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 105,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 25,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 55,
+      "holiday_extra_min": 45,
+      "holiday_extra_max": 100,
+      "morning_extra_minutes": 15,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": ["成灌高速", "山区村道"],
+      "best_departure_time": "06:00前",
+      "suggested_return_time": "16:00前",
+      "source_url": "https://example.org/traffic/zhaogong",
+      "updated_at": "2026-06-10T10:00:00+08:00",
+      "confidence": 0.66
+    }
+  },
+  {
+    "route": {
+      "id": "bipenggou-panyang-lake",
+      "name": "毕棚沟磐羊湖轻徒步",
+      "start_location": "理县毕棚沟景区",
+      "end_location": "理县毕棚沟景区",
+      "latitude": 31.22,
+      "longitude": 102.99,
+      "distance_km": 9.0,
+      "ascent_m": 450,
+      "highest_altitude_m": 3676,
+      "hiking_minutes": 270,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": ["夏", "秋", "冬"],
+      "scenery": ["雪山", "湖泊", "森林"],
+      "risks": ["高海拔反应", "天气变化快"],
+      "transport_modes": ["self_drive", "group_tour"],
+      "parking": "景区停车场",
+      "supplies": "景区内有补给",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "景区部分区域有信号",
+      "camping": "按景区规定",
+      "source_url": "https://example.org/routes/bipenggou",
+      "source_name": "演示审核数据",
+      "collected_at": "2026-06-10T10:00:00+08:00",
+      "updated_at": "2026-06-10T10:00:00+08:00",
+      "confidence": 0.82,
+      "reviewed": true
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "景区门票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 130,
+          "max_cny": 130,
+          "source_url": "https://example.org/routes/bipenggou",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "name": "景区中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 60,
+          "max_cny": 60,
+          "source_url": "https://example.org/routes/bipenggou",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "self_drive",
+          "name": "往返油费",
+          "cost_type": "fuel",
+          "billing_unit": "vehicle",
+          "min_cny": 180,
+          "max_cny": 260,
+          "source_url": "https://example.org/traffic/bipenggou",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "self_drive",
+          "name": "往返过路费",
+          "cost_type": "toll",
+          "billing_unit": "vehicle",
+          "min_cny": 80,
+          "max_cny": 120,
+          "source_url": "https://example.org/traffic/bipenggou",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "团队交通费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 180,
+          "max_cny": 260,
+          "source_url": "https://example.org/traffic/bipenggou",
+          "updated_at": "2026-06-10T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 210,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 75,
+      "holiday_extra_min": 80,
+      "holiday_extra_max": 180,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 45,
+      "common_bottlenecks": ["都汶高速", "汶川至理县路段"],
+      "best_departure_time": "05:30前",
+      "suggested_return_time": "15:30前",
+      "source_url": "https://example.org/traffic/bipenggou",
+      "updated_at": "2026-06-10T10:00:00+08:00",
+      "confidence": 0.68
+    }
+  },
+  {
+    "route": {
+      "id": "longquan-yangmei-ridge", "name": "龙泉仰天窝杨梅岭环线",
+      "start_location": "龙泉驿区仰天窝", "end_location": "龙泉驿区仰天窝",
+      "latitude": 30.52, "longitude": 104.31, "distance_km": 15.5, "ascent_m": 720,
+      "highest_altitude_m": 980, "hiking_minutes": 360, "difficulty": "easy",
+      "duration_days": 1, "route_type": "loop", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "秋", "冬"], "scenery": ["果园", "山脊", "城市远眺"],
+      "risks": ["夏季暴晒", "岔路较多"], "transport_modes": ["self_drive", "public_transit"],
+      "parking": "起点附近停车场", "supplies": "起点有小卖部", "has_toilet": true, "has_supply_shop": true,
+      "signal": "大部分路段有信号", "camping": "不建议",
+      "source_url": "https://example.org/routes/longquan-yangmei", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.78, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "停车费", "cost_type": "parking", "billing_unit": "vehicle", "min_cny": 10, "max_cny": 20, "source_url": "https://example.org/routes/longquan-yangmei", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费", "cost_type": "fuel", "billing_unit": "vehicle", "min_cny": 35, "max_cny": 60, "source_url": "https://example.org/traffic/longquan-yangmei", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "public_transit", "name": "地铁及公交往返费", "cost_type": "bus", "billing_unit": "person", "min_cny": 16, "max_cny": 24, "source_url": "https://example.org/traffic/longquan-yangmei", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 70, "weekday_extra_min": 10, "weekday_extra_max": 25, "weekend_extra_min": 20, "weekend_extra_max": 45, "holiday_extra_min": 35, "holiday_extra_max": 70, "morning_extra_minutes": 20, "evening_extra_minutes": 30, "common_bottlenecks": ["成龙大道", "龙泉城区"], "best_departure_time": "07:00前", "suggested_return_time": "17:00前", "source_url": "https://example.org/traffic/longquan-yangmei", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.66}
+  },
+  {
+    "route": {
+      "id": "pengzhou-shizishan-traverse", "name": "彭州狮子山穿越线",
+      "start_location": "彭州市狮子山村", "end_location": "彭州市白鹿镇",
+      "latitude": 31.15, "longitude": 103.91, "distance_km": 17.0, "ascent_m": 1050,
+      "highest_altitude_m": 2180, "hiking_minutes": 450, "difficulty": "hard",
+      "duration_days": 1, "route_type": "point_to_point", "is_traverse": true, "traverse_transfer_minutes": 50,
+      "best_seasons": ["春", "秋"], "scenery": ["森林", "山脊", "村落"],
+      "risks": ["部分路段陡峭", "雨天泥泞"], "transport_modes": ["self_drive", "carpool"],
+      "parking": "村口有限停车位", "supplies": "起点少量补给", "has_toilet": false, "has_supply_shop": true,
+      "signal": "山脊信号较好", "camping": "需确认当地规定",
+      "source_url": "https://example.org/routes/pengzhou-shizishan", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.74, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "垃圾处理费", "cost_type": "waste", "billing_unit": "group", "min_cny": 10, "max_cny": 20, "source_url": "https://example.org/routes/pengzhou-shizishan", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 100, "max_cny": 160, "source_url": "https://example.org/traffic/pengzhou-shizishan", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "carpool", "name": "拼车往返费", "cost_type": "other", "billing_unit": "person", "min_cny": 90, "max_cny": 140, "source_url": "https://example.org/traffic/pengzhou-shizishan", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 120, "weekday_extra_min": 10, "weekday_extra_max": 25, "weekend_extra_min": 25, "weekend_extra_max": 60, "holiday_extra_min": 50, "holiday_extra_max": 110, "morning_extra_minutes": 20, "evening_extra_minutes": 35, "common_bottlenecks": ["成彭高速", "山区乡道"], "best_departure_time": "06:00前", "suggested_return_time": "16:00前", "source_url": "https://example.org/traffic/pengzhou-shizishan", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.62}
+  },
+  {
+    "route": {
+      "id": "chongzhou-jiguanshan", "name": "崇州鸡冠山森林线",
+      "start_location": "崇州市鸡冠山乡", "end_location": "崇州市鸡冠山乡",
+      "latitude": 30.84, "longitude": 103.31, "distance_km": 18.0, "ascent_m": 980,
+      "highest_altitude_m": 2400, "hiking_minutes": 480, "difficulty": "hard",
+      "duration_days": 1, "route_type": "out_and_back", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "夏", "秋"], "scenery": ["森林", "溪谷", "瀑布"],
+      "risks": ["雨季涨水", "部分区域无信号"], "transport_modes": ["self_drive", "carpool"],
+      "parking": "乡镇停车区", "supplies": "乡镇可补给", "has_toilet": true, "has_supply_shop": true,
+      "signal": "部分路段无信号", "camping": "指定区域可咨询",
+      "source_url": "https://example.org/routes/chongzhou-jiguanshan", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.76, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "停车费", "cost_type": "parking", "billing_unit": "vehicle", "min_cny": 10, "max_cny": 20, "source_url": "https://example.org/routes/chongzhou-jiguanshan", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 130, "max_cny": 200, "source_url": "https://example.org/traffic/chongzhou-jiguanshan", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "carpool", "name": "拼车往返费", "cost_type": "other", "billing_unit": "person", "min_cny": 100, "max_cny": 160, "source_url": "https://example.org/traffic/chongzhou-jiguanshan", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 150, "weekday_extra_min": 10, "weekday_extra_max": 30, "weekend_extra_min": 30, "weekend_extra_max": 70, "holiday_extra_min": 60, "holiday_extra_max": 130, "morning_extra_minutes": 20, "evening_extra_minutes": 40, "common_bottlenecks": ["成温邛高速", "山区道路"], "best_departure_time": "05:30前", "suggested_return_time": "15:30前", "source_url": "https://example.org/traffic/chongzhou-jiguanshan", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.64}
+  },
+  {
+    "route": {
+      "id": "dayi-xiling-front-mountain", "name": "大邑西岭前山徒步线",
+      "start_location": "大邑县西岭前山", "end_location": "大邑县西岭前山",
+      "latitude": 30.62, "longitude": 103.23, "distance_km": 16.0, "ascent_m": 1350,
+      "highest_altitude_m": 3250, "hiking_minutes": 540, "difficulty": "expert",
+      "duration_days": 1, "route_type": "out_and_back", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "秋", "冬"], "scenery": ["森林", "雪山", "云海"],
+      "risks": ["高海拔", "冬季结冰", "爬升较大"], "transport_modes": ["self_drive", "group_tour"],
+      "parking": "景区停车场", "supplies": "起点有补给", "has_toilet": true, "has_supply_shop": true,
+      "signal": "高海拔路段信号弱", "camping": "按景区规定",
+      "source_url": "https://example.org/routes/dayi-xiling-front", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.79, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "景区门票", "cost_type": "ticket", "billing_unit": "person", "min_cny": 60, "max_cny": 90, "source_url": "https://example.org/routes/dayi-xiling-front", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 150, "max_cny": 230, "source_url": "https://example.org/traffic/dayi-xiling-front", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "group_tour", "name": "团队交通费", "cost_type": "bus", "billing_unit": "person", "min_cny": 130, "max_cny": 190, "source_url": "https://example.org/traffic/dayi-xiling-front", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 160, "weekday_extra_min": 10, "weekday_extra_max": 30, "weekend_extra_min": 35, "weekend_extra_max": 80, "holiday_extra_min": 70, "holiday_extra_max": 150, "morning_extra_minutes": 20, "evening_extra_minutes": 45, "common_bottlenecks": ["成温邛高速", "西岭景区道路"], "best_departure_time": "05:00前", "suggested_return_time": "14:30前", "source_url": "https://example.org/traffic/dayi-xiling-front", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.67}
+  },
+  {
+    "route": {
+      "id": "shifang-yinghua-mountain", "name": "什邡蓥华山脊线",
+      "start_location": "什邡市蓥华镇", "end_location": "什邡市蓥华镇",
+      "latitude": 31.31, "longitude": 104.04, "distance_km": 14.0, "ascent_m": 1100,
+      "highest_altitude_m": 2600, "hiking_minutes": 450, "difficulty": "hard",
+      "duration_days": 1, "route_type": "out_and_back", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "秋", "冬"], "scenery": ["山脊", "云海", "雪景"],
+      "risks": ["强风", "冬季积雪"], "transport_modes": ["self_drive", "carpool"],
+      "parking": "镇上停车区", "supplies": "镇上可补给", "has_toilet": true, "has_supply_shop": true,
+      "signal": "部分山脊有信号", "camping": "不建议",
+      "source_url": "https://example.org/routes/shifang-yinghua", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.73, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 130, "max_cny": 200, "source_url": "https://example.org/traffic/shifang-yinghua", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "carpool", "name": "拼车往返费", "cost_type": "other", "billing_unit": "person", "min_cny": 100, "max_cny": 150, "source_url": "https://example.org/traffic/shifang-yinghua", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 140, "weekday_extra_min": 10, "weekday_extra_max": 25, "weekend_extra_min": 25, "weekend_extra_max": 65, "holiday_extra_min": 50, "holiday_extra_max": 120, "morning_extra_minutes": 15, "evening_extra_minutes": 35, "common_bottlenecks": ["成绵高速", "山区道路"], "best_departure_time": "05:30前", "suggested_return_time": "15:30前", "source_url": "https://example.org/traffic/shifang-yinghua", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.63}
+  },
+  {
+    "route": {
+      "id": "wawu-mountain-boardwalk", "name": "瓦屋山高山栈道徒步",
+      "start_location": "洪雅县瓦屋山景区", "end_location": "洪雅县瓦屋山景区",
+      "latitude": 29.65, "longitude": 102.96, "distance_km": 15.0, "ascent_m": 350,
+      "highest_altitude_m": 2830, "hiking_minutes": 360, "difficulty": "moderate",
+      "duration_days": 1, "route_type": "loop", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["夏", "秋", "冬"], "scenery": ["高山平台", "瀑布", "雪景"],
+      "risks": ["高海拔反应", "冬季结冰"], "transport_modes": ["self_drive", "group_tour"],
+      "parking": "景区停车场", "supplies": "景区内有补给", "has_toilet": true, "has_supply_shop": true,
+      "signal": "主要游览区有信号", "camping": "按景区规定",
+      "source_url": "https://example.org/routes/wawu-boardwalk", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.84, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [
+        {"name": "景区门票", "cost_type": "ticket", "billing_unit": "person", "min_cny": 100, "max_cny": 120, "source_url": "https://example.org/routes/wawu-boardwalk", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"name": "景区中转车", "cost_type": "shuttle", "billing_unit": "person", "min_cny": 60, "max_cny": 80, "source_url": "https://example.org/routes/wawu-boardwalk", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 230, "max_cny": 330, "source_url": "https://example.org/traffic/wawu-boardwalk", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "group_tour", "name": "团队交通费", "cost_type": "bus", "billing_unit": "person", "min_cny": 200, "max_cny": 280, "source_url": "https://example.org/traffic/wawu-boardwalk", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 240, "weekday_extra_min": 15, "weekday_extra_max": 35, "weekend_extra_min": 40, "weekend_extra_max": 90, "holiday_extra_min": 90, "holiday_extra_max": 200, "morning_extra_minutes": 25, "evening_extra_minutes": 50, "common_bottlenecks": ["成乐高速", "洪雅山区道路"], "best_departure_time": "05:00前", "suggested_return_time": "14:30前", "source_url": "https://example.org/traffic/wawu-boardwalk", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.69}
+  },
+  {
+    "route": {
+      "id": "baoxing-dawa-gengzha", "name": "宝兴达瓦更扎高山线",
+      "start_location": "宝兴县达瓦更扎景区", "end_location": "宝兴县达瓦更扎景区",
+      "latitude": 30.74, "longitude": 102.72, "distance_km": 14.5, "ascent_m": 900,
+      "highest_altitude_m": 3866, "hiking_minutes": 390, "difficulty": "hard",
+      "duration_days": 2, "route_type": "out_and_back", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "秋", "冬"], "scenery": ["雪山", "云海", "日出"],
+      "risks": ["高海拔反应", "天气变化快"], "transport_modes": ["self_drive", "group_tour"],
+      "parking": "景区停车区", "supplies": "游客中心有补给", "has_toilet": true, "has_supply_shop": true,
+      "signal": "部分高山区域信号弱", "camping": "按景区规定",
+      "source_url": "https://example.org/routes/baoxing-dawa", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.81, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "景区门票及中转车", "cost_type": "ticket", "billing_unit": "person", "min_cny": 120, "max_cny": 180, "source_url": "https://example.org/routes/baoxing-dawa", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 260, "max_cny": 380, "source_url": "https://example.org/traffic/baoxing-dawa", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "group_tour", "name": "团队交通费", "cost_type": "bus", "billing_unit": "person", "min_cny": 240, "max_cny": 340, "source_url": "https://example.org/traffic/baoxing-dawa", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 270, "weekday_extra_min": 15, "weekday_extra_max": 40, "weekend_extra_min": 45, "weekend_extra_max": 100, "holiday_extra_min": 100, "holiday_extra_max": 220, "morning_extra_minutes": 25, "evening_extra_minutes": 50, "common_bottlenecks": ["成雅高速", "宝兴山区道路"], "best_departure_time": "前一日出发", "suggested_return_time": "次日15:00前", "source_url": "https://example.org/traffic/baoxing-dawa", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.61}
+  },
+  {
+    "route": {
+      "id": "dujiangyan-lingyan-traverse", "name": "都江堰灵岩山穿越线",
+      "start_location": "都江堰市灵岩古街", "end_location": "都江堰市蒲虹路",
+      "latitude": 31.02, "longitude": 103.63, "distance_km": 14.0, "ascent_m": 850,
+      "highest_altitude_m": 1650, "hiking_minutes": 390, "difficulty": "moderate",
+      "duration_days": 1, "route_type": "point_to_point", "is_traverse": true, "traverse_transfer_minutes": 40,
+      "best_seasons": ["春", "夏", "秋"], "scenery": ["森林", "古寺", "山脊"],
+      "risks": ["岔路较多", "雨天湿滑"], "transport_modes": ["self_drive", "public_transit", "carpool"],
+      "parking": "灵岩古街停车场", "supplies": "起终点均可补给", "has_toilet": true, "has_supply_shop": true,
+      "signal": "大部分路段有信号", "camping": "不建议",
+      "source_url": "https://example.org/routes/dujiangyan-lingyan", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.8, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "停车费", "cost_type": "parking", "billing_unit": "vehicle", "min_cny": 10, "max_cny": 20, "source_url": "https://example.org/routes/dujiangyan-lingyan", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 80, "max_cny": 130, "source_url": "https://example.org/traffic/dujiangyan-lingyan", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "public_transit", "name": "动车及公交往返费", "cost_type": "train", "billing_unit": "person", "min_cny": 35, "max_cny": 60, "source_url": "https://example.org/traffic/dujiangyan-lingyan", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "carpool", "name": "拼车往返费", "cost_type": "other", "billing_unit": "person", "min_cny": 70, "max_cny": 110, "source_url": "https://example.org/traffic/dujiangyan-lingyan", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 100, "weekday_extra_min": 5, "weekday_extra_max": 20, "weekend_extra_min": 20, "weekend_extra_max": 50, "holiday_extra_min": 50, "holiday_extra_max": 110, "morning_extra_minutes": 20, "evening_extra_minutes": 35, "common_bottlenecks": ["成灌高速", "都江堰城区"], "best_departure_time": "06:30前", "suggested_return_time": "16:30前", "source_url": "https://example.org/traffic/dujiangyan-lingyan", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.71}
+  },
+  {
+    "route": {
+      "id": "qionglai-nanbaoshan", "name": "邛崃南宝山森林环线",
+      "start_location": "邛崃市南宝山镇", "end_location": "邛崃市南宝山镇",
+      "latitude": 30.38, "longitude": 103.22, "distance_km": 16.5, "ascent_m": 780,
+      "highest_altitude_m": 2020, "hiking_minutes": 420, "difficulty": "moderate",
+      "duration_days": 1, "route_type": "loop", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "夏", "秋"], "scenery": ["森林", "峡谷", "瀑布"],
+      "risks": ["雨季落石", "溪边湿滑"], "transport_modes": ["self_drive", "group_tour"],
+      "parking": "镇上停车区", "supplies": "镇上有补给", "has_toilet": true, "has_supply_shop": true,
+      "signal": "峡谷内信号弱", "camping": "需确认当地规定",
+      "source_url": "https://example.org/routes/qionglai-nanbaoshan", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.77, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "环境维护费", "cost_type": "other", "billing_unit": "person", "min_cny": 20, "max_cny": 40, "source_url": "https://example.org/routes/qionglai-nanbaoshan", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 150, "max_cny": 230, "source_url": "https://example.org/traffic/qionglai-nanbaoshan", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "group_tour", "name": "团队交通费", "cost_type": "bus", "billing_unit": "person", "min_cny": 130, "max_cny": 190, "source_url": "https://example.org/traffic/qionglai-nanbaoshan", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 170, "weekday_extra_min": 10, "weekday_extra_max": 30, "weekend_extra_min": 30, "weekend_extra_max": 75, "holiday_extra_min": 70, "holiday_extra_max": 150, "morning_extra_minutes": 20, "evening_extra_minutes": 40, "common_bottlenecks": ["成温邛高速", "南宝山山区道路"], "best_departure_time": "05:30前", "suggested_return_time": "15:30前", "source_url": "https://example.org/traffic/qionglai-nanbaoshan", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.65}
+  },
+  {
+    "route": {
+      "id": "maoxian-jiuding-mountain", "name": "茂县九顶山花海线",
+      "start_location": "茂县南新镇", "end_location": "茂县南新镇",
+      "latitude": 31.56, "longitude": 103.74, "distance_km": 18.5, "ascent_m": 1450,
+      "highest_altitude_m": 3800, "hiking_minutes": 600, "difficulty": "expert",
+      "duration_days": 2, "route_type": "out_and_back", "is_traverse": false, "traverse_transfer_minutes": 0,
+      "best_seasons": ["夏", "秋"], "scenery": ["高山花海", "草甸", "雪山"],
+      "risks": ["高海拔反应", "天气变化快", "行程较长"], "transport_modes": ["self_drive", "group_tour"],
+      "parking": "村内停车位", "supplies": "起点少量补给", "has_toilet": false, "has_supply_shop": true,
+      "signal": "高山区域信号弱", "camping": "需携带完整露营装备",
+      "source_url": "https://example.org/routes/maoxian-jiuding", "source_name": "演示审核数据",
+      "collected_at": "2026-06-11T09:00:00+08:00", "updated_at": "2026-06-11T09:00:00+08:00",
+      "confidence": 0.75, "reviewed": true
+    },
+    "costs": {
+      "route_fees": [{"name": "垃圾处理费", "cost_type": "waste", "billing_unit": "group", "min_cny": 20, "max_cny": 40, "source_url": "https://example.org/routes/maoxian-jiuding", "updated_at": "2026-06-11T09:00:00+08:00"}],
+      "transport_options": [
+        {"transport_mode": "self_drive", "name": "往返油费及过路费", "cost_type": "other", "billing_unit": "vehicle", "min_cny": 250, "max_cny": 380, "source_url": "https://example.org/traffic/maoxian-jiuding", "updated_at": "2026-06-11T09:00:00+08:00"},
+        {"transport_mode": "group_tour", "name": "团队交通费", "cost_type": "bus", "billing_unit": "person", "min_cny": 230, "max_cny": 350, "source_url": "https://example.org/traffic/maoxian-jiuding", "updated_at": "2026-06-11T09:00:00+08:00"}
+      ]
+    },
+    "traffic": {"base_one_way_minutes": 230, "weekday_extra_min": 15, "weekday_extra_max": 35, "weekend_extra_min": 40, "weekend_extra_max": 90, "holiday_extra_min": 90, "holiday_extra_max": 190, "morning_extra_minutes": 20, "evening_extra_minutes": 45, "common_bottlenecks": ["都汶高速", "茂县山区道路"], "best_departure_time": "前一日出发", "suggested_return_time": "次日14:00前", "source_url": "https://example.org/traffic/maoxian-jiuding", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.6}
+  }
+]

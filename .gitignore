@@ -1,0 +1,36 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python caches and tooling
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Runtime workspace and generated output
+workspace/
+outputs/
+image_show/
+work/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
