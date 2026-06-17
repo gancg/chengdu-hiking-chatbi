@@ -6,8 +6,9 @@ import unittest
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from hiking_chatbi.config import SAMPLE_DATA_PATH
+from hiking_chatbi.config import SAMPLE_COMMERCIAL_TOURS_PATH, SAMPLE_DATA_PATH
 from hiking_chatbi.qwen_chatbi import (
+    RecommendCommercialToursTool,
     EstimateRouteTrafficTool,
     EstimateRouteWeatherTool,
     ListHikingRoutesTool,
@@ -28,7 +29,7 @@ class QwenChatBITest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         db_path = Path(self.temp.name) / "test.db"
         self.service = ChatBIService(db_path, NoTrafficProvider())
-        self.service.seed(SAMPLE_DATA_PATH)
+        self.service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
         self.departure = (datetime.now().astimezone() + timedelta(days=1)).replace(
             hour=6, minute=0, second=0, microsecond=0
         ).isoformat()
@@ -75,6 +76,7 @@ class QwenChatBITest(unittest.TestCase):
                 "recommend_hiking_routes",
                 "estimate_route_traffic",
                 "estimate_route_weather",
+                "recommend_commercial_tours",
                 "resolve_departure_date",
                 "resolve_public_holiday",
             },
@@ -274,6 +276,56 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("默认面向单日往返出行", agent.system_message)
         self.assertIn("多日游路线暂未完整支持", agent.system_message)
         self.assertIn("TODO", agent.system_message)
+
+    def test_agent_prompt_requires_route_selection_prerequisites(self) -> None:
+        """Qwen Agent 选择路线前必须先明确出行方式和出行时间。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("选择路线", agent.system_message, "系统提示应覆盖路线选择场景")
+        self.assertIn("先明确出行方式和出行时间", agent.system_message, "应先确认出行方式和时间")
+        self.assertIn("自驾、公共交通、报团", agent.system_message, "出行方式选项应面向用户清晰表达")
+        self.assertIn("不得继续追问预算、强度、风景、设施", agent.system_message, "前置条件不完整时不得先问其它筛选条件")
+        self.assertIn("报团", agent.system_message, "应覆盖报团场景")
+        self.assertIn("recommend_commercial_tours", agent.system_message, "报团场景应使用商团推荐工具")
+
+    def test_interview_guidance_prioritizes_route_selection_prerequisites(self) -> None:
+        """访谈引导应优先补齐出行方式和出行时间，再进入其它筛选条件。"""
+        guidance = build_interview_guidance([
+            {"role": "user", "content": "想找一条成都周边徒步路线"},
+        ])
+
+        self.assertIn("先补齐出行方式和出行时间", guidance, "早期访谈应优先确认前置条件")
+        self.assertIn("自驾、公共交通、报团", guidance, "应明确给出三类出行方式")
+        self.assertIn("不要先追问预算、强度、风景或设施", guidance, "前置条件前不得进入其它筛选")
+
+    def test_commercial_tour_tool_returns_provider_product_route_and_warning(self) -> None:
+        """商团工具应返回可展示的商团名称、产品、路线、价格和二次确认提示。"""
+        result = json.loads(RecommendCommercialToursTool(self.service).call({
+            "departure_date": "2026-06-20",
+            "party_size": 2,
+            "max_budget_cny": 400,
+        }))
+
+        self.assertGreater(result["count"], 0, "当天有收录商团时应返回结果")
+        item = result["items"][0]
+        self.assertIn("product", item, "商团工具应包含产品信息")
+        self.assertIn("provider_name", item["product"], "商团工具应包含可展示的商团名称")
+        self.assertTrue(item["product"]["provider_name"], "商团名称不得为空")
+        self.assertIn("route", item, "商团工具应包含路线摘要")
+        self.assertIn("total_price_max_cny", item, "商团工具应包含按人数估算的总价")
+        self.assertIn("risk_notice", item, "商团工具应提醒用户二次确认")
+        self.assertIn("商团产品为已收录信息", item["risk_notice"], "二次确认提示应说明信息口径")
+        self.assertIn("价格、团期、名额和安全要求", item["risk_notice"], "二次确认提示应覆盖关键确认项")
+
+    def test_agent_prompt_contains_commercial_tour_boundaries(self) -> None:
+        """Qwen Agent 不得编造未收录商团信息或承诺余位成团状态。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("recommend_commercial_tours", agent.system_message)
+        self.assertIn("不得编造未收录商家", agent.system_message)
+        self.assertIn("不承诺余位", agent.system_message)
+        self.assertIn("必须展示商团名称", agent.system_message)
+        self.assertIn("该商团的小程序", agent.system_message)
 
 
 if __name__ == "__main__":

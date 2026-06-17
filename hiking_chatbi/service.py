@@ -1,13 +1,25 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from contextlib import closing
 import logging
 from pathlib import Path
 from typing import Any
 
-from .db import connect, get_route, initialize, list_routes
-from .importer import import_file
+from .commercial_tours import (
+    recommend_commercial_tours,
+    validate_commercial_tour_product,
+)
+from .db import (
+    connect,
+    get_route,
+    import_commercial_tours,
+    import_routes,
+    initialize,
+    list_commercial_tours,
+    list_routes,
+)
+from .importer import import_commercial_tour_file, import_file
 from .recommend import recommend
 from .traffic import TrafficProvider, estimate_traffic
 from .weather import (
@@ -17,7 +29,6 @@ from .weather import (
     estimate_route_weather,
 )
 from .validation import validate_import_item
-from .db import import_routes
 
 
 logger = logging.getLogger(__name__)
@@ -36,9 +47,12 @@ class ChatBIService:
         initialize(db_path)
         logger.info("ChatBIService 初始化完成 db_path=%s", db_path)
 
-    def seed(self, sample_path: Path) -> int:
+    def seed(self, sample_path: Path, commercial_tours_path: Path | None = None) -> int:
         count = import_file(self.db_path, sample_path)
         logger.info("样例路线初始化完成 count=%s", count)
+        if commercial_tours_path:
+            tour_count = import_commercial_tour_file(self.db_path, commercial_tours_path)
+            logger.info("商团产品样例初始化完成 count=%s", tour_count)
         return count
 
     def routes(self) -> list[dict[str, Any]]:
@@ -56,6 +70,24 @@ class ChatBIService:
         logger.info(
             "路线推荐完成 departure_at=%s result_count=%s",
             query.get("departure_at"), len(results),
+        )
+        return results
+
+    def commercial_tours(
+        self,
+        query: dict[str, Any],
+        current_date: date | None = None,
+    ) -> list[dict[str, Any]]:
+        products = list_commercial_tours(self.db_path)
+        results = recommend_commercial_tours(
+            self.routes(),
+            products,
+            query,
+            current_date=current_date,
+        )
+        logger.info(
+            "商团产品推荐完成 departure_date=%s result_count=%s",
+            query.get("departure_date"), len(results),
         )
         return results
 
@@ -104,6 +136,13 @@ class ChatBIService:
             validate_import_item(item)
         count = import_routes(self.db_path, items)
         logger.info("路线数据导入完成 count=%s", count)
+        return count
+
+    def import_commercial_tour_items(self, items: list[dict[str, Any]]) -> int:
+        for item in items:
+            validate_commercial_tour_product(item)
+        count = import_commercial_tours(self.db_path, items)
+        logger.info("商团产品数据导入完成 count=%s", count)
         return count
 
     def record_feedback(self, payload: dict[str, Any]) -> int:

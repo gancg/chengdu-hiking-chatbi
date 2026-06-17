@@ -10,6 +10,7 @@ from .config import (
     HOST,
     PORT,
     QWEN_MODEL,
+    SAMPLE_COMMERCIAL_TOURS_PATH,
     SAMPLE_DATA_PATH,
     TRAFFIC_PROVIDER,
     ALERT_PROVIDER,
@@ -49,14 +50,14 @@ def main() -> None:
         args.command, TRAFFIC_PROVIDER, ALERT_PROVIDER,
     )
     if args.command == "init":
-        count = service.seed(SAMPLE_DATA_PATH)
+        count = service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
         logger.info("样例路线导入完成 count=%s db_path=%s", count, DB_PATH)
     elif args.command == "import":
         count = import_file(DB_PATH, Path(args.path))
         logger.info("路线文件导入完成 count=%s source=%s", count, args.path)
     elif args.command in {"qwen-chat", "qwen-web", "app"}:
         if not service.routes():
-            service.seed(SAMPLE_DATA_PATH)
+            service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
         from .qwen_chatbi import run_qwen_chat, run_qwen_web
 
         if args.command == "qwen-chat":
@@ -69,7 +70,7 @@ def main() -> None:
             run_app(service, HOST, PORT, WEB_HOST, WEB_PORT, QWEN_MODEL)
     else:
         if not service.routes():
-            service.seed(SAMPLE_DATA_PATH)
+            service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
         serve(service, HOST, PORT)
 
 

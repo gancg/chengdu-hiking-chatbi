@@ -90,6 +90,21 @@ CREATE TABLE IF NOT EXISTS transport_cost_items (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS commercial_tour_products (
+    id TEXT PRIMARY KEY,
+    route_id TEXT NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
+    provider_name TEXT NOT NULL,
+    product_name TEXT NOT NULL,
+    departure_dates_json TEXT NOT NULL,
+    meeting_point TEXT NOT NULL,
+    price_min_cny REAL NOT NULL CHECK(price_min_cny >= 0),
+    price_max_cny REAL NOT NULL CHECK(price_max_cny >= price_min_cny),
+    included_services_json TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    reviewed INTEGER NOT NULL DEFAULT 0 CHECK(reviewed IN (0,1))
+);
+
 CREATE TABLE IF NOT EXISTS trip_feedback (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     route_id TEXT NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
@@ -109,6 +124,8 @@ JSON_FIELDS = {
     "risks",
     "transport_modes",
     "common_bottlenecks",
+    "departure_dates",
+    "included_services",
 }
 
 
@@ -311,6 +328,47 @@ def import_routes(path: Path, items: Iterable[dict[str, Any]]) -> int:
     return count
 
 
+def import_commercial_tours(path: Path, items: Iterable[dict[str, Any]]) -> int:
+    initialize(path)
+    count = 0
+    columns = [
+        "id",
+        "route_id",
+        "provider_name",
+        "product_name",
+        "departure_dates_json",
+        "meeting_point",
+        "price_min_cny",
+        "price_max_cny",
+        "included_services_json",
+        "source_url",
+        "updated_at",
+        "reviewed",
+    ]
+    with closing(connect(path)) as connection:
+        with connection:
+            for item in items:
+                encoded = dict(item)
+                encoded["departure_dates_json"] = json.dumps(
+                    item["departure_dates"], ensure_ascii=False
+                )
+                encoded["included_services_json"] = json.dumps(
+                    item["included_services"], ensure_ascii=False
+                )
+                values = [encoded.get(column) for column in columns]
+                updates = ",".join(
+                    f"{column}=excluded.{column}" for column in columns[1:]
+                )
+                connection.execute(
+                    f"INSERT INTO commercial_tour_products "
+                    f"({','.join(columns)}) VALUES ({','.join('?' for _ in columns)}) "
+                    f"ON CONFLICT(id) DO UPDATE SET {updates}",
+                    values,
+                )
+                count += 1
+    return count
+
+
 def list_routes(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
     query = """
         SELECT r.*, t.base_one_way_minutes, t.weekday_extra_min, t.weekday_extra_max,
@@ -354,3 +412,16 @@ def list_routes(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
 def get_route(path: Path, route_id: str) -> dict[str, Any] | None:
     routes = [route for route in list_routes(path, reviewed_only=False) if route["id"] == route_id]
     return routes[0] if routes else None
+
+
+def list_commercial_tours(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
+    query = "SELECT * FROM commercial_tour_products"
+    params: tuple[Any, ...] = ()
+    if reviewed_only:
+        query += " WHERE reviewed = ?"
+        params = (1,)
+    with closing(connect(path)) as connection:
+        products = [_decode(row) for row in connection.execute(query, params)]
+        for product in products:
+            product["reviewed"] = bool(product["reviewed"])
+        return products

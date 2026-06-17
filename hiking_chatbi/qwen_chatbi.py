@@ -71,7 +71,11 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
 21. 所有路线推荐默认面向单日往返出行；调用推荐工具时未另有明确约束，应按单日路线理解。
     多日游路线暂未完整支持，后续补充（TODO）。用户请求多日游时，应说明当前暂不推荐多日游路线，
     不得把现有单日路线包装成多日游方案。
-"""
+22. 和用户沟通选择路线时，必须先明确出行方式和出行时间，再确认其它筛选条件。出行方式应先在
+    自驾、公共交通、报团中明确其一；出行时间应明确到具体出发日期，涉及交通估算时尽量确认出发时段或时间。
+    在出行方式和出行时间都明确之前，不得继续追问预算、强度、风景、设施等其它筛选条件，也不得调用路线推荐、
+    交通估算或天气估算工具。用户明确选择报团时，优先使用 recommend_commercial_tours，并遵守商团产品回答边界。
+    若只能一次问一个问题，先问出行方式；已明确出行方式后，再问具体出行时间。"""
 
 
 def _json_result(payload: Any) -> str:
@@ -124,17 +128,21 @@ def build_interview_guidance(messages: list[Any]) -> str:
         return (
             f"当前是第 {user_turns} 个用户轮次，处于探索阶段。"
             "先接住用户表达的兴趣或顾虑，再一次只问一个容易回答的问题。"
-            "优先问最能缩小路线范围的条件，不要罗列缺失字段。"
+            "选择路线前，先补齐出行方式和出行时间：出行方式限定为自驾、公共交通、报团；"
+            "若两者还没明确，不要先追问预算、强度、风景或设施。"
+            "优先问最能缩小路线范围的前置条件，不要罗列缺失字段。"
         )
     if user_turns == 3:
         return (
             "当前处于收敛阶段。简短总结已知偏好，只确认一个仍会显著影响推荐结果的问题。"
+            "如果出行方式或出行时间仍未明确，继续优先补齐其中一个；不要先进入其它筛选条件。"
             "如果信息已经足够，直接进入推荐，不要为了凑轮次继续提问。"
         )
     return (
         f"当前已交流 {user_turns} 个用户轮次，处于推荐阶段。"
+        "进入推荐前再次检查：必须已有明确出行方式和具体出行时间；缺少任一项时先补问该项。"
         "信息基本可用时立即给出初步推荐，不要继续机械追问。"
-        "缺失的次要条件采用保守默认值并明确说明；若缺少日期，可先给静态候选并邀请用户补充日期。"
+        "缺失的次要条件采用保守默认值并明确说明；若缺少日期，只能先补问日期。"
     )
 
 
@@ -230,6 +238,47 @@ class RecommendHikingRoutesTool(HikingTool):
     def call(self, params: str | dict[str, Any], **kwargs: Any) -> str:
         query = self.verify_params(params)
         items = self.service.recommendations(query)
+        return _json_result({"count": len(items), "items": items})
+
+
+class RecommendCommercialToursTool(HikingTool):
+    name = "recommend_commercial_tours"
+    description = (
+        "根据已收录、已审核的商团产品数据，推荐适合报商团的成都周边徒步路线。"
+        "不得用于查询未收录商家、余位、成团状态、报名截止或联系方式。"
+    )
+    parameters = [
+        {
+            "name": "departure_date",
+            "type": "string",
+            "description": "出发日期，ISO 8601 日期；提供时只严格匹配当天团期",
+        },
+        {"name": "route_id", "type": "string", "description": "限定路线唯一标识"},
+        {"name": "party_size", "type": "integer", "description": "出行人数，默认 1"},
+        {
+            "name": "max_budget_cny",
+            "type": "number",
+            "description": "整组最高总预算，按人数乘以单人套餐最高价过滤",
+        },
+        {"name": "max_distance_km", "type": "number", "description": "最大徒步距离，公里"},
+        {"name": "max_ascent_m", "type": "integer", "description": "最大累计爬升，米"},
+        {"name": "max_duration_days", "type": "integer", "description": "最大行程天数，默认 1"},
+        {
+            "name": "max_difficulty",
+            "type": "string",
+            "description": "最高难度，可选 easy、moderate、hard、expert",
+        },
+        {
+            "name": "scenery_preferences",
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "风景偏好，用于商团路线适配排序",
+        },
+    ]
+
+    def call(self, params: str | dict[str, Any], **kwargs: Any) -> str:
+        query = self.verify_params(params)
+        items = self.service.commercial_tours(query)
         return _json_result({"count": len(items), "items": items})
 
 
@@ -333,6 +382,13 @@ def build_qwen_agent(service: ChatBIService, model: str = "qwen-plus") -> Guided
     system_message = (
         f"{SYSTEM_PROMPT}\n\n# 当前日期上下文\n{build_departure_date_guidance()}"
         f"\n\n# 已收录节假日摘要\n{build_public_holiday_guidance()}"
+        "\n\n# 商团产品回答规则\n"
+        "需要推荐或比较报商团产品时，必须调用 recommend_commercial_tours。"
+        "商家、产品、集合点、价格、团期和包含服务必须来自工具结果；"
+        "不得编造未收录商家、未收录团期、报名链接、联系方式、报名截止、成团状态或名额信息；"
+        "回答商团推荐时必须展示商团名称，方便用户向相应商团咨询详细信息；"
+        "不承诺余位或成团状态，必须提醒用户报名前二次确认价格、团期、名额和安全要求；"
+        "用户确认某个已收录活动后，可以引导用户去该商团的小程序进行报名。"
     )
     return GuidedHikingAssistant(
         llm={
@@ -346,6 +402,7 @@ def build_qwen_agent(service: ChatBIService, model: str = "qwen-plus") -> Guided
         function_list=[
             ListHikingRoutesTool(service),
             RecommendHikingRoutesTool(service),
+            RecommendCommercialToursTool(service),
             EstimateRouteTrafficTool(service),
             EstimateRouteWeatherTool(service),
             ResolveDepartureDateTool(service),
