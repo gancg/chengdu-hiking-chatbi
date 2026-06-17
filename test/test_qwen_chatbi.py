@@ -16,6 +16,7 @@ from hiking_chatbi.qwen_chatbi import (
     ResolvePublicHolidayTool,
     build_departure_date_guidance,
     build_interview_guidance,
+    build_public_holiday_guidance,
     build_qwen_agent,
 )
 from hiking_chatbi.service import ChatBIService
@@ -160,6 +161,25 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("必须先调用节假日查询工具", agent.system_message)
         self.assertIn("不得凭记忆推断节日日期", agent.system_message)
 
+    def test_public_holiday_guidance_contains_verified_dragon_boat_dates(self) -> None:
+        """节假日摘要应给出已收录的端午节正确日期，防止模型凭记忆编造。"""
+        guidance = build_public_holiday_guidance()
+
+        self.assertIn("2026 端午节", guidance, "应包含 2026 年端午节摘要")
+        self.assertIn("节日当天 2026-06-19（星期五）", guidance, "端午节当天不得错写")
+        self.assertIn("假期 2026-06-19（星期五）至 2026-06-21（星期日）", guidance)
+        self.assertIn("不得输出未由节假日工具或本摘要支持", guidance)
+        self.assertNotIn("2026-06-01", guidance, "端午节摘要不得包含错误的六月一日")
+
+    def test_agent_prompt_includes_public_holiday_guidance(self) -> None:
+        """Qwen Agent 系统提示应注入已收录节假日摘要作为兜底上下文。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("已收录节假日摘要", agent.system_message)
+        self.assertIn("2026 端午节", agent.system_message)
+        self.assertIn("2026-06-19", agent.system_message)
+        self.assertIn("2026-06-21", agent.system_message)
+
     def test_agent_prompt_requires_numbered_next_action_options(self) -> None:
         """Qwen Agent 提供多个下一步动作时应使用数字编号。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
@@ -167,6 +187,16 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("使用连续数字编号", agent.system_message)
         self.assertIn("直接回复数字", agent.system_message)
         self.assertIn("不得列出当前工具或数据无法完成的动作", agent.system_message)
+
+    def test_agent_prompt_requires_numbered_preference_options(self) -> None:
+        """Qwen Agent 询问强度等简单偏好时应让用户用数字选择。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("路线强度", agent.system_message)
+        self.assertIn("简单偏好", agent.system_message)
+        self.assertIn("1. 轻松 2. 适中 3. 挑战", agent.system_message)
+        self.assertIn("把复杂判断留给后台", agent.system_message)
+        self.assertIn("不得先展开长篇定义，再重复询问同一个问题", agent.system_message)
 
     def test_holiday_tool_returns_verified_weekday_and_day_type(self) -> None:
         """节假日工具按日期查询时应返回星期和交通日期类型。"""
@@ -177,6 +207,22 @@ class QwenChatBITest(unittest.TestCase):
         self.assertEqual("星期一", result["weekday_name"], "日期对应星期必须由工具计算")
         self.assertEqual("weekday", result["day_type"], "工作日类型必须由工具返回")
 
+    def test_holiday_tool_distinguishes_departure_date_from_festival_date(self) -> None:
+        """假期内出发日不得被误写成节日当天。"""
+        result = json.loads(ResolvePublicHolidayTool(self.service).call({
+            "date": "2026-06-20",
+        }))
+
+        self.assertTrue(result["is_holiday"], "2026-06-20 应判定为端午假期内日期")
+        self.assertEqual("2026-06-20", result["date"], "应保留用户具体出发日期")
+        self.assertEqual("星期六", result["weekday_name"], "应返回出发日星期")
+        self.assertEqual("2026-06-19", result["festival_date"], "端午节当天应为 2026-06-19")
+        self.assertNotEqual(
+            result["date"],
+            result["festival_date"],
+            "出发日处于假期内时也不得等同于节日当天",
+        )
+
     def test_agent_prompt_requires_date_tool_for_weekday_classification(self) -> None:
         """Qwen Agent 不得自行计算星期或交通日期类型。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
@@ -184,6 +230,14 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("必须使用具体出发日期调用节假日查询工具", agent.system_message)
         self.assertIn("不得自行计算星期", agent.system_message)
         self.assertIn("不得声称景区人流或补给点开放遵循相同规则", agent.system_message)
+
+    def test_agent_prompt_requires_departure_and_festival_date_distinction(self) -> None:
+        """Qwen Agent 回答时应区分出发日期和节日当天。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("出发日期", agent.system_message)
+        self.assertIn("节日当天", agent.system_message)
+        self.assertIn("不得把假期内日期表述为节日当天", agent.system_message)
 
     def test_departure_date_tool_resolves_current_weekend(self) -> None:
         """相对日期工具应正确解析本周末。"""
@@ -204,6 +258,22 @@ class QwenChatBITest(unittest.TestCase):
 
         self.assertIn("必须先调用相对出发日期查询工具", agent.system_message)
         self.assertIn("不得自行推算具体日期", agent.system_message)
+
+    def test_agent_prompt_requires_weekend_day_confirmation(self) -> None:
+        """用户只说周末出行时，Qwen Agent 应先确认具体日期。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("周末出行", agent.system_message)
+        self.assertIn("必须先询问清楚具体是哪一天", agent.system_message)
+        self.assertIn("不得自行选择周六或周日", agent.system_message)
+
+    def test_agent_prompt_defaults_recommendations_to_single_day_routes(self) -> None:
+        """Qwen Agent 默认应只推荐单日往返路线，多日游作为后续 TODO。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("默认面向单日往返出行", agent.system_message)
+        self.assertIn("多日游路线暂未完整支持", agent.system_message)
+        self.assertIn("TODO", agent.system_message)
 
 
 if __name__ == "__main__":

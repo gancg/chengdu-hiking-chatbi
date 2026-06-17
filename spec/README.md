@@ -287,7 +287,7 @@ Agent 使用引导式需求访谈收集推荐条件：
 | `party_size` | `1` | 出行人数，必须为正整数 |
 | `vehicle_count` | `1` | 车辆数，必须为正整数 |
 | `max_one_way_minutes` | 无穷大 | 去程最大预计时间 |
-| `max_duration_days` | `2` | 最大行程天数 |
+| `max_duration_days` | `1` | 最大行程天数；默认只推荐单日往返路线 |
 | `max_difficulty` | 不限制 | 最大难度 |
 | `latest_return_at` | 不限制 | 最晚回到出发地时间 |
 | `traffic_tolerance` | `medium` | 可接受的最高拥堵等级 |
@@ -486,3 +486,4 @@ python -m unittest discover -s tests -v
 - 用户反馈当前按路线整体平均，无法准确反映方向和时段差异。
 - 样例来源 URL 为演示地址，不可作为真实路线依据。
 - 徒步与交通估算仅用于 demo，不构成安全或出行保证。
+- 多日游路线的住宿、跨日天气、补给和行程拆分尚未完整建模，后续补充（TODO）；默认推荐只覆盖单日往返路线。

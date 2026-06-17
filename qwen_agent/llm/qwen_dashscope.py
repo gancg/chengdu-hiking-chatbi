@@ -16,7 +16,7 @@ import json
 import os
 from http import HTTPStatus
 from pprint import pformat
-from typing import Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 import dashscope
 
@@ -24,6 +24,56 @@ from qwen_agent.llm.base import ModelServiceError, register_llm
 from qwen_agent.llm.function_calling import BaseFnCallModel
 from qwen_agent.llm.schema import ASSISTANT, FunctionCall, Message
 from qwen_agent.log import logger
+
+
+def _get_dashscope_field(response: Any, field: str, default: Any = None) -> Any:
+    if isinstance(response, dict):
+        return response.get(field, default)
+    return getattr(response, field, default)
+
+
+def _get_dashscope_request_id(response: Any) -> Any:
+    request_id = _get_dashscope_field(response, 'request_id')
+    if request_id:
+        return request_id
+    request_id = _get_dashscope_field(response, 'requestId')
+    if request_id:
+        return request_id
+    headers = _get_dashscope_field(response, 'headers', {}) or {}
+    if isinstance(headers, dict):
+        return headers.get('x-request-id') or headers.get('X-Request-Id')
+    return None
+
+
+def _log_dashscope_error(response: Any, context: Dict[str, Any]) -> None:
+    logger.error(
+        'DashScope model call failed model=%s stream=%s delta_stream=%s status_code=%s '
+        'code=%s message=%s request_id=%s chunk_index=%s received_chunks=%s',
+        context.get('model', 'unknown'),
+        context.get('stream', 'unknown'),
+        context.get('delta_stream', 'unknown'),
+        _get_dashscope_field(response, 'status_code', 'unknown'),
+        _get_dashscope_field(response, 'code', 'unknown'),
+        _get_dashscope_field(response, 'message', 'unknown'),
+        _get_dashscope_request_id(response) or 'unknown',
+        context.get('chunk_index', 'n/a'),
+        context.get('received_chunks', 'n/a'),
+    )
+
+
+def _log_dashscope_exception(exc: BaseException, context: Dict[str, Any]) -> None:
+    logger.exception(
+        'DashScope model call raised model=%s stream=%s delta_stream=%s message_count=%s '
+        'chunk_index=%s received_chunks=%s exception_type=%s exception_message=%s',
+        context.get('model', 'unknown'),
+        context.get('stream', 'unknown'),
+        context.get('delta_stream', 'unknown'),
+        context.get('message_count', 'n/a'),
+        context.get('chunk_index', 'n/a'),
+        context.get('received_chunks', 'n/a'),
+        type(exc).__name__,
+        str(exc) or repr(exc),
+    )
 
 
 @register_llm('qwen_dashscope')
@@ -46,16 +96,30 @@ class QwenChatAtDS(BaseFnCallModel):
         messages = self._conv_qwen_agent_messages_to_oai(messages)
         logger.debug(f'LLM Input: \n{pformat(messages, indent=2)}')
         logger.debug(f'LLM Input generate_cfg: \n{generate_cfg}')
-        response = dashscope.Generation.call(
-            self.model,
-            messages=messages,  # noqa
-            result_format='message',
-            stream=True,
-            **generate_cfg)
+        try:
+            response = dashscope.Generation.call(
+                self.model,
+                messages=messages,  # noqa
+                result_format='message',
+                stream=True,
+                **generate_cfg)
+        except Exception as exc:
+            _log_dashscope_exception(exc, {
+                'model': self.model,
+                'stream': True,
+                'delta_stream': delta_stream,
+                'message_count': len(messages),
+            })
+            raise
+        context = {
+            'model': self.model,
+            'stream': True,
+            'delta_stream': delta_stream,
+        }
         if delta_stream:
-            return self._delta_stream_output(response)
+            return self._delta_stream_output(response, context=context)
         else:
-            return self._full_stream_output(response)
+            return self._full_stream_output(response, context=context)
 
     def _chat_no_stream(
         self,
@@ -67,12 +131,21 @@ class QwenChatAtDS(BaseFnCallModel):
             messages[-1]['partial'] = True
         messages = self._conv_qwen_agent_messages_to_oai(messages)
         logger.debug(f'LLM Input: \n{pformat(messages, indent=2)}')
-        response = dashscope.Generation.call(
-            self.model,
-            messages=messages,  # noqa
-            result_format='message',
-            stream=False,
-            **generate_cfg)
+        try:
+            response = dashscope.Generation.call(
+                self.model,
+                messages=messages,  # noqa
+                result_format='message',
+                stream=False,
+                **generate_cfg)
+        except Exception as exc:
+            _log_dashscope_exception(exc, {
+                'model': self.model,
+                'stream': False,
+                'delta_stream': False,
+                'message_count': len(messages),
+            })
+            raise
         if response.status_code == HTTPStatus.OK:
             return [
                 Message(role=ASSISTANT,
@@ -81,6 +154,11 @@ class QwenChatAtDS(BaseFnCallModel):
                         extra={'model_service_info': response})
             ]
         else:
+            _log_dashscope_error(response, {
+                'model': self.model,
+                'stream': False,
+                'delta_stream': False,
+            })
             raise ModelServiceError(code=response.code,
                                     message=response.message,
                                     extra={'model_service_info': response})
@@ -94,69 +172,97 @@ class QwenChatAtDS(BaseFnCallModel):
         return self._chat(messages, stream=stream, delta_stream=False, generate_cfg=generate_cfg)
 
     @staticmethod
-    def _delta_stream_output(response) -> Iterator[List[Message]]:
-        for chunk in response:
-            if chunk.status_code == HTTPStatus.OK:
-                yield [
-                    Message(role=ASSISTANT,
-                            content=chunk.output.choices[0].message.content,
-                            reasoning_content=chunk.output.choices[0].message.reasoning_content,
-                            extra={'model_service_info': chunk})
-                ]
-            else:
-                raise ModelServiceError(code=chunk.code, message=chunk.message, extra={'model_service_info': chunk})
+    def _delta_stream_output(response, context: Optional[Dict[str, Any]] = None) -> Iterator[List[Message]]:
+        context = context or {}
+        received_chunks = 0
+        try:
+            for chunk_index, chunk in enumerate(response):
+                if chunk.status_code == HTTPStatus.OK:
+                    received_chunks += 1
+                    yield [
+                        Message(role=ASSISTANT,
+                                content=chunk.output.choices[0].message.content,
+                                reasoning_content=chunk.output.choices[0].message.reasoning_content,
+                                extra={'model_service_info': chunk})
+                    ]
+                else:
+                    error_context = dict(context)
+                    error_context.update(chunk_index=chunk_index, received_chunks=received_chunks)
+                    _log_dashscope_error(chunk, error_context)
+                    raise ModelServiceError(code=chunk.code, message=chunk.message, extra={'model_service_info': chunk})
+        except ModelServiceError:
+            raise
+        except Exception as exc:
+            error_context = dict(context)
+            error_context.update(chunk_index=received_chunks, received_chunks=received_chunks)
+            _log_dashscope_exception(exc, error_context)
+            raise
 
     @staticmethod
-    def _full_stream_output(response) -> Iterator[List[Message]]:
+    def _full_stream_output(response, context: Optional[Dict[str, Any]] = None) -> Iterator[List[Message]]:
+        context = context or {}
         full_content = ''
         full_reasoning_content = ''
         full_tool_calls = []
-        for chunk in response:
-            if chunk.status_code == HTTPStatus.OK:
-                if chunk.output.choices[0].message.get('reasoning_content', ''):
-                    full_reasoning_content += chunk.output.choices[0].message.reasoning_content
-                if chunk.output.choices[0].message.content:
-                    full_content += chunk.output.choices[0].message.content
-                tool_calls = chunk.output.choices[0].message.get('tool_calls', None)
-                if tool_calls:
-                    for tc in tool_calls:
-                        if full_tool_calls and (not tc['id'] or
-                                                tc['id'] == full_tool_calls[-1]['extra']['function_id']):
-                            if tc['function'].get('name', ''):
-                                full_tool_calls[-1].function_call['name'] += tc['function']['name']
-                            if tc['function'].get('arguments', ''):
-                                full_tool_calls[-1].function_call['arguments'] += tc['function']['arguments']
-                        else:
-                            full_tool_calls.append(
-                                Message(role=ASSISTANT,
-                                        content='',
-                                        function_call=FunctionCall(name=tc['function'].get('name', ''),
-                                                                   arguments=tc['function'].get('arguments', '')),
-                                        extra={
-                                            'model_service_info': json.loads(str(chunk)),
-                                            'function_id': tc['id']
-                                        }))
-                res = []
-                if full_reasoning_content:
-                    res.append(
-                        Message(role=ASSISTANT,
-                                content='',
-                                reasoning_content=full_reasoning_content,
-                                extra={
-                                    'model_service_info': json.loads(str(chunk)),
-                                }))
-                if full_content:
-                    res.append(
-                        Message(role=ASSISTANT,
-                                content=full_content,
-                                extra={
-                                    'model_service_info': json.loads(str(chunk)),
-                                }))
-                if full_tool_calls:
-                    res += full_tool_calls
-                yield res
-            else:
-                raise ModelServiceError(code=chunk.code, message=chunk.message, extra={'model_service_info': chunk})
+        received_chunks = 0
+        try:
+            for chunk_index, chunk in enumerate(response):
+                if chunk.status_code == HTTPStatus.OK:
+                    received_chunks += 1
+                    if chunk.output.choices[0].message.get('reasoning_content', ''):
+                        full_reasoning_content += chunk.output.choices[0].message.reasoning_content
+                    if chunk.output.choices[0].message.content:
+                        full_content += chunk.output.choices[0].message.content
+                    tool_calls = chunk.output.choices[0].message.get('tool_calls', None)
+                    if tool_calls:
+                        for tc in tool_calls:
+                            if full_tool_calls and (not tc['id'] or
+                                                    tc['id'] == full_tool_calls[-1]['extra']['function_id']):
+                                if tc['function'].get('name', ''):
+                                    full_tool_calls[-1].function_call['name'] += tc['function']['name']
+                                if tc['function'].get('arguments', ''):
+                                    full_tool_calls[-1].function_call['arguments'] += tc['function']['arguments']
+                            else:
+                                full_tool_calls.append(
+                                    Message(role=ASSISTANT,
+                                            content='',
+                                            function_call=FunctionCall(name=tc['function'].get('name', ''),
+                                                                       arguments=tc['function'].get('arguments', '')),
+                                            extra={
+                                                'model_service_info': json.loads(str(chunk)),
+                                                'function_id': tc['id']
+                                            }))
+                    res = []
+                    if full_reasoning_content:
+                        res.append(
+                            Message(role=ASSISTANT,
+                                    content='',
+                                    reasoning_content=full_reasoning_content,
+                                    extra={
+                                        'model_service_info': json.loads(str(chunk)),
+                                    }))
+                    if full_content:
+                        res.append(
+                            Message(role=ASSISTANT,
+                                    content=full_content,
+                                    extra={
+                                        'model_service_info': json.loads(str(chunk)),
+                                    }))
+                    if full_tool_calls:
+                        res += full_tool_calls
+                    yield res
+                else:
+                    error_context = dict(context)
+                    error_context.update(chunk_index=chunk_index, received_chunks=received_chunks)
+                    _log_dashscope_error(chunk, error_context)
+                    raise ModelServiceError(code=chunk.code, message=chunk.message, extra={'model_service_info': chunk})
+        except ModelServiceError:
+            raise
+        except Exception as exc:
+            error_context = dict(context)
+            error_context.update(chunk_index=received_chunks, received_chunks=received_chunks)
+            _log_dashscope_exception(exc, error_context)
+            raise
 
 
 def initialize_dashscope(cfg: Optional[Dict] = None) -> None:

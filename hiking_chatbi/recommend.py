@@ -67,7 +67,7 @@ def recommend(
             for item in cost_estimates
         ):
             continue
-        if route["duration_days"] > query.get("max_duration_days", 2):
+        if route["duration_days"] > query.get("max_duration_days", 1):
             continue
         max_difficulty = query.get("max_difficulty")
         if max_difficulty and DIFFICULTY_RANK[route["difficulty"]] > DIFFICULTY_RANK[max_difficulty]:

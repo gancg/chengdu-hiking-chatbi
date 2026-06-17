@@ -13,7 +13,7 @@ from qwen_agent.tools.base import BaseTool
 
 from .service import ChatBIService
 from .departure_dates import resolve_departure_date
-from .holidays import resolve_public_holiday
+from .holidays import HOLIDAY_CALENDARS, WEEKDAY_NAMES, resolve_public_holiday
 
 
 logger = logging.getLogger(__name__)
@@ -50,15 +50,27 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     确定出发日期后，必须使用具体出发日期调用节假日查询工具，并采用工具返回的星期和
     日期类型；不得自行计算星期或判断工作日、周末。工作日、周末和节假日类型仅用于
     当前交通估算，不得声称景区人流或补给点开放遵循相同规则。
+    回答中必须区分用户的出发日期和工具返回的节日当天：`date` 是具体出发日期，
+    `festival_date` 是节日当天。如果具体出发日期处于假期内但不等于节日当天，
+    只能表述为“处于某节假期内”，不得把假期内日期表述为节日当天。
 18. 向用户征求下一步操作意见并提供多个可选动作时，必须使用连续数字编号，格式为 `1. 2. 3.`，
     通常提供 2–4 项，并明确提示用户可以直接回复数字。不得使用图标、装饰符号或
     无编号项目符号代替数字编号。
 19. 下一步选项必须是当前工具或数据能够完成的动作，不得列出当前工具或数据无法完成的动作，
     也不得承诺查询尚未提供的数据，例如未收录的设施具体位置或营业时间。普通需求访谈仍然
     每轮最多询问一个问题；多个编号选项只用于让用户选择下一步动作。
+    询问路线强度、交通方式、出发日期候选等简单偏好时，也必须使用连续数字编号，
+    把复杂判断留给后台，面向用户只给简短选项。例如强度偏好应写成：
+    “这次徒步强度你更倾向：1. 轻松 2. 适中 3. 挑战。直接回复 1、2 或 3 即可。”
+    不得先展开长篇定义，再重复询问同一个问题。
 20. 用户使用“本周末”“下周末”“本周六”“明天”等相对日期表达时，必须先调用相对出发日期查询工具，
     并采用工具返回的候选日期、星期和日期类型；不得自行推算具体日期或星期。
     如果工具返回多个仍可出发的候选日期且日期会影响结果，应使用数字编号请用户选择。
+    用户只说“周末出行”“周末早上出发”等未明确具体日期的表达时，必须先询问清楚具体是哪一天。
+    涉及交通、天气或路线推荐估算前，不得自行选择周六或周日作为出发日期。
+21. 所有路线推荐默认面向单日往返出行；调用推荐工具时未另有明确约束，应按单日路线理解。
+    多日游路线暂未完整支持，后续补充（TODO）。用户请求多日游时，应说明当前暂不推荐多日游路线，
+    不得把现有单日路线包装成多日游方案。
 """
 
 
@@ -82,6 +94,27 @@ def build_departure_date_guidance(current_date: date | None = None) -> str:
         "出发时间通常应晚于当前时间；如果按当前年度理解后日期已过，应向用户确认，"
         "不要自行推断为下一年度。用户明确提供年份时，以用户提供的年份为准。"
     )
+
+
+def build_public_holiday_guidance() -> str:
+    """Build a concise audited holiday calendar summary for model grounding."""
+    lines = [
+        "以下为本地已收录的中国大陆全国性节假日摘要，仅用于防止凭记忆编造日期；"
+        "涉及节假日判断时仍必须优先调用节假日查询工具。",
+        "不得输出未由节假日工具或本摘要支持的具体节假日日期。",
+    ]
+    for year in sorted(HOLIDAY_CALENDARS):
+        for item in HOLIDAY_CALENDARS[year]:
+            festival = date.fromisoformat(item["festival_date"])
+            start = date.fromisoformat(item["start_date"])
+            end = date.fromisoformat(item["end_date"])
+            lines.append(
+                f"{year} {item['name']}：节日当天 {item['festival_date']}"
+                f"（{WEEKDAY_NAMES[festival.weekday()]}），假期 {item['start_date']}"
+                f"（{WEEKDAY_NAMES[start.weekday()]}）至 {item['end_date']}"
+                f"（{WEEKDAY_NAMES[end.weekday()]}）。"
+            )
+    return "\n".join(lines)
 
 
 def build_interview_guidance(messages: list[Any]) -> str:
@@ -299,6 +332,7 @@ def build_qwen_agent(service: ChatBIService, model: str = "qwen-plus") -> Guided
     """Build a Qwen Agent that can only call read-only hiking tools."""
     system_message = (
         f"{SYSTEM_PROMPT}\n\n# 当前日期上下文\n{build_departure_date_guidance()}"
+        f"\n\n# 已收录节假日摘要\n{build_public_holiday_guidance()}"
     )
     return GuidedHikingAssistant(
         llm={
