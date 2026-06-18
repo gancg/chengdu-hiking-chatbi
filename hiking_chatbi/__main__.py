@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 from pathlib import Path
 
 from .api import serve
@@ -10,6 +11,7 @@ from .config import (
     HOST,
     PORT,
     QWEN_MODEL,
+    QWEN_SEED,
     SAMPLE_COMMERCIAL_TOURS_PATH,
     SAMPLE_DATA_PATH,
     TRAFFIC_PROVIDER,
@@ -46,8 +48,19 @@ def main() -> None:
         alert_provider_from_name(ALERT_PROVIDER),
     )
     logger.info(
-        "应用命令启动 command=%s traffic_provider=%s alert_provider=%s",
-        args.command, TRAFFIC_PROVIDER, ALERT_PROVIDER,
+        "应用命令启动 command=%s db_path=%s traffic_provider=%s alert_provider=%s "
+        "qwen_model=%s qwen_seed=%s api=%s:%s web=%s:%s python=%s",
+        args.command,
+        DB_PATH,
+        TRAFFIC_PROVIDER,
+        ALERT_PROVIDER,
+        QWEN_MODEL,
+        QWEN_SEED,
+        HOST,
+        PORT,
+        WEB_HOST,
+        WEB_PORT,
+        sys.executable,
     )
     if args.command == "init":
         count = service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)

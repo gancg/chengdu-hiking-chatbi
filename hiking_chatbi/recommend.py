@@ -39,8 +39,8 @@ def recommend(
     )
     modes = set(query.get("transport_modes", []))
     scenery = set(query.get("scenery_preferences", []))
-    tolerance = query.get("traffic_tolerance", "medium")
-    tolerance_rank = LEVEL_RANK[tolerance]
+    tolerance = query.get("traffic_tolerance")
+    tolerance_rank = LEVEL_RANK[tolerance] if tolerance else None
     party_size = query.get("party_size", 1)
     vehicle_count = query.get("vehicle_count", 1)
     results = []
@@ -79,7 +79,10 @@ def recommend(
         )
         if outbound["max_minutes"] > query.get("max_one_way_minutes", float("inf")):
             continue
-        if LEVEL_RANK[outbound["congestion_level"]] > tolerance_rank:
+        if (
+            tolerance_rank is not None
+            and LEVEL_RANK[outbound["congestion_level"]] > tolerance_rank
+        ):
             continue
 
         hiking_start = departure + timedelta(minutes=outbound["max_minutes"])

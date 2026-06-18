@@ -20,7 +20,6 @@
 | `meeting_point` | string | 集合点 |
 | `price_min_cny` | number | 单人套餐最低价 |
 | `price_max_cny` | number | 单人套餐最高价 |
-| `included_services` | string[] | 已收录的包含服务 |
 | `source_url` | string | 数据来源 |
 | `updated_at` | string | 更新时间，ISO 8601 时间 |
 | `reviewed` | boolean | 是否人工审核 |

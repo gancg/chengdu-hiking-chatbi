@@ -32,6 +32,21 @@ class DepartureDateTest(unittest.TestCase):
             "下周末应落在下一自然周",
         )
 
+    def test_day_after_tomorrow_returns_verified_weekday(self) -> None:
+        """后天应基于参考日期返回由程序核验的正确星期。"""
+        result = resolve_departure_date("后天", date(2026, 6, 18))
+
+        self.assertEqual(
+            ["2026-06-20"],
+            [item["date"] for item in result["candidates"]],
+            "2026-06-18 的后天应为 2026-06-20",
+        )
+        self.assertEqual(
+            ["星期六"],
+            [item["weekday_name"] for item in result["candidates"]],
+            "不得把 2026-06-20 错写为星期五",
+        )
+
     def test_unsupported_expression_raises_clear_error(self) -> None:
         """不支持的相对日期表达不得由工具猜测。"""
         with self.assertRaisesRegex(ValueError, "不支持的相对日期表达"):

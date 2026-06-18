@@ -5,8 +5,9 @@ import json
 import logging
 import os
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Protocol
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
@@ -17,6 +18,10 @@ class AlertProvider(Protocol):
     def alerts(
         self, latitude: float, longitude: float, start_at: datetime, end_at: datetime
     ) -> list[dict[str, Any]] | None: ...
+
+    def daily_weather(
+        self, latitude: float, longitude: float, forecast_date: date
+    ) -> dict[str, Any] | None: ...
 
 
 class _TimedCache:
@@ -41,16 +46,24 @@ class NoAlertProvider:
     ) -> None:
         return None
 
+    def daily_weather(
+        self, latitude: float, longitude: float, forecast_date: date
+    ) -> None:
+        return None
+
 
 class MockAlertProvider:
     def __init__(
         self,
         alerts: list[dict[str, Any]] | None = None,
+        daily_weather: dict[str, Any] | None = None,
         error: Exception | None = None,
     ) -> None:
         self.items = alerts or []
         self.error = error
         self.call_count = 0
+        self.daily_weather_item = daily_weather
+        self.daily_weather_call_count = 0
 
     def alerts(
         self, latitude: float, longitude: float, start_at: datetime, end_at: datetime
@@ -59,6 +72,14 @@ class MockAlertProvider:
         if self.error:
             raise self.error
         return deepcopy(self.items)
+
+    def daily_weather(
+        self, latitude: float, longitude: float, forecast_date: date
+    ) -> dict[str, Any] | None:
+        self.daily_weather_call_count += 1
+        if self.error:
+            raise self.error
+        return deepcopy(self.daily_weather_item)
 
 
 def _get_json(url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
@@ -124,6 +145,35 @@ class QWeatherAlertProvider:
         )
         return result
 
+    def daily_weather(
+        self, latitude: float, longitude: float, forecast_date: date
+    ) -> dict[str, Any] | None:
+        forecast_days = _select_daily_weather_days(forecast_date)
+        if forecast_days is None:
+            return _unavailable_daily_weather(
+                "出发日期超出和风天气30日预报范围", forecast_date
+            )
+        request_latitude = round(latitude, 2)
+        request_longitude = round(longitude, 2)
+        key = (f"daily_weather_{forecast_days}", request_latitude, request_longitude)
+        cached = self.cache.get(key)
+        if cached is None:
+            query = urlencode({
+                "location": f"{request_longitude},{request_latitude}",
+                "lang": "zh",
+                "unit": "m",
+            })
+            url = f"https://{self.api_host}/v7/weather/{forecast_days}?{query}"
+            payload = _get_json(url, {"X-QW-Api-Key": self.api_key})
+            cached = payload.get("daily", [])
+            self.cache.put(key, cached)
+        for item in cached:
+            if item.get("fxDate") == forecast_date.isoformat():
+                return _normalize_daily_weather(item, payload_source="和风天气每日天气预报")
+        return _unavailable_daily_weather(
+            f"出发日期不在和风天气{forecast_days}预报结果中", forecast_date
+        )
+
 
 def alert_provider_from_name(name: str) -> AlertProvider:
     if name == "qweather":
@@ -160,6 +210,75 @@ def _normalize_alert_severity(value: Any) -> str:
         if any(label in text for label in labels):
             return severity
     return "other"
+
+
+def _select_daily_weather_days(
+    forecast_date: date,
+    current_date: date | None = None,
+) -> str | None:
+    today = current_date or datetime.now().astimezone().date()
+    days_ahead = (forecast_date - today).days + 1
+    if days_ahead <= 0 or days_ahead > 30:
+        return None
+    for supported_days in (3, 7, 10, 15, 30):
+        if days_ahead <= supported_days:
+            return f"{supported_days}d"
+    return None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_float(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_daily_weather(
+    item: dict[str, Any],
+    payload_source: str = "和风天气每日天气预报",
+) -> dict[str, Any]:
+    return {
+        "is_available": True,
+        "forecast_date": item.get("fxDate"),
+        "temp_min_c": _optional_int(item.get("tempMin")),
+        "temp_max_c": _optional_int(item.get("tempMax")),
+        "text_day": item.get("textDay"),
+        "text_night": item.get("textNight"),
+        "precip_mm": _optional_float(item.get("precip")),
+        "humidity_percent": _optional_int(item.get("humidity")),
+        "wind_dir_day": item.get("windDirDay"),
+        "wind_scale_day": item.get("windScaleDay"),
+        "source": payload_source,
+        "fallback_reason": None,
+    }
+
+
+def _unavailable_daily_weather(reason: str, forecast_date: date) -> dict[str, Any]:
+    return {
+        "is_available": False,
+        "forecast_date": forecast_date.isoformat(),
+        "temp_min_c": None,
+        "temp_max_c": None,
+        "text_day": None,
+        "text_night": None,
+        "precip_mm": None,
+        "humidity_percent": None,
+        "wind_dir_day": None,
+        "wind_scale_day": None,
+        "source": None,
+        "fallback_reason": reason,
+    }
 
 
 def _alert_overlaps(alert: dict[str, Any], start_at: datetime, end_at: datetime) -> bool:
@@ -219,6 +338,7 @@ def estimate_route_weather(
         raise ValueError("路线缺少起点经纬度，无法获取官方天气预警")
     fallback_reasons: list[str] = []
     data_sources: list[str] = []
+    forecast_date = hiking_start_at.date()
     try:
         alerts = alert_provider.alerts(
             float(latitude), float(longitude), hiking_start_at, hiking_end_at
@@ -236,11 +356,34 @@ def estimate_route_weather(
             "官方天气预警服务异常 route_id=%s error=%s",
             route.get("id"), exc, exc_info=True,
         )
+    daily_weather = _unavailable_daily_weather(
+        "每日天气预报服务未配置或未返回数据", forecast_date
+    )
+    try:
+        forecast = alert_provider.daily_weather(
+            float(latitude), float(longitude), forecast_date
+        )
+        if forecast is not None:
+            daily_weather = forecast
+            source = forecast.get("source")
+            if source:
+                data_sources.append(source)
+        else:
+            logger.debug("每日天气预报服务未配置或未返回数据 route_id=%s", route.get("id"))
+    except Exception as exc:
+        daily_weather = _unavailable_daily_weather(
+            f"每日天气预报不可用：{exc}", forecast_date
+        )
+        logger.warning(
+            "每日天气预报服务异常 route_id=%s error=%s",
+            route.get("id"), exc, exc_info=True,
+        )
     result = assess_route_alerts(route, hiking_start_at, hiking_end_at, alerts)
     result.update(
         data_sources=data_sources,
         fallback_reasons=fallback_reasons,
         location_scope="路线起点附近",
+        daily_weather=daily_weather,
     )
     logger.info(
         "路线官方天气预警判断完成 route_id=%s filtered=%s alert_count=%s",

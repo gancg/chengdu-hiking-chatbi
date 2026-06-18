@@ -5,8 +5,10 @@ import tempfile
 import unittest
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
-from hiking_chatbi.config import SAMPLE_COMMERCIAL_TOURS_PATH, SAMPLE_DATA_PATH
+from hiking_chatbi.config import SAMPLE_COMMERCIAL_TOURS_PATH, SAMPLE_DATA_PATH, optional_int_from_env
+import hiking_chatbi.qwen_chatbi as qwen_chatbi
 from hiking_chatbi.qwen_chatbi import (
     RecommendCommercialToursTool,
     EstimateRouteTrafficTool,
@@ -84,6 +86,26 @@ class QwenChatBITest(unittest.TestCase):
             "Agent 只能注册受控的徒步查询工具",
         )
 
+    def test_build_agent_uses_stable_default_seed(self) -> None:
+        """Qwen Agent 默认应使用稳定 seed，避免调试启动方式造成随机分叉。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertEqual(42, agent.llm.generate_cfg["seed"], "默认 seed 应固定为 42")
+
+    def test_build_agent_allows_random_seed_when_disabled(self) -> None:
+        """显式禁用 seed 时应保留原有随机生成行为。"""
+        with patch.object(qwen_chatbi, "QWEN_SEED", None):
+            agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertNotIn("seed", agent.llm.generate_cfg, "禁用 seed 后不应传入固定 seed")
+
+    def test_optional_int_from_env_allows_empty_value(self) -> None:
+        """空字符串环境变量应解析为 None，便于恢复随机 seed。"""
+        with patch.dict("os.environ", {"CHATBI_QWEN_SEED": ""}):
+            result = optional_int_from_env("CHATBI_QWEN_SEED", 42)
+
+        self.assertIsNone(result, "空 seed 应解析为 None")
+
     def test_weather_tool_reports_missing_required_field(self) -> None:
         """天气工具缺少必填字段时应返回明确异常。"""
         with self.assertRaisesRegex(ValueError, "缺少 departure_at"):
@@ -125,9 +147,17 @@ class QwenChatBITest(unittest.TestCase):
         """用户未说明年份时，出发日期应解释为当前年度。"""
         guidance = build_departure_date_guidance(date(2026, 6, 13))
 
-        self.assertIn("当前日期是 2026-06-13", guidance, "应告诉模型当前日期")
+        self.assertIn("当前日期是 2026-06-13（星期六）", guidance, "应告诉模型当前日期和星期")
+        self.assertIn("后天是 2026-06-15（星期一）", guidance, "应给出程序核验的后天日期和星期")
         self.assertIn("2026-06-15", guidance, "无年份日期示例应使用当前年度")
         self.assertIn("不要自行推断为下一年度", guidance, "不得把无年份日期顺延到下一年")
+
+    def test_departure_date_guidance_verifies_day_after_tomorrow_weekday(self) -> None:
+        """当前日期上下文应直接核验后天的正确星期。"""
+        guidance = build_departure_date_guidance(date(2026, 6, 18))
+
+        self.assertIn("当前日期是 2026-06-18（星期四）", guidance, "不得把 2026-06-18 写成星期三")
+        self.assertIn("后天是 2026-06-20（星期六）", guidance, "不得把 2026-06-20 写成星期五")
 
     def test_agent_prompt_contains_dynamic_departure_date_guidance(self) -> None:
         """Qwen Agent 系统提示应包含动态的无年份日期解释规则。"""
@@ -258,8 +288,17 @@ class QwenChatBITest(unittest.TestCase):
         """Qwen Agent 不得自行推算本周末等相对日期。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
 
+        self.assertIn("后天", agent.system_message)
         self.assertIn("必须先调用相对出发日期查询工具", agent.system_message)
         self.assertIn("不得自行推算具体日期", agent.system_message)
+        self.assertIn("不得在调用工具前先输出", agent.system_message)
+
+    def test_agent_prompt_requires_tool_weekday_when_date_weekday_conflicts(self) -> None:
+        """日期与星期冲突时，Qwen Agent 应以工具返回结果为准。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("如果用户给出的日期和星期不一致", agent.system_message)
+        self.assertIn("以工具返回的日期和星期为准", agent.system_message)
 
     def test_agent_prompt_requires_weekend_day_confirmation(self) -> None:
         """用户只说周末出行时，Qwen Agent 应先确认具体日期。"""
@@ -287,6 +326,29 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("不得继续追问预算、强度、风景、设施", agent.system_message, "前置条件不完整时不得先问其它筛选条件")
         self.assertIn("报团", agent.system_message, "应覆盖报团场景")
         self.assertIn("recommend_commercial_tours", agent.system_message, "报团场景应使用商团推荐工具")
+
+    def test_agent_prompt_requires_recommendation_output_order(self) -> None:
+        """Qwen Agent 输出路线推荐时应按固定信息顺序组织。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        expected_order = "推荐路线、推荐理由、天气参考、交通参考、费用参考、设施与风险"
+        self.assertIn(expected_order, agent.system_message, "推荐回答应先路线再理由和各类参考")
+        self.assertIn("每条路线先给路线名称和核心行程数据", agent.system_message)
+        self.assertIn("天气参考先说官方预警", agent.system_message)
+        self.assertIn("交通参考说明去程/返程耗时和数据类型", agent.system_message)
+        self.assertIn("费用参考说明总费用范围和对应交通方式", agent.system_message)
+        self.assertIn("缺少某一类工具结果时，说明暂无该项参考", agent.system_message)
+
+    def test_agent_prompt_requires_weather_source_display(self) -> None:
+        """Qwen Agent 展示和风天气结果时应明确天气来源。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("展示天气参考时", agent.system_message)
+        self.assertIn("表明来自和风天气，必须明确写出天气来源", agent.system_message)
+        self.assertIn("官方预警来源：和风天气官方预警聚合", agent.system_message)
+        self.assertIn("天气预报来源：和风天气每日天气预报", agent.system_message)
+        self.assertIn("天气来源暂未提供", agent.system_message)
+        self.assertIn("不得自行补充来源", agent.system_message)
 
     def test_interview_guidance_prioritizes_route_selection_prerequisites(self) -> None:
         """访谈引导应优先补齐出行方式和出行时间，再进入其它筛选条件。"""

@@ -11,6 +11,7 @@ from qwen_agent.agents import Assistant
 from qwen_agent.llm.schema import SYSTEM
 from qwen_agent.tools.base import BaseTool
 
+from .config import QWEN_SEED
 from .service import ChatBIService
 from .departure_dates import resolve_departure_date
 from .holidays import HOLIDAY_CALENDARS, WEEKDAY_NAMES, resolve_public_holiday
@@ -36,7 +37,7 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
 10. 交通数据可能是基础、历史、用户反馈修正或实时数据，需要明确告诉用户。
 11. 不得生成或执行 SQL，不得修改路线、费用或用户反馈数据。
 12. 徒步存在风险，回答中应提醒用户结合天气、封路和现场情况再次确认。
-13. 天气信息仅包含气象机构发布的官方预警，不得虚构逐小时天气或系统天气风险。
+13. 天气信息包含气象机构发布的官方预警，以及工具返回的出发日期温度和简单天气现象参考；不得虚构逐小时天气或系统天气风险。
 14. 工具参数、内部字段、枚举值、布尔值和筛选逻辑仅用于内部判断；面向用户回答时，
     必须转换成自然、简洁的中文，不得向用户展示内部字段名、JSON、`true`、`false`
     或类似 `has_toilet: true` 的查询条件。
@@ -65,6 +66,8 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     不得先展开长篇定义，再重复询问同一个问题。
 20. 用户使用“本周末”“下周末”“本周六”“明天”等相对日期表达时，必须先调用相对出发日期查询工具，
     并采用工具返回的候选日期、星期和日期类型；不得自行推算具体日期或星期。
+    不得在调用工具前先输出自行推算的日期、星期或节假日判断。
+    如果用户给出的日期和星期不一致，以工具返回的日期和星期为准，并向用户说明已按工具核验结果处理。
     如果工具返回多个仍可出发的候选日期且日期会影响结果，应使用数字编号请用户选择。
     用户只说“周末出行”“周末早上出发”等未明确具体日期的表达时，必须先询问清楚具体是哪一天。
     涉及交通、天气或路线推荐估算前，不得自行选择周六或周日作为出发日期。
@@ -75,7 +78,14 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     自驾、公共交通、报团中明确其一；出行时间应明确到具体出发日期，涉及交通估算时尽量确认出发时段或时间。
     在出行方式和出行时间都明确之前，不得继续追问预算、强度、风景、设施等其它筛选条件，也不得调用路线推荐、
     交通估算或天气估算工具。用户明确选择报团时，优先使用 recommend_commercial_tours，并遵守商团产品回答边界。
-    若只能一次问一个问题，先问出行方式；已明确出行方式后，再问具体出行时间。"""
+    若只能一次问一个问题，先问出行方式；已明确出行方式后，再问具体出行时间。
+23. 输出普通路线推荐时，必须按固定顺序组织信息：推荐路线、推荐理由、天气参考、交通参考、费用参考、设施与风险、
+    备选或下一步。每条路线先给路线名称和核心行程数据，再解释为什么推荐；天气参考先说官方预警，再说温度和简单天气现象；
+    交通参考说明去程/返程耗时和数据类型；费用参考说明总费用范围和对应交通方式。缺少某一类工具结果时，说明暂无该项参考，
+    不得自行补全。
+24. 展示天气参考时，如果工具结果的 `data_sources`、`official_alerts.source` 或 `daily_weather.source`
+    表明来自和风天气，必须明确写出天气来源，例如“官方预警来源：和风天气官方预警聚合”
+    或“天气预报来源：和风天气每日天气预报”。如果工具结果没有提供来源，只能说明天气来源暂未提供，不得自行补充来源。"""
 
 
 def _json_result(payload: Any) -> str:
@@ -91,8 +101,10 @@ def _message_role(message: Any) -> str:
 def build_departure_date_guidance(current_date: date | None = None) -> str:
     """Build current-date context for interpreting departure dates."""
     today = current_date or datetime.now().astimezone().date()
+    day_after_tomorrow = date.fromordinal(today.toordinal() + 2)
     return (
-        f"当前日期是 {today.isoformat()}，当前年度是 {today.year}。"
+        f"当前日期是 {today.isoformat()}（{WEEKDAY_NAMES[today.weekday()]}），当前年度是 {today.year}。"
+        f"后天是 {day_after_tomorrow.isoformat()}（{WEEKDAY_NAMES[day_after_tomorrow.weekday()]}）。"
         f"用户提供月日但没有明确年份时，一律理解为当前年度；"
         f"例如用户说“6.15 号出发”，应理解为 {today.year}-06-15。"
         "出发时间通常应晚于当前时间；如果按当前年度理解后日期已过，应向用户确认，"
@@ -309,7 +321,7 @@ class EstimateRouteTrafficTool(HikingTool):
 
 class EstimateRouteWeatherTool(HikingTool):
     name = "estimate_route_weather"
-    description = "获取指定路线在出发日期当天 08:30–19:00 安全覆盖时段内生效的官方天气预警。"
+    description = "获取指定路线在出发日期当天 08:30–19:00 安全覆盖时段内生效的官方天气预警，并返回出发日期温度和简单天气现象参考。"
     parameters = [
         {"name": "route_id", "type": "string", "description": "路线唯一标识", "required": True},
         {
@@ -390,11 +402,15 @@ def build_qwen_agent(service: ChatBIService, model: str = "qwen-plus") -> Guided
         "不承诺余位或成团状态，必须提醒用户报名前二次确认价格、团期、名额和安全要求；"
         "用户确认某个已收录活动后，可以引导用户去该商团的小程序进行报名。"
     )
+    generate_cfg: dict[str, Any] = {"max_retries": 3}
+    if QWEN_SEED is not None:
+        generate_cfg["seed"] = QWEN_SEED
+    logger.info("构建 Qwen Agent model=%s seed=%s", model, QWEN_SEED)
     return GuidedHikingAssistant(
         llm={
             "model": model,
             "model_type": "qwen_dashscope",
-            "generate_cfg": {"max_retries": 3},
+            "generate_cfg": generate_cfg,
         },
         name="成都徒步 ChatBI 助手",
         description="根据用户约束查询和推荐成都周边徒步路线",
@@ -462,8 +478,9 @@ def run_qwen_web(
         chatbot_config={
             "prompt.suggestions": [
                 "本周六从成都出发，预算 300 元，推荐适合新手的路线",
-                "推荐有卫生间和补给点、爬升不超过 800 米的路线",
+                "路线不超过10公里、爬升不超过 1000 米的路线",
                 "青城后山周末早上六点出发交通怎么样？",
+                "本周六成都出发的商团路线推荐",
             ]
         },
     ).run(server_name=host, server_port=port)

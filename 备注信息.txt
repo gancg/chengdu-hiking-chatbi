@@ -53,3 +53,8 @@ python -m hiking_chatbi serve
 ## 提交代码
 
 - 人为提交，用户说提交到版本库，则执行提交
+
+
+遇到问题：
+1.内外网的切换问题
+2.对话多轮：ERROR dashscope 

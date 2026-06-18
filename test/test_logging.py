@@ -39,6 +39,33 @@ class LoggingTest(unittest.TestCase):
 
         self.assertIn("预警服务超时", "\n".join(logs.output), "日志应包含降级原因")
 
+    def test_configure_logging_limits_third_party_debug_noise(self) -> None:
+        """DEBUG 模式下第三方网络库默认不应输出底层连接调试日志。"""
+        with patch.dict(os.environ, {"CHATBI_LOG_LEVEL": "DEBUG"}, clear=False):
+            configure_logging(force=True)
+
+        self.assertEqual(logging.DEBUG, logging.getLogger().level, "根日志级别应为 DEBUG")
+        self.assertEqual(logging.WARNING, logging.getLogger("httpcore").level, "httpcore 默认应压到 WARNING")
+        self.assertEqual(logging.WARNING, logging.getLogger("httpx").level, "httpx 默认应压到 WARNING")
+        self.assertEqual(
+            logging.WARNING,
+            logging.getLogger("huggingface_hub").level,
+            "huggingface_hub 默认应压到 WARNING",
+        )
+        self.addCleanup(configure_logging, True)
+
+    def test_configure_logging_allows_third_party_debug_override(self) -> None:
+        """需要排查第三方库时应允许显式打开第三方 DEBUG 日志。"""
+        with patch.dict(
+            os.environ,
+            {"CHATBI_LOG_LEVEL": "DEBUG", "CHATBI_THIRD_PARTY_LOG_LEVEL": "DEBUG"},
+            clear=False,
+        ):
+            configure_logging(force=True)
+
+        self.assertEqual(logging.DEBUG, logging.getLogger("httpcore").level, "应允许显式打开 httpcore DEBUG")
+        self.addCleanup(configure_logging, True)
+
 
 if __name__ == "__main__":
     unittest.main()

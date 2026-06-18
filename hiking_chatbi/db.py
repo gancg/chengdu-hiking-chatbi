@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import Any, Iterable
 
+
+logger = logging.getLogger(__name__)
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;
@@ -133,8 +136,14 @@ def connect(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
+    if logger.isEnabledFor(logging.DEBUG):
+        connection.set_trace_callback(_log_sql_statement)
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
+
+
+def _log_sql_statement(statement: str) -> None:
+    logger.debug("SQL: %s", statement)
 
 
 def initialize(path: Path) -> None:
