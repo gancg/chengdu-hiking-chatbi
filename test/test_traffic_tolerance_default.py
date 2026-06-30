@@ -29,14 +29,15 @@ class TrafficToleranceDefaultTest(unittest.TestCase):
         """未明确限制拥堵等级时，节假日严重拥堵路线不应被默认过滤。"""
         results = self.service.recommendations(self.query)
 
-        self.assertEqual(
-            ["bipenggou-panyang-lake"],
-            [item["route"]["id"] for item in results],
-            "未传拥堵容忍度时应保留符合距离、爬升和交通方式的节假日路线",
+        routes = {item["route"]["id"]: item for item in results}
+        self.assertIn(
+            "bipenggou-panyang-lake",
+            routes,
+            "未传拥堵容忍度时应保留符合条件的节假日严重拥堵路线",
         )
         self.assertEqual(
             "severe",
-            results[0]["outbound_traffic"]["congestion_level"],
+            routes["bipenggou-panyang-lake"]["outbound_traffic"]["congestion_level"],
             "返回结果仍应展示实际估算出的严重拥堵等级",
         )
 

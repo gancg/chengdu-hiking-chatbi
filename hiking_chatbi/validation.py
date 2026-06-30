@@ -49,6 +49,7 @@ def validate_import_item(item: dict[str, Any]) -> None:
     modes = set(route["transport_modes"])
     if not modes or not modes <= TRANSPORT_MODES:
         raise ValueError("transport_modes 无效")
+    _validate_group_tour_search_terms(route.get("group_tour_search_terms", []))
     for field in ("has_toilet", "has_supply_shop"):
         if not isinstance(route[field], bool):
             raise ValueError(f"{field} 必须为布尔值")
@@ -73,6 +74,23 @@ def validate_import_item(item: dict[str, Any]) -> None:
     for field in ("collected_at", "updated_at"):
         _parse_time(route[field], f"route.{field}")
     _parse_time(traffic["updated_at"], "traffic.updated_at")
+
+
+def _validate_group_tour_search_terms(value: Any) -> None:
+    if not isinstance(value, list):
+        raise ValueError("group_tour_search_terms 必须为字符串数组")
+    if len(value) > 5:
+        raise ValueError("group_tour_search_terms 最多 5 个")
+    normalized_terms: set[str] = set()
+    for item in value:
+        if not isinstance(item, str):
+            raise ValueError("group_tour_search_terms 必须为字符串数组")
+        normalized = item.strip()
+        if len(normalized) < 2:
+            raise ValueError("group_tour_search_terms 每项至少 2 个字符")
+        if normalized in normalized_terms:
+            raise ValueError("group_tour_search_terms 不得重复")
+        normalized_terms.add(normalized)
 
 
 def _validate_costs(costs: dict[str, Any], route_modes: set[str]) -> None:

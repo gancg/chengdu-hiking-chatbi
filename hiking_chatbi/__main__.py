@@ -12,9 +12,11 @@ from .config import (
     PORT,
     QWEN_MODEL,
     QWEN_SEED,
-    SAMPLE_COMMERCIAL_TOURS_PATH,
     SAMPLE_DATA_PATH,
     TRAFFIC_PROVIDER,
+    YOUXIAKE_AROUND_URL,
+    YOUXIAKE_MAX_LINKS,
+    YOUXIAKE_TIMEOUT_SECONDS,
     ALERT_PROVIDER,
     WEB_HOST,
     WEB_PORT,
@@ -22,6 +24,7 @@ from .config import (
 from .importer import import_file
 from .logging_config import configure_logging
 from .service import ChatBIService
+from .group_tour_links import YouxiakeGroupTourLinkProvider
 from .traffic import provider_from_name
 from .weather import alert_provider_from_name
 
@@ -46,6 +49,11 @@ def main() -> None:
         DB_PATH,
         provider_from_name(TRAFFIC_PROVIDER),
         alert_provider_from_name(ALERT_PROVIDER),
+        group_tour_provider=YouxiakeGroupTourLinkProvider(
+            page_url=YOUXIAKE_AROUND_URL,
+            timeout_seconds=YOUXIAKE_TIMEOUT_SECONDS,
+            max_links=YOUXIAKE_MAX_LINKS,
+        ),
     )
     logger.info(
         "应用命令启动 command=%s db_path=%s traffic_provider=%s alert_provider=%s "
@@ -63,14 +71,14 @@ def main() -> None:
         sys.executable,
     )
     if args.command == "init":
-        count = service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
+        count = service.seed(SAMPLE_DATA_PATH)
         logger.info("样例路线导入完成 count=%s db_path=%s", count, DB_PATH)
     elif args.command == "import":
         count = import_file(DB_PATH, Path(args.path))
         logger.info("路线文件导入完成 count=%s source=%s", count, args.path)
     elif args.command in {"qwen-chat", "qwen-web", "app"}:
         if not service.routes():
-            service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
+            service.seed(SAMPLE_DATA_PATH)
         from .qwen_chatbi import run_qwen_chat, run_qwen_web
 
         if args.command == "qwen-chat":
@@ -83,7 +91,7 @@ def main() -> None:
             run_app(service, HOST, PORT, WEB_HOST, WEB_PORT, QWEN_MODEL)
     else:
         if not service.routes():
-            service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
+            service.seed(SAMPLE_DATA_PATH)
         serve(service, HOST, PORT)
 
 

@@ -40,14 +40,22 @@ class TraverseRouteTest(unittest.TestCase):
             "traffic_tolerance": "high",
         }
 
-        self_drive = self.service.recommendations({
+        self_drive_routes = self.service.recommendations({
             **query,
             "transport_modes": ["self_drive"],
-        })[0]
-        public_transit = self.service.recommendations({
+        })
+        public_transit_routes = self.service.recommendations({
             **query,
             "transport_modes": ["public_transit"],
-        })[0]
+        })
+        self_drive = next(
+            result for result in self_drive_routes
+            if result["route"]["id"] == "qingcheng-back-mountain"
+        )
+        public_transit = next(
+            result for result in public_transit_routes
+            if result["route"]["id"] == "qingcheng-back-mountain"
+        )
 
         self.assertEqual(45, self_drive["estimated_parking_transfer_minutes"])
         self.assertEqual(0, public_transit["estimated_parking_transfer_minutes"])
@@ -80,7 +88,7 @@ class TraverseRouteTest(unittest.TestCase):
 
         validate_import_item(item)
         self.service.import_items([item])
-        result = self.service.recommendations({
+        results = self.service.recommendations({
             "departure_at": self.departure,
             "transport_modes": ["self_drive"],
             "vehicle_count": 2,
@@ -88,7 +96,11 @@ class TraverseRouteTest(unittest.TestCase):
             "max_ascent_m": 800,
             "max_budget_cny": 500,
             "traffic_tolerance": "high",
-        })[0]
+        })
+        result = next(
+            candidate for candidate in results
+            if candidate["route"]["id"] == "qingcheng-back-mountain"
+        )
 
         self.assertEqual(
             90,

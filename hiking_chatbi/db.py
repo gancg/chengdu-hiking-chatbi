@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS routes (
     scenery_json TEXT NOT NULL,
     risks_json TEXT NOT NULL,
     transport_modes_json TEXT NOT NULL,
+    group_tour_search_terms_json TEXT NOT NULL DEFAULT '[]',
     cost_min_cny REAL NOT NULL,
     cost_max_cny REAL NOT NULL,
     parking TEXT,
@@ -93,21 +94,6 @@ CREATE TABLE IF NOT EXISTS transport_cost_items (
     updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS commercial_tour_products (
-    id TEXT PRIMARY KEY,
-    route_id TEXT NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
-    provider_name TEXT NOT NULL,
-    product_name TEXT NOT NULL,
-    departure_dates_json TEXT NOT NULL,
-    meeting_point TEXT NOT NULL,
-    price_min_cny REAL NOT NULL CHECK(price_min_cny >= 0),
-    price_max_cny REAL NOT NULL CHECK(price_max_cny >= price_min_cny),
-    included_services_json TEXT NOT NULL,
-    source_url TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    reviewed INTEGER NOT NULL DEFAULT 0 CHECK(reviewed IN (0,1))
-);
-
 CREATE TABLE IF NOT EXISTS trip_feedback (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     route_id TEXT NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
@@ -126,9 +112,8 @@ JSON_FIELDS = {
     "scenery",
     "risks",
     "transport_modes",
+    "group_tour_search_terms",
     "common_bottlenecks",
-    "departure_dates",
-    "included_services",
 }
 
 
@@ -152,6 +137,7 @@ def initialize(path: Path) -> None:
             connection.executescript(SCHEMA)
             _add_route_facility_columns(connection)
             _add_route_traverse_columns(connection)
+            _add_group_tour_search_terms_column(connection)
             _migrate_route_cost_items(connection)
             _backfill_legacy_costs(connection)
 
@@ -181,6 +167,16 @@ def _add_route_traverse_columns(connection: sqlite3.Connection) -> None:
     if "traverse_transfer_minutes" not in columns:
         connection.execute(
             "ALTER TABLE routes ADD COLUMN traverse_transfer_minutes INTEGER NOT NULL DEFAULT 0 CHECK(traverse_transfer_minutes >= 0)"
+        )
+
+
+def _add_group_tour_search_terms_column(connection: sqlite3.Connection) -> None:
+    columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(routes)")
+    }
+    if "group_tour_search_terms_json" not in columns:
+        connection.execute(
+            "ALTER TABLE routes ADD COLUMN group_tour_search_terms_json TEXT NOT NULL DEFAULT '[]'"
         )
 
 
@@ -252,8 +248,9 @@ def upsert_route(connection: sqlite3.Connection, item: dict[str, Any]) -> None:
         "distance_km", "ascent_m", "highest_altitude_m", "hiking_minutes",
         "difficulty", "duration_days", "route_type", "is_traverse",
         "traverse_transfer_minutes", "best_seasons_json",
-        "scenery_json", "risks_json", "transport_modes_json", "cost_min_cny",
-        "cost_max_cny", "parking", "supplies", "has_toilet", "has_supply_shop",
+        "scenery_json", "risks_json", "transport_modes_json",
+        "group_tour_search_terms_json", "cost_min_cny", "cost_max_cny",
+        "parking", "supplies", "has_toilet", "has_supply_shop",
         "signal", "camping", "source_url",
         "source_name", "collected_at", "updated_at", "confidence", "reviewed",
     ]
@@ -263,6 +260,9 @@ def upsert_route(connection: sqlite3.Connection, item: dict[str, Any]) -> None:
     encoded["cost_max_cny"] = sum(float(cost["max_cny"]) for cost in all_costs)
     for field in ("best_seasons", "scenery", "risks", "transport_modes"):
         encoded[f"{field}_json"] = json.dumps(route[field], ensure_ascii=False)
+    encoded["group_tour_search_terms_json"] = json.dumps(
+        route.get("group_tour_search_terms", []), ensure_ascii=False
+    )
     values = [encoded.get(column) for column in route_columns]
     placeholders = ",".join("?" for _ in route_columns)
     updates = ",".join(f"{column}=excluded.{column}" for column in route_columns[1:])
@@ -337,47 +337,6 @@ def import_routes(path: Path, items: Iterable[dict[str, Any]]) -> int:
     return count
 
 
-def import_commercial_tours(path: Path, items: Iterable[dict[str, Any]]) -> int:
-    initialize(path)
-    count = 0
-    columns = [
-        "id",
-        "route_id",
-        "provider_name",
-        "product_name",
-        "departure_dates_json",
-        "meeting_point",
-        "price_min_cny",
-        "price_max_cny",
-        "included_services_json",
-        "source_url",
-        "updated_at",
-        "reviewed",
-    ]
-    with closing(connect(path)) as connection:
-        with connection:
-            for item in items:
-                encoded = dict(item)
-                encoded["departure_dates_json"] = json.dumps(
-                    item["departure_dates"], ensure_ascii=False
-                )
-                encoded["included_services_json"] = json.dumps(
-                    item["included_services"], ensure_ascii=False
-                )
-                values = [encoded.get(column) for column in columns]
-                updates = ",".join(
-                    f"{column}=excluded.{column}" for column in columns[1:]
-                )
-                connection.execute(
-                    f"INSERT INTO commercial_tour_products "
-                    f"({','.join(columns)}) VALUES ({','.join('?' for _ in columns)}) "
-                    f"ON CONFLICT(id) DO UPDATE SET {updates}",
-                    values,
-                )
-                count += 1
-    return count
-
-
 def list_routes(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
     query = """
         SELECT r.*, t.base_one_way_minutes, t.weekday_extra_min, t.weekday_extra_max,
@@ -421,16 +380,3 @@ def list_routes(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
 def get_route(path: Path, route_id: str) -> dict[str, Any] | None:
     routes = [route for route in list_routes(path, reviewed_only=False) if route["id"] == route_id]
     return routes[0] if routes else None
-
-
-def list_commercial_tours(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
-    query = "SELECT * FROM commercial_tour_products"
-    params: tuple[Any, ...] = ()
-    if reviewed_only:
-        query += " WHERE reviewed = ?"
-        params = (1,)
-    with closing(connect(path)) as connection:
-        products = [_decode(row) for row in connection.execute(query, params)]
-        for product in products:
-            product["reviewed"] = bool(product["reviewed"])
-        return products

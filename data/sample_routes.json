@@ -3,6 +3,7 @@
     "route": {
       "id": "qingcheng-back-mountain",
       "name": "青城后山环线",
+      "group_tour_search_terms": ["青城后山", "青城山后山"],
       "start_location": "都江堰市青城后山",
       "end_location": "都江堰市青城后山",
       "latitude": 30.913,
@@ -129,6 +130,7 @@
     "route": {
       "id": "zhaogong-mountain",
       "name": "赵公山西线",
+      "group_tour_search_terms": ["赵公山", "赵公山西线"],
       "start_location": "都江堰市赵公山西线起点",
       "end_location": "都江堰市赵公山西线起点",
       "latitude": 30.91,
@@ -245,6 +247,7 @@
     "route": {
       "id": "bipenggou-panyang-lake",
       "name": "毕棚沟磐羊湖轻徒步",
+      "group_tour_search_terms": ["毕棚沟", "磐羊湖"],
       "start_location": "理县毕棚沟景区",
       "end_location": "理县毕棚沟景区",
       "latitude": 31.22,
@@ -349,7 +352,7 @@
   },
   {
     "route": {
-      "id": "longquan-yangmei-ridge", "name": "龙泉仰天窝杨梅岭环线",
+      "id": "longquan-yangmei-ridge", "name": "龙泉仰天窝杨梅岭环线", "group_tour_search_terms": ["仰天窝", "杨梅岭", "龙泉山"],
       "start_location": "龙泉驿区仰天窝", "end_location": "龙泉驿区仰天窝",
       "latitude": 30.52, "longitude": 104.31, "distance_km": 15.5, "ascent_m": 720,
       "highest_altitude_m": 980, "hiking_minutes": 360, "difficulty": "easy",
@@ -373,7 +376,7 @@
   },
   {
     "route": {
-      "id": "pengzhou-shizishan-traverse", "name": "彭州狮子山穿越线",
+      "id": "pengzhou-shizishan-traverse", "name": "彭州狮子山穿越线", "group_tour_search_terms": ["狮子山", "彭州狮子山"],
       "start_location": "彭州市狮子山村", "end_location": "彭州市白鹿镇",
       "latitude": 31.15, "longitude": 103.91, "distance_km": 17.0, "ascent_m": 1050,
       "highest_altitude_m": 2180, "hiking_minutes": 450, "difficulty": "hard",
@@ -397,7 +400,7 @@
   },
   {
     "route": {
-      "id": "chongzhou-jiguanshan", "name": "崇州鸡冠山森林线",
+      "id": "chongzhou-jiguanshan", "name": "崇州鸡冠山森林线", "group_tour_search_terms": ["鸡冠山", "崇州鸡冠山"],
       "start_location": "崇州市鸡冠山乡", "end_location": "崇州市鸡冠山乡",
       "latitude": 30.84, "longitude": 103.31, "distance_km": 18.0, "ascent_m": 980,
       "highest_altitude_m": 2400, "hiking_minutes": 480, "difficulty": "hard",
@@ -421,7 +424,7 @@
   },
   {
     "route": {
-      "id": "dayi-xiling-front-mountain", "name": "大邑西岭前山徒步线",
+      "id": "dayi-xiling-front-mountain", "name": "大邑西岭前山徒步线", "group_tour_search_terms": ["西岭前山", "大邑西岭"],
       "start_location": "大邑县西岭前山", "end_location": "大邑县西岭前山",
       "latitude": 30.62, "longitude": 103.23, "distance_km": 16.0, "ascent_m": 1350,
       "highest_altitude_m": 3250, "hiking_minutes": 540, "difficulty": "expert",
@@ -445,7 +448,7 @@
   },
   {
     "route": {
-      "id": "shifang-yinghua-mountain", "name": "什邡蓥华山脊线",
+      "id": "shifang-yinghua-mountain", "name": "什邡蓥华山脊线", "group_tour_search_terms": ["蓥华山", "什邡蓥华山"],
       "start_location": "什邡市蓥华镇", "end_location": "什邡市蓥华镇",
       "latitude": 31.31, "longitude": 104.04, "distance_km": 14.0, "ascent_m": 1100,
       "highest_altitude_m": 2600, "hiking_minutes": 450, "difficulty": "hard",
@@ -469,7 +472,7 @@
   },
   {
     "route": {
-      "id": "wawu-mountain-boardwalk", "name": "瓦屋山高山栈道徒步",
+      "id": "wawu-mountain-boardwalk", "name": "瓦屋山高山栈道徒步", "group_tour_search_terms": ["瓦屋山", "瓦屋山栈道"],
       "start_location": "洪雅县瓦屋山景区", "end_location": "洪雅县瓦屋山景区",
       "latitude": 29.65, "longitude": 102.96, "distance_km": 15.0, "ascent_m": 350,
       "highest_altitude_m": 2830, "hiking_minutes": 360, "difficulty": "moderate",
@@ -496,7 +499,7 @@
   },
   {
     "route": {
-      "id": "baoxing-dawa-gengzha", "name": "宝兴达瓦更扎高山线",
+      "id": "baoxing-dawa-gengzha", "name": "宝兴达瓦更扎高山线", "group_tour_search_terms": ["达瓦更扎", "宝兴达瓦更扎"],
       "start_location": "宝兴县达瓦更扎景区", "end_location": "宝兴县达瓦更扎景区",
       "latitude": 30.74, "longitude": 102.72, "distance_km": 14.5, "ascent_m": 900,
       "highest_altitude_m": 3866, "hiking_minutes": 390, "difficulty": "hard",
@@ -520,7 +523,7 @@
   },
   {
     "route": {
-      "id": "dujiangyan-lingyan-traverse", "name": "都江堰灵岩山穿越线",
+      "id": "dujiangyan-lingyan-traverse", "name": "都江堰灵岩山穿越线", "group_tour_search_terms": ["灵岩山", "都江堰灵岩山"],
       "start_location": "都江堰市灵岩古街", "end_location": "都江堰市蒲虹路",
       "latitude": 31.02, "longitude": 103.63, "distance_km": 14.0, "ascent_m": 850,
       "highest_altitude_m": 1650, "hiking_minutes": 390, "difficulty": "moderate",
@@ -545,7 +548,7 @@
   },
   {
     "route": {
-      "id": "qionglai-nanbaoshan", "name": "邛崃南宝山森林环线",
+      "id": "qionglai-nanbaoshan", "name": "邛崃南宝山森林环线", "group_tour_search_terms": ["南宝山", "邛崃南宝山"],
       "start_location": "邛崃市南宝山镇", "end_location": "邛崃市南宝山镇",
       "latitude": 30.38, "longitude": 103.22, "distance_km": 16.5, "ascent_m": 780,
       "highest_altitude_m": 2020, "hiking_minutes": 420, "difficulty": "moderate",
@@ -569,7 +572,7 @@
   },
   {
     "route": {
-      "id": "maoxian-jiuding-mountain", "name": "茂县九顶山花海线",
+      "id": "maoxian-jiuding-mountain", "name": "茂县九顶山花海线", "group_tour_search_terms": ["九顶山", "茂县九顶山"],
       "start_location": "茂县南新镇", "end_location": "茂县南新镇",
       "latitude": 31.56, "longitude": 103.74, "distance_km": 18.5, "ascent_m": 1450,
       "highest_altitude_m": 3800, "hiking_minutes": 600, "difficulty": "expert",
@@ -590,5 +593,277 @@
       ]
     },
     "traffic": {"base_one_way_minutes": 230, "weekday_extra_min": 15, "weekday_extra_max": 35, "weekend_extra_min": 40, "weekend_extra_max": 90, "holiday_extra_min": 90, "holiday_extra_max": 190, "morning_extra_minutes": 20, "evening_extra_minutes": 45, "common_bottlenecks": ["都汶高速", "茂县山区道路"], "best_departure_time": "前一日出发", "suggested_return_time": "次日14:00前", "source_url": "https://example.org/traffic/maoxian-jiuding", "updated_at": "2026-06-11T09:00:00+08:00", "confidence": 0.6}
+  },
+  {
+    "route": {
+      "id": "wenchuan-yunzhongling",
+      "name": "卧龙云中岭高山牧场线",
+      "group_tour_search_terms": ["云中岭", "云中牧场", "卧龙云中岭"],
+      "start_location": "汶川县卧龙镇云中牧场徒步起点",
+      "end_location": "汶川县卧龙镇云中牧场徒步起点",
+      "latitude": 31.0333,
+      "longitude": 103.1833,
+      "distance_km": 10.0,
+      "ascent_m": 800,
+      "highest_altitude_m": 3000,
+      "hiking_minutes": 360,
+      "difficulty": "hard",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "夏", "秋", "冬"],
+      "scenery": ["高山草甸", "彩林", "雪山", "牧场"],
+      "risks": ["高海拔反应", "碎石土坡湿滑", "天气变化快", "自然保护区内须遵守现场管理"],
+      "transport_modes": ["self_drive", "group_tour"],
+      "parking": "山下换乘点可停车，需换乘当地中转车",
+      "supplies": "沿途仅有少量农户补给，建议自备路餐和饮水",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "林线及山脊信号可能不稳定",
+      "camping": "自然保护区内不建议露营，服从现场管理",
+      "source_url": "https://m.cd.bendibao.com/xiuxian/197616.shtm",
+      "source_name": "成都本地宝、LU趣户外交叉核对",
+      "collected_at": "2026-06-29T14:00:00+08:00",
+      "updated_at": "2026-06-29T14:00:00+08:00",
+      "confidence": 0.84,
+      "reviewed": true
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "卫生及清洁费",
+          "cost_type": "waste",
+          "billing_unit": "person",
+          "min_cny": 14,
+          "max_cny": 14,
+          "source_url": "https://m.cd.bendibao.com/xiuxian/197616.shtm",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        },
+        {
+          "name": "当地中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 30,
+          "max_cny": 50,
+          "source_url": "https://www.lu17996.com/home/product/info.html?id=670&trips_id=31529",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "self_drive",
+          "name": "成都往返油费及过路费估算",
+          "cost_type": "other",
+          "billing_unit": "vehicle",
+          "min_cny": 160,
+          "max_cny": 240,
+          "source_url": "https://www.lu17996.com/home/product/info.html?id=670&trips_id=31529",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "成都往返一日团",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 93,
+          "max_cny": 148,
+          "source_url": "https://m.cd.bendibao.com/xiuxian/197616.shtm",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 150,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 25,
+      "weekend_extra_min": 25,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 140,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 40,
+      "common_bottlenecks": ["都汶高速", "映秀至卧龙山区道路", "景区中转排队"],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://www.lu17996.com/home/product/info.html?id=670&trips_id=31529",
+      "updated_at": "2026-06-29T14:00:00+08:00",
+      "confidence": 0.81
+    }
+  },
+  {
+    "route": {
+      "id": "wenchuan-balangshan-panda-peak",
+      "name": "巴朗山熊猫王国之巅线",
+      "group_tour_search_terms": ["巴朗山", "巴郎山", "熊猫王国之巅"],
+      "start_location": "汶川县巴朗山老路塘房管制点",
+      "end_location": "汶川县巴朗山老路塘房管制点",
+      "latitude": 30.898667,
+      "longitude": 102.906589,
+      "distance_km": 8.0,
+      "ascent_m": 400,
+      "highest_altitude_m": 4200,
+      "hiking_minutes": 240,
+      "difficulty": "hard",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "夏", "秋", "冬"],
+      "scenery": ["雪山", "云海", "高山草甸", "花海"],
+      "risks": ["海拔超过4000米易发生高原反应", "巴朗山老路封闭且开放状态可能临时变化，出发前须向当地核实", "强风低温及冰雪路面", "沿途补给不稳定"],
+      "transport_modes": ["self_drive", "group_tour"],
+      "parking": "塘房管制点附近停车条件有限，以现场管制为准",
+      "supplies": "徒步途中通常无稳定补给，必须自备路餐和饮水",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "高海拔山区信号不稳定",
+      "camping": "不建议露营，须遵守交通管制和保护区规定",
+      "source_url": "https://www.lu17996.com/home/product/info.html?id=608&trips_id=14635",
+      "source_name": "LU趣户外、游侠客及携程开放状态交叉核对",
+      "collected_at": "2026-06-29T14:00:00+08:00",
+      "updated_at": "2026-06-29T14:00:00+08:00",
+      "confidence": 0.86,
+      "reviewed": true
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "self_drive",
+          "name": "成都往返油费及过路费估算",
+          "cost_type": "other",
+          "billing_unit": "vehicle",
+          "min_cny": 300,
+          "max_cny": 420,
+          "source_url": "https://www.meipian.cn/2vz3o6k0",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "成都往返一日团",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 158,
+          "max_cny": 188,
+          "source_url": "https://news.youxiake.com/sc/7212.html",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 210,
+      "weekday_extra_min": 15,
+      "weekday_extra_max": 35,
+      "weekend_extra_min": 35,
+      "weekend_extra_max": 80,
+      "holiday_extra_min": 80,
+      "holiday_extra_max": 180,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 45,
+      "common_bottlenecks": ["都汶高速", "卧龙镇至巴朗山隧道路段", "塘房管制点"],
+      "best_departure_time": "05:30前",
+      "suggested_return_time": "15:30前",
+      "source_url": "https://www.meipian.cn/2vz3o6k0",
+      "updated_at": "2026-06-29T14:00:00+08:00",
+      "confidence": 0.82
+    }
+  },
+  {
+    "route": {
+      "id": "pengzhou-panlong-valley",
+      "name": "彭州蟠龙谷瀑布群线",
+      "group_tour_search_terms": ["蟠龙谷", "彭州蟠龙谷", "小鱼洞蟠龙谷"],
+      "start_location": "彭州市小鱼洞镇杨坪村蟠龙谷停车场",
+      "end_location": "彭州市小鱼洞镇杨坪村蟠龙谷停车场",
+      "latitude": 31.266667,
+      "longitude": 103.8,
+      "distance_km": 3.0,
+      "ascent_m": 300,
+      "highest_altitude_m": 1500,
+      "hiking_minutes": 120,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": ["春", "夏", "秋"],
+      "scenery": ["瀑布群", "溪谷", "原始森林", "古树"],
+      "risks": ["未完全开发的碎石路", "雨季溪水上涨", "湿滑落石", "临水路段注意防滑和溺水风险"],
+      "transport_modes": ["self_drive", "group_tour"],
+      "parking": "入口碎石停车场，参考价20元每车",
+      "supplies": "入口附近有农家乐和小吃，谷内补给有限",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "峡谷深处信号可能较弱",
+      "camping": "不建议在河道及瀑布下方露营",
+      "source_url": "https://you.m.autohome.com.cn/details/112283",
+      "source_name": "汽车之家游记、去哪儿攻略及四川农网交叉核对",
+      "collected_at": "2026-06-29T14:00:00+08:00",
+      "updated_at": "2026-06-29T14:00:00+08:00",
+      "confidence": 0.85,
+      "reviewed": true
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "垃圾清理费",
+          "cost_type": "waste",
+          "billing_unit": "person",
+          "min_cny": 5,
+          "max_cny": 10,
+          "source_url": "https://you.m.autohome.com.cn/details/112283",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        },
+        {
+          "name": "停车费",
+          "cost_type": "parking",
+          "billing_unit": "vehicle",
+          "min_cny": 20,
+          "max_cny": 20,
+          "source_url": "https://you.m.autohome.com.cn/details/112283",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "self_drive",
+          "name": "成都往返油费及过路费估算",
+          "cost_type": "other",
+          "billing_unit": "vehicle",
+          "min_cny": 80,
+          "max_cny": 130,
+          "source_url": "https://touch.go.qunar.com/poi/9279917",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "成都往返一日团",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 98,
+          "max_cny": 168,
+          "source_url": "https://www.lu17996.com/home/product/info.html?combo_id=29943&id=682&trips_id=24603",
+          "updated_at": "2026-06-29T14:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 25,
+      "weekend_extra_min": 25,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 50,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 35,
+      "common_bottlenecks": ["成彭高速", "彭白路", "小鱼洞镇山区道路"],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "17:00前",
+      "source_url": "https://you.m.autohome.com.cn/details/112283",
+      "updated_at": "2026-06-29T14:00:00+08:00",
+      "confidence": 0.81
+    }
   }
 ]

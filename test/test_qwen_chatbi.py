@@ -7,18 +7,19 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-from hiking_chatbi.config import SAMPLE_COMMERCIAL_TOURS_PATH, SAMPLE_DATA_PATH, optional_int_from_env
+from hiking_chatbi.config import SAMPLE_DATA_PATH, optional_int_from_env
 import hiking_chatbi.qwen_chatbi as qwen_chatbi
 from hiking_chatbi.qwen_chatbi import (
-    RecommendCommercialToursTool,
     EstimateRouteTrafficTool,
     EstimateRouteWeatherTool,
+    FindGroupTourLinksTool,
     ListHikingRoutesTool,
     RecommendHikingRoutesTool,
     ResolveDepartureDateTool,
     ResolvePublicHolidayTool,
     build_departure_date_guidance,
     build_interview_guidance,
+    build_route_search_terms,
     build_public_holiday_guidance,
     build_qwen_agent,
 )
@@ -31,7 +32,7 @@ class QwenChatBITest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         db_path = Path(self.temp.name) / "test.db"
         self.service = ChatBIService(db_path, NoTrafficProvider())
-        self.service.seed(SAMPLE_DATA_PATH, SAMPLE_COMMERCIAL_TOURS_PATH)
+        self.service.seed(SAMPLE_DATA_PATH)
         self.departure = (datetime.now().astimezone() + timedelta(days=1)).replace(
             hour=6, minute=0, second=0, microsecond=0
         ).isoformat()
@@ -43,7 +44,7 @@ class QwenChatBITest(unittest.TestCase):
         """路线查询工具应返回已审核路线的结构化信息。"""
         result = json.loads(ListHikingRoutesTool(self.service).call({}))
 
-        self.assertEqual(13, result["count"], "应返回十三条样例路线")
+        self.assertEqual(16, result["count"], "应返回十六条样例路线")
         self.assertIn("has_toilet", result["items"][0], "应包含路线设施字段")
         self.assertIn("route_fees", result["items"][0], "应包含路线费用明细")
 
@@ -78,13 +79,27 @@ class QwenChatBITest(unittest.TestCase):
                 "recommend_hiking_routes",
                 "estimate_route_traffic",
                 "estimate_route_weather",
-                "recommend_commercial_tours",
+                "find_group_tour_links",
                 "resolve_departure_date",
                 "resolve_public_holiday",
             },
             set(agent.function_map),
             "Agent 只能注册受控的徒步查询工具",
         )
+
+    def test_group_tour_link_tool_uses_selected_route(self) -> None:
+        """报团链接工具应只按已选路线查询在线活动链接。"""
+        expected = [{
+            "title": "青城后山一日活动",
+            "url": "https://m.youxiake.com/lines.html?id=100",
+        }]
+        with patch.object(self.service, "group_tour_links", return_value=expected) as call:
+            result = json.loads(FindGroupTourLinksTool(self.service).call({
+                "route_id": "qingcheng-back-mountain",
+            }))
+
+        self.assertEqual(expected, result["items"], "工具只能返回服务查询到的链接")
+        call.assert_called_once_with("qingcheng-back-mountain")
 
     def test_build_agent_uses_stable_default_seed(self) -> None:
         """Qwen Agent 默认应使用稳定 seed，避免调试启动方式造成随机分叉。"""
@@ -135,6 +150,48 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("收敛阶段", third_round)
         self.assertIn("推荐阶段", fifth_round)
         self.assertIn("不要继续机械追问", fifth_round)
+
+    def test_named_destination_only_requests_departure_date(self) -> None:
+        """点名库内目的地后，只应确认出发日期，不再收集普通路线偏好。"""
+        route_search_terms = build_route_search_terms(self.service.routes())
+
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "我想去巴朗山徒步"}],
+            route_search_terms,
+        )
+
+        self.assertIn("命中已审核路线", guidance, "巴朗山应命中样例路线库")
+        self.assertIn("只确认具体出发日期", guidance, "目的地明确后只应补问日期")
+        self.assertIn("不得询问体力、经验、人数、距离、爬升、难度、风景、设施", guidance)
+
+    def test_named_destination_recommends_immediately_after_date(self) -> None:
+        """点名库内目的地且日期已确定后，应立即推荐而不是继续追问。"""
+        route_search_terms = build_route_search_terms(self.service.routes())
+
+        guidance = build_interview_guidance(
+            [
+                {"role": "user", "content": "想去巴朗山"},
+                {"role": "assistant", "content": "具体哪天出发？"},
+                {"role": "user", "content": "2026-07-04 出发"},
+            ],
+            route_search_terms,
+        )
+
+        self.assertIn("日期确定后立即推荐", guidance)
+        self.assertIn("不得继续追问", guidance)
+        self.assertIn("巴朗山", guidance)
+
+    def test_generic_request_does_not_trigger_named_destination_guidance(self) -> None:
+        """未点名库内目的地时，应保留原有引导式访谈。"""
+        route_search_terms = build_route_search_terms(self.service.routes())
+
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "想找一条成都周边徒步路线"}],
+            route_search_terms,
+        )
+
+        self.assertIn("探索阶段", guidance)
+        self.assertNotIn("命中已审核路线", guidance)
 
     def test_agent_uses_guided_interview_prompt(self) -> None:
         """Qwen Agent 系统提示应允许带假设给出初步推荐。"""
@@ -316,28 +373,28 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("多日游路线暂未完整支持", agent.system_message)
         self.assertIn("TODO", agent.system_message)
 
-    def test_agent_prompt_requires_route_selection_prerequisites(self) -> None:
-        """Qwen Agent 选择路线前必须先明确出行方式和出行时间。"""
+    def test_agent_prompt_filters_routes_before_confirming_transport_mode(self) -> None:
+        """Qwen Agent 前期应先确认出发时间并筛选路线，最后再确认交通方式。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
 
         self.assertIn("选择路线", agent.system_message, "系统提示应覆盖路线选择场景")
-        self.assertIn("先明确出行方式和出行时间", agent.system_message, "应先确认出行方式和时间")
-        self.assertIn("自驾、公共交通、报团", agent.system_message, "出行方式选项应面向用户清晰表达")
-        self.assertIn("不得继续追问预算、强度、风景、设施", agent.system_message, "前置条件不完整时不得先问其它筛选条件")
-        self.assertIn("报团", agent.system_message, "应覆盖报团场景")
-        self.assertIn("recommend_commercial_tours", agent.system_message, "报团场景应使用商团推荐工具")
+        self.assertIn("先确认具体出发时间", agent.system_message, "前期应先确认出发时间")
+        self.assertIn("筛选出符合用户预期的候选路线", agent.system_message, "应先筛选候选路线")
+        self.assertIn("前期对话不得询问或要求用户选择交通方式", agent.system_message)
+        self.assertIn("先让用户明确选择其中一条路线", agent.system_message, "推荐后应先选定路线")
+        self.assertIn("不得在同一轮追加交通方式问题", agent.system_message)
+        self.assertIn("用户明确选定某条路线后", agent.system_message, "选定路线后才应确认交通方式")
 
     def test_agent_prompt_requires_recommendation_output_order(self) -> None:
-        """Qwen Agent 输出路线推荐时应按固定信息顺序组织。"""
+        """Qwen Agent 推荐候选时应先让用户选路线，再补交通和费用。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
 
-        expected_order = "推荐路线、推荐理由、天气参考、交通参考、费用参考、设施与风险"
-        self.assertIn(expected_order, agent.system_message, "推荐回答应先路线再理由和各类参考")
+        expected_order = "推荐路线、推荐理由、天气参考、设施与风险、路线选择"
+        self.assertIn(expected_order, agent.system_message, "候选推荐应以路线选择结束")
         self.assertIn("每条路线先给路线名称和核心行程数据", agent.system_message)
         self.assertIn("天气参考先说官方预警", agent.system_message)
-        self.assertIn("交通参考说明去程/返程耗时和数据类型", agent.system_message)
-        self.assertIn("费用参考说明总费用范围和对应交通方式", agent.system_message)
-        self.assertIn("缺少某一类工具结果时，说明暂无该项参考", agent.system_message)
+        self.assertIn("候选路线阶段不得展开交通和费用比较", agent.system_message)
+        self.assertIn("选定路线并确认交通方式后", agent.system_message)
 
     def test_agent_prompt_requires_weather_source_display(self) -> None:
         """Qwen Agent 展示和风天气结果时应明确天气来源。"""
@@ -350,45 +407,56 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("天气来源暂未提供", agent.system_message)
         self.assertIn("不得自行补充来源", agent.system_message)
 
-    def test_interview_guidance_prioritizes_route_selection_prerequisites(self) -> None:
-        """访谈引导应优先补齐出行方式和出行时间，再进入其它筛选条件。"""
+    def test_interview_guidance_does_not_ask_transport_mode_early(self) -> None:
+        """早期访谈只确认出发时间和路线偏好，不得要求选择交通方式。"""
         guidance = build_interview_guidance([
             {"role": "user", "content": "想找一条成都周边徒步路线"},
         ])
 
-        self.assertIn("先补齐出行方式和出行时间", guidance, "早期访谈应优先确认前置条件")
-        self.assertIn("自驾、公共交通、报团", guidance, "应明确给出三类出行方式")
-        self.assertIn("不要先追问预算、强度、风景或设施", guidance, "前置条件前不得进入其它筛选")
+        self.assertIn("先确认具体出发时间", guidance, "早期访谈应优先确认出发时间")
+        self.assertIn("路线偏好", guidance, "确认时间后应继续筛选路线")
+        self.assertIn("不要询问交通方式", guidance, "前期不得要求选择交通方式")
+        self.assertNotIn("自驾、公共交通、报团", guidance, "前期不得展示交通方式选项")
 
-    def test_commercial_tour_tool_returns_provider_product_route_and_warning(self) -> None:
-        """商团工具应返回可展示的商团名称、产品、路线、价格和二次确认提示。"""
-        result = json.loads(RecommendCommercialToursTool(self.service).call({
-            "departure_date": "2026-06-20",
-            "party_size": 2,
-            "max_budget_cny": 400,
-        }))
+    def test_interview_guidance_requests_route_choice_before_transport(self) -> None:
+        """给出候选路线但用户尚未选择时，只能让用户先选定路线。"""
+        guidance = build_interview_guidance([
+            {"role": "user", "content": "周六出发"},
+            {"role": "assistant", "content": "想走什么强度？"},
+            {"role": "user", "content": "轻松一些"},
+            {"role": "assistant", "content": "更喜欢森林还是雪山？"},
+            {"role": "user", "content": "森林"},
+            {"role": "assistant", "content": "这里有几条候选路线"},
+            {"role": "user", "content": "可以继续比较"},
+        ])
 
-        self.assertGreater(result["count"], 0, "当天有收录商团时应返回结果")
-        item = result["items"][0]
-        self.assertIn("product", item, "商团工具应包含产品信息")
-        self.assertIn("provider_name", item["product"], "商团工具应包含可展示的商团名称")
-        self.assertTrue(item["product"]["provider_name"], "商团名称不得为空")
-        self.assertIn("route", item, "商团工具应包含路线摘要")
-        self.assertIn("total_price_max_cny", item, "商团工具应包含按人数估算的总价")
-        self.assertIn("risk_notice", item, "商团工具应提醒用户二次确认")
-        self.assertIn("商团产品为已收录信息", item["risk_notice"], "二次确认提示应说明信息口径")
-        self.assertIn("价格、团期、名额和安全要求", item["risk_notice"], "二次确认提示应覆盖关键确认项")
+        self.assertIn("先让用户明确选择一条路线", guidance)
+        self.assertIn("这一轮不得询问交通方式", guidance)
+        self.assertNotIn("1. 自驾", guidance, "路线未选定时不得展示交通方式选项")
 
-    def test_agent_prompt_contains_commercial_tour_boundaries(self) -> None:
-        """Qwen Agent 不得编造未收录商团信息或承诺余位成团状态。"""
-        agent = build_qwen_agent(self.service, model="qwen-plus")
+    def test_interview_guidance_confirms_transport_after_explicit_route_choice(self) -> None:
+        """用户明确选择路线后，下一步才确认自驾、报团或公共交通。"""
+        guidance = build_interview_guidance([
+            {"role": "user", "content": "周六出发"},
+            {"role": "assistant", "content": "这里有三条候选路线，请先选择一条"},
+            {"role": "user", "content": "我选青城后山环线"},
+        ])
 
-        self.assertIn("recommend_commercial_tours", agent.system_message)
-        self.assertIn("不得编造未收录商家", agent.system_message)
-        self.assertIn("不承诺余位", agent.system_message)
-        self.assertIn("必须展示商团名称", agent.system_message)
-        self.assertIn("该商团的小程序", agent.system_message)
+        self.assertIn("用户已经明确选定路线", guidance)
+        self.assertIn("下一步只确认交通方式", guidance)
+        self.assertIn("1. 自驾 2. 报团 3. 公共交通", guidance)
 
+    def test_interview_guidance_uses_online_tool_after_group_tour_choice(self) -> None:
+        """路线选定后用户选择报团时，应进入在线链接查询而不是重复提问。"""
+        guidance = build_interview_guidance([
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "1. 自驾 2. 报团 3. 公共交通"},
+            {"role": "user", "content": "报团"},
+        ])
+
+        self.assertIn("find_group_tour_links", guidance)
+        self.assertIn("只展示活动标题和链接", guidance)
+        self.assertNotIn("下一步只确认交通方式", guidance)
 
 if __name__ == "__main__":
     unittest.main()

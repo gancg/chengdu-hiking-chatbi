@@ -66,7 +66,10 @@ class ChatBITest(unittest.TestCase):
             "scenery_preferences": ["森林"],
         }
         results = self.service.recommendations(query)
-        self.assertEqual(["qingcheng-back-mountain"], [item["route"]["id"] for item in results])
+        self.assertEqual(
+            ["qingcheng-back-mountain", "pengzhou-panlong-valley"],
+            [item["route"]["id"] for item in results],
+        )
 
     def test_severe_holiday_traffic_can_filter_all_routes(self) -> None:
         departure = (datetime.now().astimezone() + timedelta(days=1)).replace(
