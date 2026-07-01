@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from collections.abc import Iterator
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
@@ -81,8 +83,16 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     筛选出符合用户预期的候选路线。前期对话不得询问或要求用户选择交通方式，也不得展示交通方式选项。
     形成候选路线时可以不传 `transport_modes`，不得为了调用推荐工具而虚构交通方式。
     给出候选路线后，必须先让用户明确选择其中一条路线，不得在同一轮追加交通方式问题。
-    用户尚未明确选定路线时，不得询问或展示交通方式选项。用户明确选定某条路线后，下一步只确认交通方式：
-    1. 自驾 2. 报团 3. 公共交通。如果用户提前主动提供交通方式，可以暂存，但仍须先完成路线选择。
+    用户尚未明确选定路线时，不得询问或展示交通方式选项。用户明确选定某条路线后，下一步只确认交通方式，且必须严格使用以下格式：
+请选择交通方式：
+1. 自驾
+2. 报团
+3. 公共交通
+
+直接回复 1、2 或 3 即可。
+    不得给交通方式问题本身编号，不得形成外层问题编号和内层选项编号；不得追加路线对比或任何第二个问题；
+    不得增加“其他”选项，不得使用图标、装饰标题或在选项后添加括号说明。
+    如果用户提前主动提供交通方式，可以暂存，但仍须先完成路线选择。
 23. 输出候选路线时，必须按固定顺序组织信息：推荐路线、推荐理由、天气参考、设施与风险、路线选择。
     每条路线先给路线名称和核心行程数据，再解释为什么推荐；天气参考先说官方预警，再说温度和简单天气现象。
     候选路线阶段不得展开交通和费用比较，结尾只让用户选择一条路线。选定路线并确认交通方式后，
@@ -90,8 +100,11 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
 24. 展示天气参考时，如果工具结果的 `data_sources`、`official_alerts.source` 或 `daily_weather.source`
     表明来自和风天气，必须明确写出天气来源，例如“官方预警来源：和风天气官方预警聚合”
     或“天气预报来源：和风天气每日天气预报”。如果工具结果没有提供来源，只能说明天气来源暂未提供，不得自行补充来源。
-25. 用户选定路线并明确选择报团后，必须调用 `find_group_tour_links` 实时查询游侠客公开活动。
-    只能展示工具返回的活动标题和链接，并提示用户进入游侠客核实及完成后续操作；不得展示或推断价格、团期、余位，
+25. 用户选定路线并明确选择报团后，必须调用 `find_group_tour_links` 实时查询已配置商团的公开活动。
+    是否已经选定路线及其 `route_id`、是否在当前轮选择报团，必须采用系统提供的结构化会话状态，不得仅凭措辞猜测或自行编造 ID。
+    路线已经确定时，用户选择“报团”或常见误写“抱团”后，必须在当前轮直接调用工具，不得再次确认路线、日期、交通方式或是否开始查询。
+    一旦已经发起工具调用，表示查询决策已经完成；不得在工具调用前后再次要求用户确认报团。
+    只能展示工具返回的商团名称、活动标题和链接，并提示用户进入对应商团网站核实及完成后续操作；不得展示或推断价格、团期、余位，
     也不得在查询失败时回退到静态报团费用或旧商团数据。
 26. 用户明确点名想去的地方，且该地点命中已审核路线名称或检索词时，目的地已经足以限定候选路线。
     如果尚未确定具体出发日期，只确认日期，不得再询问人数、体力、经验、距离、爬升、难度、风景、设施或最晚返回时间。
@@ -133,9 +146,176 @@ def _has_group_tour_selection_after_route(messages: list[Any]) -> bool:
         content = _message_content(message).replace(" ", "")
         if any(marker in content for marker in selection_markers):
             has_route_selection = True
-        if has_route_selection and "报团" in content:
+        if has_route_selection and any(label in content for label in ("报团", "抱团")):
             return True
     return False
+
+
+@dataclass(frozen=True)
+class ConversationState:
+    """Structured route and transport selections derived from conversation history."""
+
+    selected_route_id: str | None = None
+    transport_mode: str | None = None
+    has_current_route_choice: bool = False
+    has_current_transport_choice: bool = False
+
+
+TRANSPORT_LABELS = {
+    "自驾": "self_drive",
+    "报团": "group_tour",
+    "抱团": "group_tour",
+    "公共交通": "public_transit",
+}
+
+
+def _match_transport_mode(content: str) -> str | None:
+    matches = {
+        mode for label, mode in TRANSPORT_LABELS.items() if label in content
+    }
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
+def _numbered_option_segments(content: str) -> dict[int, str]:
+    markers = list(re.finditer(r"(?<!\d)(\d+)\s*[.、．)）:：]\s*", content))
+    options: dict[int, str] = {}
+    for index, marker in enumerate(markers):
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(content)
+        options[int(marker.group(1))] = content[marker.end():end].strip()
+    return options
+
+
+def _ordered_transport_modes(content: str) -> list[str]:
+    positions: list[tuple[int, str]] = []
+    seen_modes: set[str] = set()
+    for label, mode in TRANSPORT_LABELS.items():
+        position = content.find(label)
+        if position < 0 or mode in seen_modes:
+            continue
+        seen_modes.add(mode)
+        positions.append((position, mode))
+    return [mode for _, mode in sorted(positions)]
+
+
+def _ordered_route_ids(
+    content: str, routes: list[dict[str, Any]]
+) -> list[str]:
+    positions: list[tuple[int, str]] = []
+    for route in routes:
+        terms = [route.get("name", ""), *(route.get("group_tour_search_terms") or [])]
+        matched_positions = [
+            content.find(str(term))
+            for term in terms
+            if str(term).strip() and content.find(str(term)) >= 0
+        ]
+        if matched_positions:
+            positions.append((min(matched_positions), str(route["id"])))
+    return [route_id for _, route_id in sorted(positions)]
+
+
+def _match_route_id(content: str, routes: list[dict[str, Any]]) -> str | None:
+    normalized_content = content.replace(" ", "")
+    matches: list[tuple[int, str]] = []
+    for route in routes:
+        terms = [route.get("name", ""), *(route.get("group_tour_search_terms") or [])]
+        matched_lengths = [
+            len(str(term).replace(" ", ""))
+            for term in terms
+            if str(term).strip() and str(term).replace(" ", "") in normalized_content
+        ]
+        if matched_lengths:
+            matches.append((max(matched_lengths), str(route["id"])))
+    if not matches:
+        return None
+    matches.sort(reverse=True)
+    if len(matches) > 1 and matches[0][0] == matches[1][0]:
+        return None
+    return matches[0][1]
+
+
+def _resolve_numbered_choice(
+    content: str,
+    previous_assistant_content: str,
+    routes: list[dict[str, Any]],
+) -> tuple[str | None, str | None]:
+    selected = re.fullmatch(r"\s*(\d+)\s*", content)
+    if selected is None:
+        return None, None
+    selected_number = int(selected.group(1))
+    option = _numbered_option_segments(previous_assistant_content).get(
+        selected_number, ""
+    )
+    route_id = _match_route_id(option, routes) if option else None
+    transport_mode = _match_transport_mode(option) if option else None
+    if route_id is None:
+        ordered_route_ids = _ordered_route_ids(previous_assistant_content, routes)
+        if 1 <= selected_number <= len(ordered_route_ids):
+            route_id = ordered_route_ids[selected_number - 1]
+    if transport_mode is None:
+        ordered_transport_modes = _ordered_transport_modes(previous_assistant_content)
+        if 1 <= selected_number <= len(ordered_transport_modes):
+            transport_mode = ordered_transport_modes[selected_number - 1]
+    return route_id, transport_mode
+
+
+def build_conversation_state(
+    messages: list[Any], routes: list[dict[str, Any]]
+) -> ConversationState:
+    """Resolve the latest selected route and current transport action."""
+    selected_route_id: str | None = None
+    transport_mode: str | None = None
+    has_current_route_choice = False
+    has_current_transport_choice = False
+    previous_assistant_content = ""
+    user_indexes = [
+        index for index, message in enumerate(messages) if _message_role(message) == "user"
+    ]
+    last_user_index = user_indexes[-1] if user_indexes else -1
+
+    for index, message in enumerate(messages):
+        role = _message_role(message)
+        content = _message_content(message)
+        if role == "assistant":
+            if selected_route_id is None and any(
+                marker in content for marker in ("已确认选择", "已选路线", "路线：")
+            ):
+                selected_route_id = _match_route_id(content, routes)
+            previous_assistant_content = content
+            continue
+        if role != "user":
+            continue
+
+        numbered_route_id, numbered_transport = _resolve_numbered_choice(
+            content, previous_assistant_content, routes
+        )
+        mentioned_route_id = _match_route_id(content, routes)
+        new_route_id = numbered_route_id or mentioned_route_id
+        is_explicit_route_choice = numbered_route_id is not None or (
+            mentioned_route_id is not None
+            and any(
+                marker in content.replace(" ", "")
+                for marker in ("我选", "我选择", "就选", "决定走", "选第", "选择第", "就这条", "改成", "换成")
+            )
+        )
+        if new_route_id is not None and new_route_id != selected_route_id:
+            selected_route_id = new_route_id
+            transport_mode = None
+
+        mentioned_transport = _match_transport_mode(content)
+        new_transport = numbered_transport or mentioned_transport
+        if new_transport is not None:
+            transport_mode = new_transport
+
+        if index == last_user_index:
+            has_current_route_choice = is_explicit_route_choice
+            has_current_transport_choice = new_transport is not None
+
+    return ConversationState(
+        selected_route_id=selected_route_id,
+        transport_mode=transport_mode,
+        has_current_route_choice=has_current_route_choice,
+        has_current_transport_choice=has_current_transport_choice,
+    )
 
 
 def build_route_search_terms(routes: list[dict[str, Any]]) -> list[str]:
@@ -203,21 +383,58 @@ def build_public_holiday_guidance() -> str:
 
 
 def build_interview_guidance(
-    messages: list[Any], route_search_terms: list[str] | None = None
+    messages: list[Any],
+    route_search_terms: list[str] | None = None,
+    routes: list[dict[str, Any]] | None = None,
 ) -> str:
     """Build turn-aware guidance for a natural hiking requirement interview."""
     user_turns = sum(_message_role(message) == "user" for message in messages)
-    if _has_group_tour_selection_after_route(messages):
+    state = build_conversation_state(messages, routes or [])
+    if (
+        routes is not None
+        and state.transport_mode == "group_tour"
+        and state.has_current_transport_choice
+    ):
+        if state.selected_route_id is None:
+            return (
+                "用户当前选择了报团，但尚未确定具体路线。不得调用 find_group_tour_links，"
+                "也不得猜测 route_id；只请用户先选定一条路线。"
+            )
         return (
             "用户已经选定路线并明确选择报团。请立即调用 find_group_tour_links，"
-            "使用已选路线的 route_id 实时查询。只展示活动标题和链接，并提示用户"
-            "进入游侠客核实及完成后续操作；不得推断价格、团期或余位。"
+            f"使用结构化会话状态给出的 route_id={state.selected_route_id} 实时查询。"
+            "不得改用其他路线 ID，也不得再次向用户确认路线、日期、交通方式或是否开始查询。"
+            "只展示商团名称、活动标题和链接，并提示用户"
+            "进入对应商团网站核实及完成后续操作；不得推断价格、团期或余位。"
         )
-    if _has_explicit_route_selection(messages):
+    if (
+        routes is not None
+        and state.transport_mode == "group_tour"
+        and not state.has_current_transport_choice
+    ):
         return (
-            "用户已经明确选定路线。下一步只确认交通方式，不再追加路线筛选问题。"
-            "请使用连续编号询问：1. 自驾 2. 报团 3. 公共交通。"
-            "用户确认后，再补充所选路线的交通估算、费用比较或最终方案。"
+            "会话中保留了此前的报团方式，但用户当前轮没有重新选择报团。"
+            "本轮不得调用 find_group_tour_links；应根据用户当前问题正常回答，"
+            "不得把历史报团选择误当成新的在线查询指令。"
+        )
+    if routes is None and _has_group_tour_selection_after_route(messages):
+        return (
+            "用户已经选定路线并明确选择报团。请立即调用 find_group_tour_links，"
+            "使用已选路线的 route_id 实时查询。不得再次向用户确认。"
+            "只展示商团名称、活动标题和链接，并提示用户"
+            "进入对应商团网站核实及完成后续操作；不得推断价格、团期或余位。"
+        )
+    if state.has_current_route_choice or (routes is None and _has_explicit_route_selection(messages)):
+        return (
+            "用户已经明确选定路线。下一步只确认交通方式。"
+            "本轮不得给问题本身编号，不得形成嵌套编号；"
+            "不得追加路线对比或任何第二个问题；不得增加“其他”选项；"
+            "不得使用图标、装饰标题或括号说明。请严格输出以下内容，不得增删：\n"
+            "请选择交通方式：\n"
+            "1. 自驾\n"
+            "2. 报团\n"
+            "3. 公共交通\n\n"
+            "直接回复 1、2 或 3 即可。"
         )
     named_route_terms = _find_named_route_terms(messages, route_search_terms or [])
     if named_route_terms:
@@ -281,6 +498,7 @@ class GuidedHikingAssistant(Assistant):
             guidance = build_interview_guidance(
                 guided_messages,
                 getattr(self, "route_search_terms", []),
+                getattr(self, "route_catalog", []),
             )
             if guided_messages and _message_role(guided_messages[0]) == SYSTEM:
                 guided_messages[0].content = (
@@ -412,7 +630,7 @@ class RecommendHikingRoutesTool(HikingTool):
 
 class FindGroupTourLinksTool(HikingTool):
     name = "find_group_tour_links"
-    description = "用户选定路线并选择报团后，实时查询游侠客相关一日游活动链接。"
+    description = "用户选定路线并选择报团后，实时查询已配置商团的相关活动链接。"
     parameters = [
         {
             "name": "route_id",
@@ -552,7 +770,8 @@ def build_qwen_agent(service: ChatBIService, model: str = "qwen-plus") -> Guided
             ResolvePublicHolidayTool(service),
         ],
     )
-    agent.route_search_terms = build_route_search_terms(service.routes())
+    agent.route_catalog = service.routes()
+    agent.route_search_terms = build_route_search_terms(agent.route_catalog)
     return agent
 
 

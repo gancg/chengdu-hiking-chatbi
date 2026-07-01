@@ -10,7 +10,10 @@ from unittest.mock import patch
 from hiking_chatbi.config import SAMPLE_DATA_PATH
 from hiking_chatbi.db import initialize
 from hiking_chatbi.group_tour_links import (
+    DaeGroupTourLinkProvider,
     GroupTourLinkError,
+    MidoGroupTourLinkProvider,
+    MultiGroupTourLinkProvider,
     PlaywrightYouxiakeBrowserFetcher,
     YouxiakeGroupTourLinkProvider,
 )
@@ -30,6 +33,92 @@ class StubGroupTourProvider:
     ) -> list[dict[str, str]]:
         self.calls.append((route_name, search_terms))
         return self.results
+
+
+class MultiGroupTourLinkProviderTest(unittest.TestCase):
+    def test_merges_sources_and_marks_merchant_name(self) -> None:
+        """多个商团结果应按配置顺序合并，并明确标注商团名称。"""
+        provider = MultiGroupTourLinkProvider([
+            ("游侠客", StubGroupTourProvider([
+                {"title": "青城后山一日游", "url": "https://youxiake.example/1"}
+            ])),
+            ("大鹅", StubGroupTourProvider([
+                {"title": "青城后山徒步", "url": "https://dae.example/2"}
+            ])),
+            ("蜜多", StubGroupTourProvider([])),
+        ])
+
+        results = provider.find_links("青城后山", ["青城山后山"])
+
+        self.assertEqual(["游侠客", "大鹅"], [item["source_name"] for item in results])
+
+    def test_keeps_successful_results_when_one_source_fails(self) -> None:
+        """单个商团查询异常时，应保留其他商团成功返回的链接。"""
+        class FailingProvider:
+            def find_links(self, route_name: str, search_terms: list[str]) -> list[dict[str, str]]:
+                raise GroupTourLinkError("大鹅查询失败")
+
+        provider = MultiGroupTourLinkProvider([
+            ("大鹅", FailingProvider()),
+            ("蜜多", StubGroupTourProvider([
+                {"title": "赵公山徒步", "url": "https://mido.example/1"}
+            ])),
+        ])
+
+        results = provider.find_links("赵公山", [])
+
+        self.assertEqual("蜜多", results[0]["source_name"])
+
+    def test_raises_chinese_error_when_all_sources_fail(self) -> None:
+        """全部已启用商团均失败时，应输出包含来源名称的中文异常。"""
+        class FailingProvider:
+            def find_links(self, route_name: str, search_terms: list[str]) -> list[dict[str, str]]:
+                raise RuntimeError("network failed")
+
+        provider = MultiGroupTourLinkProvider([
+            ("大鹅", FailingProvider()),
+            ("蜜多", FailingProvider()),
+        ])
+
+        with self.assertRaisesRegex(GroupTourLinkError, "大鹅、蜜多"):
+            provider.find_links("赵公山", [])
+
+
+class DaeGroupTourLinkProviderTest(unittest.TestCase):
+    def test_searches_keyword_and_returns_valid_detail_link(self) -> None:
+        """大鹅应使用审核关键词搜索，并只返回匹配的合法详情链接。"""
+        searched_keywords: list[str] = []
+        html = '''
+        <a href="/News_read_id_6646.shtml"><div class="tit">【巴朗山】花海徒步</div></a>
+        <a href="https://evil.example/News_read_id_1.shtml"><div class="tit">巴朗山</div></a>
+        '''
+        provider = DaeGroupTourLinkProvider(
+            html_fetcher=lambda keyword: searched_keywords.append(keyword) or html
+        )
+
+        results = provider.find_links("巴朗山徒步线", ["巴朗山"])
+
+        self.assertEqual(["巴朗山"], searched_keywords)
+        self.assertEqual("https://www.cddee.cn/News_read_id_6646.shtml", results[0]["url"])
+
+
+class MidoGroupTourLinkProviderTest(unittest.TestCase):
+    def test_reads_public_list_and_filters_by_reviewed_terms(self) -> None:
+        """蜜多应从公开列表读取活动，并按审核后的路线词过滤。"""
+        html = '''
+        <a href="/event?id=876570&amp;mid=52240">7月4日 巴朗山花海徒步</a>
+        <a href="/event?id=2&amp;mid=99999">巴朗山错误商户</a>
+        <a href="/event?id=3&amp;mid=52240">喇叭河徒步</a>
+        '''
+        provider = MidoGroupTourLinkProvider(html_fetcher=lambda _keyword: html)
+
+        results = provider.find_links("巴朗山徒步线", ["巴朗山"])
+
+        self.assertEqual(1, len(results))
+        self.assertEqual(
+            "https://cdmdtb.360jlb.cn/event?id=876570&mid=52240",
+            results[0]["url"],
+        )
 
 
 class GroupTourSearchTermsTest(unittest.TestCase):
@@ -97,18 +186,21 @@ class GroupTourSearchTermsTest(unittest.TestCase):
 class YouxiakeGroupTourLinkProviderTest(unittest.TestCase):
     def test_matches_name_and_alias_then_deduplicates_links(self) -> None:
         """路线名称和别名均可命中，重复活动链接只应返回一次。"""
+        searched_keywords: list[str] = []
         candidates = [
             {"title": "青城后山环线·清凉一日", "url": "/lines.html?id=100"},
             {"title": "青城山后山轻徒步", "url": "https://m.youxiake.com/lines.html?id=101"},
             {"title": "青城后山重复活动", "url": "https://www.youxiake.com/lines.html?id=100"},
         ]
         provider = YouxiakeGroupTourLinkProvider(
-            candidate_fetcher=lambda: candidates, max_links=5
+            candidate_fetcher=lambda keyword: searched_keywords.append(keyword) or candidates,
+            max_links=5,
         )
 
         results = provider.find_links("青城后山环线", ["青城山后山"])
 
         self.assertEqual(2, len(results), "名称和别名命中的活动应合并去重")
+        self.assertEqual(["青城山后山"], searched_keywords, "应优先使用第一条审核关键词搜索")
         self.assertEqual("青城后山环线", results[0]["matched_term"])
         self.assertEqual("青城山后山", results[1]["matched_term"])
         self.assertTrue(results[0]["fetched_at"], "在线结果应包含抓取时间")
@@ -120,7 +212,7 @@ class YouxiakeGroupTourLinkProviderTest(unittest.TestCase):
             {"title": "青城后山环线一日", "url": "https://evil.example/lines.html?id=201"},
             {"title": "青城后山环线一日", "url": "http://www.youxiake.com/lines.html?id=202"},
         ]
-        provider = YouxiakeGroupTourLinkProvider(candidate_fetcher=lambda: candidates)
+        provider = YouxiakeGroupTourLinkProvider(candidate_fetcher=lambda _keyword: candidates)
 
         self.assertEqual(
             [],
@@ -130,7 +222,7 @@ class YouxiakeGroupTourLinkProviderTest(unittest.TestCase):
 
     def test_empty_candidates_are_not_an_error(self) -> None:
         """网页正常但没有相关活动时，应返回空列表。"""
-        provider = YouxiakeGroupTourLinkProvider(candidate_fetcher=lambda: [])
+        provider = YouxiakeGroupTourLinkProvider(candidate_fetcher=lambda _keyword: [])
 
         self.assertEqual([], provider.find_links("赵公山西线", ["赵公山"]))
 
@@ -180,14 +272,54 @@ class PlaywrightFetcherCleanupTest(unittest.TestCase):
         expected = [{"title": "青城后山", "url": "/lines.html?id=1"}]
         with (
             patch.object(fetcher, "_reject_blocked_page"),
-            patch.object(fetcher, "_select_filter"),
-            patch.object(fetcher, "_load_visible_cards"),
+            patch.object(fetcher, "_search"),
             patch.object(fetcher, "_read_candidates", return_value=expected),
         ):
-            results = fetcher.fetch_candidates()
+            results = fetcher.fetch_candidates("青城后山")
 
         self.assertEqual(expected, results, "成功抓取应返回页面候选活动")
         self.assertTrue(browser.is_closed, "成功抓取后必须关闭浏览器")
+
+    def test_fetcher_submits_keyword_in_search_box(self) -> None:
+        """抓取器应在一日游页面输入关键词并提交搜索。"""
+        class FakeLocator:
+            def __init__(self) -> None:
+                self.filled = ""
+                self.is_clicked = False
+
+            def wait_for(self, **_kwargs: object) -> None:
+                return None
+
+            def fill(self, value: str) -> None:
+                self.filled = value
+
+            def click(self, **_kwargs: object) -> None:
+                self.is_clicked = True
+
+        class FakePage:
+            def __init__(self) -> None:
+                self.search_input = FakeLocator()
+                self.search_button = FakeLocator()
+                self.url = "https://www.youxiake.com/search/results/example.html"
+                self.waited_for_url = False
+
+            def locator(self, selector: str) -> FakeLocator:
+                if selector == 'input[name="keyword"]':
+                    return self.search_input
+                return self.search_button
+
+            def wait_for_url(self, predicate: object, **_kwargs: object) -> None:
+                self.waited_for_url = bool(  # type: ignore[operator]
+                    predicate("https://www.youxiake.com/search/results/changed.html")
+                )
+
+        page = FakePage()
+
+        PlaywrightYouxiakeBrowserFetcher()._search(page, "巴朗山")
+
+        self.assertEqual("巴朗山", page.search_input.filled, "应输入审核后的路线关键词")
+        self.assertTrue(page.search_button.is_clicked, "应点击搜索按钮")
+        self.assertTrue(page.waited_for_url, "应等待搜索结果页面跳转")
 
     def test_browser_closes_when_page_loading_fails(self) -> None:
         """页面加载异常时，应关闭浏览器并输出中文错误。"""
@@ -232,9 +364,26 @@ class PlaywrightFetcherCleanupTest(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(GroupTourLinkError, "游侠客报团链接暂时无法获取"):
-            fetcher.fetch_candidates()
+            fetcher.fetch_candidates("青城后山")
 
         self.assertTrue(browser.is_closed, "页面加载失败后也必须关闭浏览器")
+
+    def test_open_search_page_retries_once_after_timeout(self) -> None:
+        """搜索页首次加载失败时应重试一次。"""
+        class FlakyPage:
+            def __init__(self) -> None:
+                self.goto_count = 0
+
+            def goto(self, *_args: object, **_kwargs: object) -> None:
+                self.goto_count += 1
+                if self.goto_count == 1:
+                    raise RuntimeError("temporary timeout")
+
+        page = FlakyPage()
+
+        PlaywrightYouxiakeBrowserFetcher()._open_search_page(page)
+
+        self.assertEqual(2, page.goto_count, "首次失败后应且只应重试一次")
 
 
 class GroupTourLinkServiceTest(unittest.TestCase):

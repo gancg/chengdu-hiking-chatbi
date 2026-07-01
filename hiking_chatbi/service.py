@@ -14,7 +14,11 @@ from .db import (
     list_routes,
 )
 from .importer import import_file
-from .group_tour_links import GroupTourLinkProvider, YouxiakeGroupTourLinkProvider
+from .group_tour_links import (
+    GroupTourLinkProvider,
+    MultiGroupTourLinkProvider,
+    YouxiakeGroupTourLinkProvider,
+)
 from .recommend import recommend
 from .traffic import TrafficProvider, estimate_traffic
 from .weather import (
@@ -40,7 +44,9 @@ class ChatBIService:
         self.db_path = db_path
         self.provider = provider
         self.alert_provider = alert_provider or NoAlertProvider()
-        self.group_tour_provider = group_tour_provider or YouxiakeGroupTourLinkProvider()
+        self.group_tour_provider = group_tour_provider or MultiGroupTourLinkProvider(
+            [("游侠客", YouxiakeGroupTourLinkProvider())]
+        )
         initialize(db_path)
         logger.info("ChatBIService 初始化完成 db_path=%s", db_path)
 

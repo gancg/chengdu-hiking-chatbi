@@ -18,6 +18,7 @@ from hiking_chatbi.qwen_chatbi import (
     ResolveDepartureDateTool,
     ResolvePublicHolidayTool,
     build_departure_date_guidance,
+    build_conversation_state,
     build_interview_guidance,
     build_route_search_terms,
     build_public_holiday_guidance,
@@ -99,6 +100,42 @@ class QwenChatBITest(unittest.TestCase):
             }))
 
         self.assertEqual(expected, result["items"], "工具只能返回服务查询到的链接")
+        call.assert_called_once_with("qingcheng-back-mountain")
+
+    def test_group_tour_link_tool_does_not_repeat_conversation_confirmation(self) -> None:
+        """工具调用已经开始后，不得再次校验对话中的报团确认状态。"""
+        messages = [
+            {"role": "user", "content": "想去巴朗山"},
+            {"role": "assistant", "content": "交通方式：1. 自驾 2. 报团 3. 公共交通"},
+            {"role": "user", "content": "2"},
+        ]
+
+        expected = [{"title": "活动", "url": "https://www.youxiake.com/lines.html?id=1"}]
+        with patch.object(self.service, "group_tour_links", return_value=expected) as call:
+            result = json.loads(FindGroupTourLinksTool(self.service).call(
+                {"route_id": "qingcheng-back-mountain"},
+                messages=messages,
+            ))
+
+        self.assertEqual(expected, result["items"])
+        call.assert_called_once_with("qingcheng-back-mountain")
+
+    def test_group_tour_link_tool_ignores_transport_state_after_call_starts(self) -> None:
+        """即使消息状态解析为自驾，已发起的只读链接查询也不应二次确认。"""
+        messages = [
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "交通方式：1. 自驾 2. 报团 3. 公共交通"},
+            {"role": "user", "content": "1"},
+        ]
+
+        expected = [{"title": "活动", "url": "https://www.youxiake.com/lines.html?id=1"}]
+        with patch.object(self.service, "group_tour_links", return_value=expected) as call:
+            result = json.loads(FindGroupTourLinksTool(self.service).call(
+                {"route_id": "qingcheng-back-mountain"},
+                messages=messages,
+            ))
+
+        self.assertEqual(expected, result["items"])
         call.assert_called_once_with("qingcheng-back-mountain")
 
     def test_build_agent_uses_stable_default_seed(self) -> None:
@@ -444,7 +481,30 @@ class QwenChatBITest(unittest.TestCase):
 
         self.assertIn("用户已经明确选定路线", guidance)
         self.assertIn("下一步只确认交通方式", guidance)
-        self.assertIn("1. 自驾 2. 报团 3. 公共交通", guidance)
+        self.assertIn(
+            "请选择交通方式：\n1. 自驾\n2. 报团\n3. 公共交通\n\n直接回复 1、2 或 3 即可。",
+            guidance,
+        )
+        self.assertIn("不得给问题本身编号", guidance)
+        self.assertIn("不得追加路线对比或任何第二个问题", guidance)
+        self.assertIn("不得增加“其他”选项", guidance)
+        self.assertIn("不得使用图标、装饰标题或括号说明", guidance)
+
+    def test_agent_prompt_uses_fixed_transport_choice_template(self) -> None:
+        """路线选定后的交通选择应简单唯一，避免嵌套编号和额外问题。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        expected = (
+            "请选择交通方式：\n"
+            "1. 自驾\n"
+            "2. 报团\n"
+            "3. 公共交通\n\n"
+            "直接回复 1、2 或 3 即可。"
+        )
+        self.assertIn(expected, agent.system_message)
+        self.assertIn("不得给交通方式问题本身编号", agent.system_message)
+        self.assertIn("不得追加路线对比或任何第二个问题", agent.system_message)
+        self.assertIn("不得增加“其他”选项", agent.system_message)
 
     def test_interview_guidance_uses_online_tool_after_group_tour_choice(self) -> None:
         """路线选定后用户选择报团时，应进入在线链接查询而不是重复提问。"""
@@ -455,8 +515,179 @@ class QwenChatBITest(unittest.TestCase):
         ])
 
         self.assertIn("find_group_tour_links", guidance)
-        self.assertIn("只展示活动标题和链接", guidance)
+        self.assertIn("只展示商团名称、活动标题和链接", guidance)
+        self.assertIn("不得再次向用户确认", guidance)
         self.assertNotIn("下一步只确认交通方式", guidance)
+
+    def test_group_tour_typo_triggers_direct_link_query(self) -> None:
+        """路线已选后输入常见误写“抱团”，也应直接查询而不重复确认。"""
+        routes = self.service.routes()
+        messages = [
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "交通方式：1. 自驾 2. 报团 3. 公共交通"},
+            {"role": "user", "content": "抱团"},
+        ]
+
+        state = build_conversation_state(messages, routes)
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertEqual("qingcheng-back-mountain", state.selected_route_id)
+        self.assertEqual("group_tour", state.transport_mode)
+        self.assertIn("请立即调用 find_group_tour_links", guidance)
+        self.assertIn("不得再次向用户确认", guidance)
+
+    def test_later_query_does_not_retrigger_group_tour_without_current_choice(self) -> None:
+        """只有当前轮明确选择报团时才触发链接查询。"""
+        routes = self.service.routes()
+        messages = [
+            {"role": "user", "content": "我选巴朗山熊猫王国之巅线"},
+            {"role": "assistant", "content": "交通方式：1. 自驾 2. 报团 3. 公共交通"},
+            {"role": "user", "content": "报团"},
+            {"role": "assistant", "content": "需先正式确认报团选项"},
+            {"role": "user", "content": "直接查，别确认了"},
+        ]
+
+        state = build_conversation_state(messages, routes)
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertEqual("group_tour", state.transport_mode)
+        self.assertFalse(state.has_current_transport_choice)
+        self.assertIn("当前轮没有重新选择报团", guidance)
+        self.assertNotIn("请立即调用 find_group_tour_links", guidance)
+
+    def test_tool_accepts_persisted_group_tour_choice_for_direct_query(self) -> None:
+        """工具应接受已持久化的报团选择，不要求当前轮重复选择。"""
+        messages = [
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "交通方式？"},
+            {"role": "user", "content": "报团"},
+            {"role": "assistant", "content": "是否确认查询？"},
+            {"role": "user", "content": "直接查"},
+        ]
+        expected = [{"title": "活动", "url": "https://www.youxiake.com/lines.html?id=1"}]
+
+        with patch.object(self.service, "group_tour_links", return_value=expected) as call:
+            result = json.loads(FindGroupTourLinksTool(self.service).call(
+                {"route_id": "qingcheng-back-mountain"},
+                messages=messages,
+            ))
+
+        self.assertEqual(expected, result["items"])
+        call.assert_called_once_with("qingcheng-back-mountain")
+
+    def test_named_route_and_group_tour_resolve_exact_route_id(self) -> None:
+        """点名路线后选择报团，应使用路线目录中的确定 ID。"""
+        messages = [
+            {"role": "user", "content": "想去巴朗山"},
+            {"role": "assistant", "content": "推荐巴朗山熊猫王国之巅线。交通方式？"},
+            {"role": "user", "content": "报团"},
+        ]
+
+        state = build_conversation_state(messages, self.service.routes())
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(self.service.routes()),
+            self.service.routes(),
+        )
+
+        self.assertEqual("wenchuan-balangshan-panda-peak", state.selected_route_id)
+        self.assertEqual("group_tour", state.transport_mode)
+        self.assertIn("route_id=wenchuan-balangshan-panda-peak", guidance)
+        self.assertIn("find_group_tour_links", guidance)
+
+    def test_numbered_route_and_transport_choices_build_state(self) -> None:
+        """数字回复应根据上一轮选项映射路线和交通方式。"""
+        messages = [
+            {
+                "role": "assistant",
+                "content": "请选择路线：\n1. 巴朗山熊猫王国之巅线\n2. 青城后山环线",
+            },
+            {"role": "user", "content": "1"},
+            {"role": "assistant", "content": "1. 自驾 2. 报团 3. 公共交通"},
+            {"role": "user", "content": "2"},
+        ]
+
+        state = build_conversation_state(messages, self.service.routes())
+
+        self.assertEqual("wenchuan-balangshan-panda-peak", state.selected_route_id)
+        self.assertEqual("group_tour", state.transport_mode)
+        self.assertTrue(state.has_current_transport_choice)
+
+    def test_unumbered_transport_list_and_confirmed_route_preserve_state(self) -> None:
+        """交通列表漏写编号时，数字 2 仍应映射报团并保留助手确认的路线。"""
+        routes = self.service.routes()
+        messages = [
+            {"role": "assistant", "content": "已确认选择巴朗山熊猫王国之巅线！"},
+            {
+                "role": "assistant",
+                "content": (
+                    "接下来，请告诉我你的交通方式偏好：\n"
+                    "自驾\n报团（可查询游侠客链接）\n公共交通\n"
+                    "请直接回复数字 1、2 或 3。"
+                ),
+            },
+            {"role": "user", "content": "2"},
+        ]
+
+        state = build_conversation_state(messages, routes)
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertEqual("wenchuan-balangshan-panda-peak", state.selected_route_id)
+        self.assertEqual("group_tour", state.transport_mode)
+        self.assertIn("route_id=wenchuan-balangshan-panda-peak", guidance)
+        self.assertIn("请立即调用 find_group_tour_links", guidance)
+
+    def test_chinese_parenthesis_number_maps_group_tour(self) -> None:
+        """交通选项使用中文括号编号时，数字回复也应正常映射。"""
+        messages = [
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "1）自驾 2）报团 3）公共交通"},
+            {"role": "user", "content": "2"},
+        ]
+
+        state = build_conversation_state(messages, self.service.routes())
+
+        self.assertEqual("group_tour", state.transport_mode)
+
+    def test_group_tour_without_selected_route_does_not_trigger_tool(self) -> None:
+        """只选择报团但没有路线时，不得要求模型猜测 route_id。"""
+        messages = [{"role": "user", "content": "我选报团"}]
+
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(self.service.routes()),
+            self.service.routes(),
+        )
+
+        self.assertIn("尚未确定具体路线", guidance)
+        self.assertIn("不得调用 find_group_tour_links", guidance)
+
+    def test_new_route_selection_replaces_stale_route_before_group_tour(self) -> None:
+        """更换路线后报团，应使用最新路线而不是历史路线。"""
+        messages = [
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "已选青城后山环线"},
+            {"role": "user", "content": "改成巴朗山"},
+            {"role": "assistant", "content": "已改为巴朗山熊猫王国之巅线"},
+            {"role": "user", "content": "报团"},
+        ]
+
+        state = build_conversation_state(messages, self.service.routes())
+
+        self.assertEqual("wenchuan-balangshan-panda-peak", state.selected_route_id)
+        self.assertEqual("group_tour", state.transport_mode)
 
 if __name__ == "__main__":
     unittest.main()

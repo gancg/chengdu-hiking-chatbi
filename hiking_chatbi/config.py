@@ -35,3 +35,11 @@ YOUXIAKE_AROUND_URL = os.getenv(
 )
 YOUXIAKE_TIMEOUT_SECONDS = int(os.getenv("CHATBI_YOUXIAKE_TIMEOUT_SECONDS", "20"))
 YOUXIAKE_MAX_LINKS = int(os.getenv("CHATBI_YOUXIAKE_MAX_LINKS", "5"))
+DAE_URL = os.getenv("CHATBI_DAE_URL", "https://www.cddee.cn/").strip()
+DAE_TIMEOUT_SECONDS = int(os.getenv("CHATBI_DAE_TIMEOUT_SECONDS", "20"))
+DAE_MAX_LINKS = int(os.getenv("CHATBI_DAE_MAX_LINKS", "5"))
+MIDO_URL = os.getenv(
+    "CHATBI_MIDO_URL", "https://cdmdtb.360jlb.cn/events?mid=52240"
+).strip()
+MIDO_TIMEOUT_SECONDS = int(os.getenv("CHATBI_MIDO_TIMEOUT_SECONDS", "20"))
+MIDO_MAX_LINKS = int(os.getenv("CHATBI_MIDO_MAX_LINKS", "5"))

@@ -8,7 +8,13 @@ from pathlib import Path
 from .api import serve
 from .config import (
     DB_PATH,
+    DAE_MAX_LINKS,
+    DAE_TIMEOUT_SECONDS,
+    DAE_URL,
     HOST,
+    MIDO_MAX_LINKS,
+    MIDO_TIMEOUT_SECONDS,
+    MIDO_URL,
     PORT,
     QWEN_MODEL,
     QWEN_SEED,
@@ -24,7 +30,12 @@ from .config import (
 from .importer import import_file
 from .logging_config import configure_logging
 from .service import ChatBIService
-from .group_tour_links import YouxiakeGroupTourLinkProvider
+from .group_tour_links import (
+    DaeGroupTourLinkProvider,
+    MidoGroupTourLinkProvider,
+    MultiGroupTourLinkProvider,
+    YouxiakeGroupTourLinkProvider,
+)
 from .traffic import provider_from_name
 from .weather import alert_provider_from_name
 
@@ -49,10 +60,24 @@ def main() -> None:
         DB_PATH,
         provider_from_name(TRAFFIC_PROVIDER),
         alert_provider_from_name(ALERT_PROVIDER),
-        group_tour_provider=YouxiakeGroupTourLinkProvider(
-            page_url=YOUXIAKE_AROUND_URL,
-            timeout_seconds=YOUXIAKE_TIMEOUT_SECONDS,
-            max_links=YOUXIAKE_MAX_LINKS,
+        group_tour_provider=MultiGroupTourLinkProvider(
+            [("游侠客", YouxiakeGroupTourLinkProvider(
+                page_url=YOUXIAKE_AROUND_URL,
+                timeout_seconds=YOUXIAKE_TIMEOUT_SECONDS,
+                max_links=YOUXIAKE_MAX_LINKS,
+            )), *(
+                [("大鹅", DaeGroupTourLinkProvider(
+                    page_url=DAE_URL,
+                    timeout_seconds=DAE_TIMEOUT_SECONDS,
+                    max_links=DAE_MAX_LINKS,
+                ))] if DAE_URL else []
+            ), *(
+                [("蜜多", MidoGroupTourLinkProvider(
+                    page_url=MIDO_URL,
+                    timeout_seconds=MIDO_TIMEOUT_SECONDS,
+                    max_links=MIDO_MAX_LINKS,
+                ))] if MIDO_URL else []
+            )]
         ),
     )
     logger.info(
