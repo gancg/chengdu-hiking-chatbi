@@ -19,6 +19,12 @@ python -m hiking_chatbi serve
 
 
 
+python -m hiking_chatbi.youxiake_collector
+# 获取40条路线信息
+python .\youxiake_route_links.py
+# 补全40条路线的其它信息
+python .\youxiake_route_enricher.py
+
 
 
 

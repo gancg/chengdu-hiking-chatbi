@@ -1,0 +1,4129 @@
+[
+  {
+    "route": {
+      "id": "yunzhongling",
+      "name": "云中岭",
+      "group_tour_search_terms": [
+        "云中岭",
+        "云中牧场",
+        "卧龙云中牧场"
+      ],
+      "start_location": "汶川卧龙转经村",
+      "end_location": "云中岭山顶",
+      "latitude": 30.95,
+      "longitude": 103.15,
+      "distance_km": 10.0,
+      "ascent_m": 1000,
+      "highest_altitude_m": 3050,
+      "hiking_minutes": 240,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋",
+        "冬"
+      ],
+      "scenery": [
+        "高山草甸",
+        "雪山",
+        "牧场",
+        "云瀑"
+      ],
+      "risks": [
+        "陡坡",
+        "大雾",
+        "高反"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "转经村可停车，需换乘当地中转车上山",
+      "supplies": "沿途有农家乐补给，建议自带路餐",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "部分高海拔区域信号较弱",
+      "camping": "草甸区域可露营，需自备装备并注意环保",
+      "source_url": "https://m.youxiake.com/lines.html?id=55153",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T17:57:24+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "进山卫生费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 15,
+          "max_cny": 15,
+          "source_url": "https://m.youxiake.com/lines.html?id=55153",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 88,
+          "max_cny": 98,
+          "source_url": "https://m.youxiake.com/lines.html?id=55153",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "往返中转车费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 30,
+          "max_cny": 30,
+          "source_url": "https://m.youxiake.com/lines.html?id=55153",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 120,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "都汶高速",
+        "卧龙镇街道"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=55153",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "balangshan-downhill-traverse",
+      "name": "巴朗山下穿",
+      "group_tour_search_terms": [
+        "巴朗山下穿",
+        "巴朗山徒步",
+        "邓生沟",
+        "贝母坪"
+      ],
+      "start_location": "贝母坪（巴朗山隧道口）",
+      "end_location": "邓生沟沟口",
+      "latitude": 30.898,
+      "longitude": 102.895,
+      "distance_km": 10.0,
+      "ascent_m": 0,
+      "highest_altitude_m": 3900,
+      "hiking_minutes": 240,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 30,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "雪山",
+        "森林",
+        "高山草甸",
+        "云海",
+        "河流"
+      ],
+      "risks": [
+        "高反",
+        "雨天湿滑",
+        "陡坡",
+        "紫外线强"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "起点贝母坪烧烤摊附近可停车，但下穿路线终点在邓生沟，自驾需安排接驳或两辆车",
+      "supplies": "起点和终点有烧烤摊，沿途无小卖部，需自带路餐和饮用水",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "部分高山草甸有信号，森林和沟谷内信号较弱",
+      "camping": "一日轻徒步路线，不建议且不允许露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=59054",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T17:59:52+08:00",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "当地卫生费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 14,
+          "max_cny": 14,
+          "source_url": "https://m.youxiake.com/lines.html?id=59054",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游大巴及领队费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 108,
+          "max_cny": 108,
+          "source_url": "https://m.youxiake.com/lines.html?id=59054",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 240,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "映秀至卧龙段G350",
+        "巴朗山隧道"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "17:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=59054",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "yizhebangna-shengshan",
+      "name": "依则邦纳圣山",
+      "group_tour_search_terms": [
+        "依则邦纳",
+        "猛古村",
+        "雪山草原AB线"
+      ],
+      "start_location": "猛古村徒步起点",
+      "end_location": "依则邦纳圣山山顶",
+      "latitude": 31.65,
+      "longitude": 103.45,
+      "distance_km": 12.0,
+      "ascent_m": 1200,
+      "highest_altitude_m": 4000,
+      "hiking_minutes": 300,
+      "difficulty": "hard",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "高山草甸",
+        "雪山",
+        "森林"
+      ],
+      "risks": [
+        "高反",
+        "天气突变",
+        "失温"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "猛古村徒步起点可停车",
+      "supplies": "需自带路餐，山下村庄有少量补给",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "山上部分区域无信号",
+      "camping": "高海拔区域禁止露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=55364",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:01:05+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "进山卫生费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 20,
+          "max_cny": 20,
+          "source_url": "https://m.youxiake.com/lines.html?id=55364",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        },
+        {
+          "name": "往返中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 30,
+          "max_cny": 30,
+          "source_url": "https://m.youxiake.com/lines.html?id=55364",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 148,
+          "max_cny": 148,
+          "source_url": "https://m.youxiake.com/lines.html?id=55364",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 210,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "都汶高速",
+        "汶川至理县路段"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "15:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=55364",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "da-er-pu-san-hai",
+      "name": "大二普三海",
+      "group_tour_search_terms": [
+        "大二普",
+        "三海子",
+        "理小路",
+        "米汤海子",
+        "梅朵央措"
+      ],
+      "start_location": "理县大二普营地",
+      "end_location": "米汤海子（三海子）",
+      "latitude": 31.63,
+      "longitude": 103.15,
+      "distance_km": 10.0,
+      "ascent_m": 700,
+      "highest_altitude_m": 4550,
+      "hiking_minutes": 240,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "雪山",
+        "海子",
+        "森林",
+        "草甸"
+      ],
+      "risks": [
+        "高海拔反应",
+        "雨天湿滑",
+        "失温"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "大二普营地及理小路沿线有停车区域",
+      "supplies": "需自备路餐和饮用水，山上无补给",
+      "has_toilet": false,
+      "has_supply_shop": false,
+      "signal": "山上大部分区域无手机信号",
+      "camping": "大二普营地可露营，海子周边禁止露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=59146",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:02:27+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "当地管理报备费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 80,
+          "max_cny": 80,
+          "source_url": "https://m.youxiake.com/lines.html?id=59146",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游大巴及领队费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 148,
+          "max_cny": 148,
+          "source_url": "https://m.youxiake.com/lines.html?id=59146",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 270,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "都汶高速",
+        "理小路"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "15:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=59146",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "labahe-east-line",
+      "name": "喇叭河",
+      "group_tour_search_terms": [
+        "喇叭河",
+        "二郎山喇叭河",
+        "雅安喇叭河"
+      ],
+      "start_location": "喇叭河景区东线入口",
+      "end_location": "蓝水晶大瀑布",
+      "latitude": 29.8815,
+      "longitude": 102.8532,
+      "distance_km": 10.0,
+      "ascent_m": 150,
+      "highest_altitude_m": 2000,
+      "hiking_minutes": 240,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "瀑布",
+        "溪流"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "野生动物出没"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "景区大门有停车场",
+      "supplies": "景区入口有售卖，徒步途中无补给",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "大部分区域有手机信号，部分深谷可能较弱",
+      "camping": "景区内禁止野外露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=54904",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:03:43+08:00",
+      "updated_at": "2024-07-05T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "喇叭河景区门票(团队票)",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 40,
+          "max_cny": 40,
+          "source_url": "https://m.youxiake.com/lines.html?id=54904",
+          "updated_at": "2024-07-05T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "喇叭河一日游跟团费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 128,
+          "max_cny": 128,
+          "source_url": "https://m.youxiake.com/lines.html?id=54904",
+          "updated_at": "2024-07-05T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 210,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成雅高速",
+        "雅康高速",
+        "二郎山隧道"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "16:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=54904",
+      "updated_at": "2024-07-05T12:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "panlong-valley",
+      "name": "蟠龙谷",
+      "group_tour_search_terms": [
+        "蟠龙谷",
+        "阳平观",
+        "彭州徒步",
+        "竹海瀑布"
+      ],
+      "start_location": "成都市火车南站/文化宫地铁站",
+      "end_location": "彭州市蟠龙谷景区",
+      "latitude": 31.065,
+      "longitude": 103.835,
+      "distance_km": 7.0,
+      "ascent_m": 300,
+      "highest_altitude_m": 1300,
+      "hiking_minutes": 240,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "瀑布",
+        "竹海"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "蚊虫叮咬"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "阳平观和蟠龙谷景区均有停车场",
+      "supplies": "阳平观有斋饭，蟠龙谷景区入口有小卖部，建议自带路餐",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "大部分区域有手机信号，部分深谷可能较弱",
+      "camping": "景区内禁止露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=59285",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:04:58+08:00",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "蟠龙谷卫生费",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 10,
+          "max_cny": 10,
+          "source_url": "https://m.youxiake.com/lines.html?id=59285",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 48,
+          "max_cny": 100,
+          "source_url": "https://m.youxiake.com/lines.html?id=59285",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都市区早晚高峰",
+        "彭州山区旅游旺季道路"
+      ],
+      "best_departure_time": "07:30前",
+      "suggested_return_time": "16:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=59285",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "lushan-soluble-cave",
+      "name": "芦山溶洞",
+      "group_tour_search_terms": [
+        "芦山溶洞",
+        "汉姜古城",
+        "龙门溶洞",
+        "青龙寺",
+        "芦山一日游"
+      ],
+      "start_location": "成都市",
+      "end_location": "雅安市芦山县",
+      "latitude": 30.14,
+      "longitude": 102.92,
+      "distance_km": 3.0,
+      "ascent_m": 50,
+      "highest_altitude_m": 800,
+      "hiking_minutes": 180,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋",
+        "冬"
+      ],
+      "scenery": [
+        "溶洞",
+        "古城",
+        "古建"
+      ],
+      "risks": [
+        "洞内湿滑",
+        "台阶较多"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "景区及古城周边有停车场",
+      "supplies": "芦山县城及古城内有餐饮和超市",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "溶洞内部分区域信号较弱，地面信号良好",
+      "camping": "不适合露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63601",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:06:03+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "龙门溶洞门票+往返轨道车",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 60,
+          "max_cny": 60,
+          "source_url": "https://m.youxiake.com/lines.html?id=63601",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游车费及领队",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 128,
+          "max_cny": 128,
+          "source_url": "https://m.youxiake.com/lines.html?id=63601",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 180,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "成雅高速"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63601",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "aergou-longchi",
+      "name": "阿尔沟龙池",
+      "group_tour_search_terms": [
+        "阿尔沟龙池",
+        "阿尔沟",
+        "龙池",
+        "川西海子"
+      ],
+      "start_location": "阿尔沟徒步起点",
+      "end_location": "阿尔沟海子",
+      "latitude": 31.05,
+      "longitude": 103.45,
+      "distance_km": 10.0,
+      "ascent_m": 1000,
+      "highest_altitude_m": 3950,
+      "hiking_minutes": 390,
+      "difficulty": "hard",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "海子",
+        "雪山",
+        "森林",
+        "野花"
+      ],
+      "risks": [
+        "高反",
+        "雨天湿滑",
+        "体力透支"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "阿尔沟村游客中心有停车场",
+      "supplies": "徒步起点有少量补给，山上无补给，需自备路餐",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "部分路段无信号",
+      "camping": "禁止露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=55390",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:07:06+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "景区中转车+门票+登顶奖牌",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 85,
+          "max_cny": 85,
+          "source_url": "https://m.youxiake.com/lines.html?id=55390",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游大巴",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 148,
+          "max_cny": 148,
+          "source_url": "https://m.youxiake.com/lines.html?id=55390",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 180,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "都汶高速",
+        "汶川县城",
+        "阿尔沟村道"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "17:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=55390",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "emeishan-heiyakou-traverse",
+      "name": "峨眉山",
+      "group_tour_search_terms": [
+        "峨眉山",
+        "黑垭口",
+        "万佛顶",
+        "金顶",
+        "雷洞坪"
+      ],
+      "start_location": "峨眉后山黑垭口",
+      "end_location": "雷洞坪",
+      "latitude": 29.525,
+      "longitude": 103.482,
+      "distance_km": 11.0,
+      "ascent_m": 1000,
+      "highest_altitude_m": 3099,
+      "hiking_minutes": 360,
+      "difficulty": "hard",
+      "duration_days": 1,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 50,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "高山",
+        "云海",
+        "森林",
+        "杜鹃"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "高海拔失温",
+        "猴群骚扰"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive",
+        "public_transit"
+      ],
+      "parking": "自驾可停车于报国寺停车场或黄湾游客中心",
+      "supplies": "沿途无补给，需自备路餐和充足饮水",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "部分后山野路无信号，金顶及雷洞坪信号良好",
+      "camping": "禁止露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63207",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:08:32+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "峨眉山-黑垭口中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 50,
+          "max_cny": 50,
+          "source_url": "https://m.youxiake.com/lines.html?id=63207",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        },
+        {
+          "name": "峨眉山景区单边下行景交车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 50,
+          "max_cny": 50,
+          "source_url": "https://m.youxiake.com/lines.html?id=63207",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游大巴及门票",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 158,
+          "max_cny": 158,
+          "source_url": "https://m.youxiake.com/lines.html?id=63207",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 180,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "成雅高速",
+        "峨眉山景区山门"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "16:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63207",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "zhongba-forest",
+      "name": "中坝森林",
+      "group_tour_search_terms": [
+        "中坝森林",
+        "彭州中坝森林",
+        "海窝子古镇"
+      ],
+      "start_location": "彭州小鱼洞中坝村",
+      "end_location": "彭州小鱼洞中坝村",
+      "latitude": 31.16,
+      "longitude": 103.82,
+      "distance_km": 6.0,
+      "ascent_m": 260,
+      "highest_altitude_m": 1300,
+      "hiking_minutes": 180,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "古镇"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "蚊虫叮咬"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "中坝村徒步起点有停车场",
+      "supplies": "山脚下和古镇均有餐饮补给",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "森林内部分区域信号较弱",
+      "camping": "不适合露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=55315",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:09:42+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 48,
+          "max_cny": 100,
+          "source_url": "https://m.youxiake.com/lines.html?id=55315",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 20,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 40,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 90,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成彭高速",
+        "彭州城区"
+      ],
+      "best_departure_time": "08:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=55315",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "pifeng-canyon",
+      "name": "皮缝峡谷",
+      "group_tour_search_terms": [
+        "皮缝峡谷",
+        "邛崃皮缝峡谷",
+        "汪山溶洞",
+        "皮缝峡谷溯溪"
+      ],
+      "start_location": "邛崃皮缝峡谷入口",
+      "end_location": "邛崃皮缝峡谷入口",
+      "latitude": 30.3215,
+      "longitude": 103.3842,
+      "distance_km": 10.0,
+      "ascent_m": 300,
+      "highest_altitude_m": 700,
+      "hiking_minutes": 240,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "峡谷",
+        "森林",
+        "溶洞",
+        "溪流"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "暗洞迷路",
+        "野生动物"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "峡谷入口农家乐或空地可停车",
+      "supplies": "起点、溶洞附近及终点前均有当地村民售卖小吃和饮料",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "峡谷深处及溶洞内信号较弱，建议结伴并携带头灯",
+      "camping": "峡谷内不适合且不建议露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=62811",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:10:57+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "游侠客跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 88,
+          "max_cny": 98,
+          "source_url": "https://m.youxiake.com/lines.html?id=62811",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 20,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 40,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 90,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成温邛高速",
+        "邛崃市区路段"
+      ],
+      "best_departure_time": "08:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=62811",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "puhong-road-to-hongkou",
+      "name": "蒲虹路穿虹口",
+      "group_tour_search_terms": [
+        "蒲虹路",
+        "虹口花谷",
+        "都江堰徒步",
+        "藤原豆腐店"
+      ],
+      "start_location": "蒲虹路卡子垭口（藤原豆腐店）",
+      "end_location": "虹口花谷",
+      "latitude": 31.05,
+      "longitude": 103.68,
+      "distance_km": 10.0,
+      "ascent_m": 384,
+      "highest_altitude_m": 1679,
+      "hiking_minutes": 300,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 30,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "峡谷",
+        "丛林"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "丛林迷路"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "起点蒲虹路垭口及终点虹口花谷均有停车场",
+      "supplies": "需自带路餐和充足饮用水，途中无补给点",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "部分丛林路段手机信号较弱或无信号",
+      "camping": "单日徒步路线，不适合且不允许露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=55328",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:12:05+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "虹口花谷景区门票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 5,
+          "max_cny": 5,
+          "source_url": "https://m.youxiake.com/lines.html?id=55328",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游大巴及领队费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 48,
+          "max_cny": 100,
+          "source_url": "https://m.youxiake.com/lines.html?id=55328",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 20,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 40,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 90,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都市区出城方向",
+        "都江堰前往虹口乡的山路"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=55328",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "jia-er-meng-cuo",
+      "name": "甲尔猛措",
+      "group_tour_search_terms": [
+        "甲尔猛措",
+        "厄尔娜沟",
+        "孟屯河谷"
+      ],
+      "start_location": "甲尔猛措沟徒步起点",
+      "end_location": "甲尔猛措小瀑布",
+      "latitude": 31.63,
+      "longitude": 103.38,
+      "distance_km": 6.5,
+      "ascent_m": 400,
+      "highest_altitude_m": 2750,
+      "hiking_minutes": 180,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋",
+        "冬"
+      ],
+      "scenery": [
+        "森林",
+        "溪流",
+        "瀑布"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "冰雪路滑"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "自驾可停村口或徒步起点，但错车较难",
+      "supplies": "营地有自助铁板烧，也可自带路餐",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "森林深处信号较弱",
+      "camping": "无专门露营区域",
+      "source_url": "https://m.youxiake.com/lines.html?id=56921",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:31:16+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "卫生费及管理费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 10,
+          "max_cny": 10,
+          "source_url": "https://m.youxiake.com/lines.html?id=56921",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        },
+        {
+          "name": "中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 20,
+          "max_cny": 30,
+          "source_url": "https://m.youxiake.com/lines.html?id=56921",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游大巴",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 98,
+          "max_cny": 98,
+          "source_url": "https://m.youxiake.com/lines.html?id=56921",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 210,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都出城高速",
+        "理县县城路段"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "15:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=56921",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "fuxing-village-chenzhou-secret",
+      "name": "复兴村沉舟秘境",
+      "group_tour_search_terms": [
+        "复兴村",
+        "雅女湖",
+        "沉舟秘境",
+        "瓦屋山"
+      ],
+      "start_location": "雅女湖码头",
+      "end_location": "雅女湖码头",
+      "latitude": 29.816,
+      "longitude": 103.055,
+      "distance_km": 8.0,
+      "ascent_m": 129,
+      "highest_altitude_m": 1340,
+      "hiking_minutes": 240,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "湖泊",
+        "古村",
+        "茶山",
+        "森林"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "乘船安全"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "雅女湖码头附近有停车场",
+      "supplies": "复兴村内有农家乐和小卖部，建议自带路餐",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "村落和湖边信号较好，茶山深处可能较弱",
+      "camping": "不建议在未经开发的区域露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63329",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:32:27+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "往返船票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 10,
+          "max_cny": 20,
+          "source_url": "https://m.youxiake.com/lines.html?id=63329",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 148,
+          "max_cny": 148,
+          "source_url": "https://m.youxiake.com/lines.html?id=63329",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 150,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "成雅高速",
+        "洪雅县城"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63329",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "yingjing-ancient-city",
+      "name": "荥经古城",
+      "group_tour_search_terms": [
+        "荥经",
+        "云峰寺",
+        "开善寺",
+        "荥经博物馆"
+      ],
+      "start_location": "成都市",
+      "end_location": "成都市",
+      "latitude": 29.79,
+      "longitude": 102.84,
+      "distance_km": 4.0,
+      "ascent_m": 50,
+      "highest_altitude_m": 1000,
+      "hiking_minutes": 180,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋",
+        "冬"
+      ],
+      "scenery": [
+        "人文",
+        "古建",
+        "古镇"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "节假日拥挤"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "荥经县城及云峰寺周边有公共停车场",
+      "supplies": "县城内餐饮、超市补给丰富，可品尝挞挞面、棒棒鸡等美食",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "全程手机信号良好",
+      "camping": "城市人文路线，不适合露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=55043",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:33:40+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "云峰寺/开善寺/博物馆门票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 0,
+          "max_cny": 0,
+          "source_url": "https://m.youxiake.com/lines.html?id=55043",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "荥经古城跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 128,
+          "max_cny": 128,
+          "source_url": "https://m.youxiake.com/lines.html?id=55043",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 150,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "成雅高速"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "17:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=55043",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "constellation-forest",
+      "name": "星座森林",
+      "group_tour_search_terms": [
+        "星座森林",
+        "斜源古镇",
+        "汪汪GO"
+      ],
+      "start_location": "成都斜源古镇星座森林入口",
+      "end_location": "成都斜源古镇星座森林入口",
+      "latitude": 30.68,
+      "longitude": 103.42,
+      "distance_km": 4.0,
+      "ascent_m": 250,
+      "highest_altitude_m": 1250,
+      "hiking_minutes": 150,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "古镇",
+        "溪流"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "台阶较多"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "斜源古镇及星座森林入口有停车场",
+      "supplies": "斜源古镇有餐饮和补给，徒步路段需自带路餐和水",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "古镇信号良好，森林深处部分路段信号较弱",
+      "camping": "不建议在森林内露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63427",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:34:46+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 68,
+          "max_cny": 68,
+          "source_url": "https://m.youxiake.com/lines.html?id=63427",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 120,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "成温邛高速",
+        "大邑县城"
+      ],
+      "best_departure_time": "08:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63427",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "qiyue-lushan",
+      "name": "柒月麓山",
+      "group_tour_search_terms": [
+        "柒月麓山",
+        "绵竹遵道镇",
+        "竹林轻徒步",
+        "柴火鸡"
+      ],
+      "start_location": "绵竹遵道镇柒月麓山森林基地",
+      "end_location": "绵竹遵道镇柒月麓山森林基地",
+      "latitude": 31.345,
+      "longitude": 104.125,
+      "distance_km": 3.0,
+      "ascent_m": 196,
+      "highest_altitude_m": 850,
+      "hiking_minutes": 120,
+      "difficulty": "easy",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "竹林",
+        "乡村"
+      ],
+      "risks": [
+        "蚊虫叮咬",
+        "滑坠"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "基地内有停车场，自驾可直接导航至柒月麓山森林基地",
+      "supplies": "基地内有农家乐，提供柴火鸡及各类农家菜，也可自带路餐",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "全程手机信号良好，部分竹林深处可能信号较弱",
+      "camping": "基地内支持露营，需提前与营地联系确认",
+      "source_url": "https://m.youxiake.com/lines.html?id=57092",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:36:24+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "特色柴火鸡",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 48,
+          "max_cny": 55,
+          "source_url": "https://m.youxiake.com/lines.html?id=57092",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 60,
+          "max_cny": 110,
+          "source_url": "https://m.youxiake.com/lines.html?id=57092",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成绵高速",
+        "成都绕城高速"
+      ],
+      "best_departure_time": "08:00前",
+      "suggested_return_time": "17:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=57092",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "muzhuozi",
+      "name": "木骡子",
+      "group_tour_search_terms": [
+        "木骡子",
+        "长坪沟",
+        "四姑娘山",
+        "幺妹峰"
+      ],
+      "start_location": "长坪沟喇嘛寺",
+      "end_location": "木骡子营地",
+      "latitude": 31.0815,
+      "longitude": 102.8835,
+      "distance_km": 20.0,
+      "ascent_m": 300,
+      "highest_altitude_m": 3600,
+      "hiking_minutes": 390,
+      "difficulty": "hard",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "雪山",
+        "森林",
+        "草甸"
+      ],
+      "risks": [
+        "高反",
+        "落石",
+        "雨天湿滑"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "长坪沟景区停车场",
+      "supplies": "自带路餐和水，途中无补给",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "景区内部分区域无信号",
+      "camping": "木骡子营地可露营，需办理相关手续",
+      "source_url": "https://m.youxiake.com/lines.html?id=56661",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:37:38+08:00",
+      "updated_at": "2024-05-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "长坪沟门票及景交车",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 90,
+          "max_cny": 90,
+          "source_url": "https://m.youxiake.com/lines.html?id=56661",
+          "updated_at": "2024-05-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游车费及领队",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 168,
+          "max_cny": 168,
+          "source_url": "https://m.youxiake.com/lines.html?id=56661",
+          "updated_at": "2024-05-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 250,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "都汶高速",
+        "巴朗山隧道",
+        "映秀至卧龙段"
+      ],
+      "best_departure_time": "06:00前",
+      "suggested_return_time": "17:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=56661",
+      "updated_at": "2024-05-01T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "longwozi-small-loop",
+      "name": "龙窝子小环线",
+      "group_tour_search_terms": [
+        "龙窝子",
+        "大邑龙窝子",
+        "车盘沟",
+        "高水界"
+      ],
+      "start_location": "大邑县青龙村车盘沟",
+      "end_location": "大邑县青龙村",
+      "latitude": 30.64,
+      "longitude": 103.46,
+      "distance_km": 10.0,
+      "ascent_m": 800,
+      "highest_altitude_m": 1400,
+      "hiking_minutes": 240,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "溪流"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "树林茂密易迷路"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "青龙村徒步起点附近有农家乐及空地可停车",
+      "supplies": "需自备路餐，起点青龙村有农家乐可补给",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "部分山林路段信号较弱或无信号",
+      "camping": "山野林区，不建议露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=62658",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:38:38+08:00",
+      "updated_at": "2024-07-04T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "游侠客跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 88,
+          "max_cny": 98,
+          "source_url": "https://m.youxiake.com/lines.html?id=62658",
+          "updated_at": "2024-07-04T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 20,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 40,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 90,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "成温邛高速"
+      ],
+      "best_departure_time": "07:30前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=62658",
+      "updated_at": "2024-07-04T12:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "er-gu-xi",
+      "name": "二古溪",
+      "group_tour_search_terms": [
+        "二古溪",
+        "桑格伯",
+        "理县二古溪"
+      ],
+      "start_location": "二古溪徒步起点",
+      "end_location": "桑格伯",
+      "latitude": 31.552,
+      "longitude": 103.154,
+      "distance_km": 10.0,
+      "ascent_m": 650,
+      "highest_altitude_m": 4100,
+      "hiking_minutes": 300,
+      "difficulty": "moderate",
+      "duration_days": 1,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "雪山",
+        "草甸",
+        "云海"
+      ],
+      "risks": [
+        "高反",
+        "失温",
+        "雨天湿滑"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "二古溪村游客接待中心有停车场",
+      "supplies": "徒步起点和山上无补给，需自备路餐和水",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "山上信号较弱或无信号",
+      "camping": "可露营，但本路线为一日游",
+      "source_url": "https://m.youxiake.com/lines.html?id=56714",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:40:08+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "当地管理费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 20,
+          "max_cny": 20,
+          "source_url": "https://m.youxiake.com/lines.html?id=56714",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        },
+        {
+          "name": "当地中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 60,
+          "max_cny": 60,
+          "source_url": "https://m.youxiake.com/lines.html?id=56714",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 148,
+          "max_cny": 148,
+          "source_url": "https://m.youxiake.com/lines.html?id=56714",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 210,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "蓉昌高速汶川段",
+        "二古溪村道"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "15:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=56714",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "emutang-flower-sea",
+      "name": "俄木塘花海",
+      "group_tour_search_terms": [
+        "俄木塘",
+        "红原",
+        "草原花海",
+        "川西"
+      ],
+      "start_location": "四川省阿坝藏族羌族自治州红原县俄木塘花海景区",
+      "end_location": "四川省阿坝藏族羌族自治州红原县俄木塘花海景区",
+      "latitude": 32.254,
+      "longitude": 102.553,
+      "distance_km": 4.0,
+      "ascent_m": 50,
+      "highest_altitude_m": 3600,
+      "hiking_minutes": 240,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏"
+      ],
+      "scenery": [
+        "草原",
+        "花海",
+        "高山草甸"
+      ],
+      "risks": [
+        "高反",
+        "紫外线强",
+        "昼夜温差大"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "景区门口设有大型停车场，自驾车辆可停放",
+      "supplies": "景区内补给点较少，建议自带路餐、零食和充足饮用水",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "景区核心区域有手机信号，部分偏远草甸信号较弱",
+      "camping": "景区内禁止私自扎营，可参与官方组织的豪华帐篷体验活动",
+      "source_url": "https://m.youxiake.com/lines.html?id=59188",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:41:30+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "俄木塘花海门票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 50,
+          "max_cny": 60,
+          "source_url": "https://m.youxiake.com/lines.html?id=59188",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        },
+        {
+          "name": "俄木塘花海观光车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 78,
+          "max_cny": 78,
+          "source_url": "https://m.youxiake.com/lines.html?id=59188",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "俄木塘花海2日跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 428,
+          "max_cny": 428,
+          "source_url": "https://m.youxiake.com/lines.html?id=59188",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 420,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "都汶高速",
+        "鹧鸪山隧道"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=59188",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "haiziping",
+      "name": "海子坪",
+      "group_tour_search_terms": [
+        "海子坪",
+        "海子坪露营",
+        "海子坪星空露营",
+        "花海寻菌"
+      ],
+      "start_location": "抚边乡海子坪中转点",
+      "end_location": "海子坪营地",
+      "latitude": 31.052,
+      "longitude": 102.854,
+      "distance_km": 2.0,
+      "ascent_m": 100,
+      "highest_altitude_m": 3300,
+      "hiking_minutes": 120,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "高山草甸",
+        "花海",
+        "雪山",
+        "森林",
+        "星空"
+      ],
+      "risks": [
+        "高反",
+        "温差大",
+        "雨天湿滑"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "抚边乡中转车乘车点可停车",
+      "supplies": "营地提供早晚简餐，需自备午餐路餐",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "营地信号较弱，部分区域无信号",
+      "camping": "海子坪营地可露营，跟团包含帐篷",
+      "source_url": "https://m.youxiake.com/lines.html?id=63550",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:42:47+08:00",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "海子坪清洁费",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 30,
+          "max_cny": 30,
+          "source_url": "https://m.youxiake.com/lines.html?id=63550",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        },
+        {
+          "name": "营地中转车往返",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 50,
+          "max_cny": 50,
+          "source_url": "https://m.youxiake.com/lines.html?id=63550",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 448,
+          "max_cny": 448,
+          "source_url": "https://m.youxiake.com/lines.html?id=63550",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 300,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "巴朗山隧道",
+        "四姑娘山镇",
+        "映秀至卧龙段"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63550",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "jiami-peak-youxiake-63149",
+      "name": "加米峰",
+      "group_tour_search_terms": [
+        "加米峰",
+        "川版巴塔哥尼亚",
+        "玛波东伽",
+        "孔玉华山"
+      ],
+      "start_location": "康定孔玉乡加米峰山脚起点",
+      "end_location": "康定孔玉乡加米峰山脚起点",
+      "latitude": 30.28,
+      "longitude": 101.88,
+      "distance_km": 7.0,
+      "ascent_m": 640,
+      "highest_altitude_m": 4200,
+      "hiking_minutes": 300,
+      "difficulty": "hard",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "雪山",
+        "云海",
+        "高山草甸",
+        "原始森林",
+        "石头城堡"
+      ],
+      "risks": [
+        "高海拔缺氧",
+        "雨天湿滑",
+        "夜间寒冷",
+        "失温"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "山脚起点处有当地村民停车场或空地，需换乘当地中转车上山",
+      "supplies": "营地提供D1晚餐和D2早餐，路餐及饮用水需自备，山上无补给商店",
+      "has_toilet": false,
+      "has_supply_shop": false,
+      "signal": "营地及山上大部分区域无手机信号，无网络",
+      "camping": "入住山腰营地通铺（海拔3800米），也可自带帐篷在营地周边露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63149",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:44:13+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "进山清洁费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 10,
+          "max_cny": 10,
+          "source_url": "https://m.youxiake.com/lines.html?id=63149",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        },
+        {
+          "name": "当地中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 187,
+          "max_cny": 188,
+          "source_url": "https://m.youxiake.com/lines.html?id=63149",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 498,
+          "max_cny": 498,
+          "source_url": "https://m.youxiake.com/lines.html?id=63149",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 360,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "雅康高速泸定段",
+        "大渡河沿岸公路",
+        "康定孔玉乡进山路段"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "10:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63149",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "siguniangshan-bipenggou",
+      "name": "四姑娘山+毕棚沟",
+      "group_tour_search_terms": [
+        "四姑娘山",
+        "毕棚沟",
+        "理小路",
+        "双桥沟",
+        "川西"
+      ],
+      "start_location": "成都市文化宫地铁站",
+      "end_location": "成都市文化宫地铁站",
+      "latitude": 31.12,
+      "longitude": 102.89,
+      "distance_km": 5.0,
+      "ascent_m": 200,
+      "highest_altitude_m": 3840,
+      "hiking_minutes": 120,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "雪山",
+        "森林",
+        "草甸",
+        "湖泊"
+      ],
+      "risks": [
+        "高原反应",
+        "温差大",
+        "雨天湿滑"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "四姑娘山镇及毕棚沟景区均有大型停车场",
+      "supplies": "四姑娘山镇餐饮丰富，景区内设有小卖部和休息站",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "景区主干道及游客中心信号良好，部分深山区域信号较弱",
+      "camping": "景区内禁止露营，行程包含四姑娘山镇酒店住宿",
+      "source_url": "https://m.youxiake.com/lines.html?id=58373",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:45:31+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "双桥沟门票+观光车",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 150,
+          "max_cny": 150,
+          "source_url": "https://m.youxiake.com/lines.html?id=58373",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        },
+        {
+          "name": "毕棚沟门票+观光车",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 90,
+          "max_cny": 90,
+          "source_url": "https://m.youxiake.com/lines.html?id=58373",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        },
+        {
+          "name": "毕棚沟电瓶车",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 20,
+          "max_cny": 30,
+          "source_url": "https://m.youxiake.com/lines.html?id=58373",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用(成人)",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 368,
+          "max_cny": 368,
+          "source_url": "https://m.youxiake.com/lines.html?id=58373",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 300,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 180,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 40,
+      "common_bottlenecks": [
+        "巴朗山隧道",
+        "映秀至卧龙段",
+        "毕棚沟景区入口"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=58373",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "niangniang-mountain",
+      "name": "娘娘山",
+      "group_tour_search_terms": [
+        "娘娘山",
+        "贡嘎东坡",
+        "冷碛镇",
+        "化林村"
+      ],
+      "start_location": "成都",
+      "end_location": "娘娘山",
+      "latitude": 29.88,
+      "longitude": 102.18,
+      "distance_km": 13.0,
+      "ascent_m": 900,
+      "highest_altitude_m": 3600,
+      "hiking_minutes": 600,
+      "difficulty": "moderate",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋",
+        "冬"
+      ],
+      "scenery": [
+        "雪山",
+        "云海",
+        "星空",
+        "日出",
+        "森林"
+      ],
+      "risks": [
+        "高反",
+        "失温",
+        "雨天湿滑",
+        "路面结冰"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "化林村或半山停车场可停车",
+      "supplies": "营地提供早晚餐，需自备两顿路餐及饮用水",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "山顶及营地信号较弱，部分区域无信号",
+      "camping": "营地提供大通铺及小木屋住宿，也可自带帐篷露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=60817",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:46:51+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "化林村到半山停车场中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 60,
+          "max_cny": 60,
+          "source_url": "https://m.youxiake.com/lines.html?id=60817",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        },
+        {
+          "name": "半山停车场到营地中转车",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 100,
+          "max_cny": 100,
+          "source_url": "https://m.youxiake.com/lines.html?id=60817",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "娘娘山两日跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 458,
+          "max_cny": 458,
+          "source_url": "https://m.youxiake.com/lines.html?id=60817",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 300,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "雅康高速",
+        "二郎山隧道",
+        "成都绕城高速"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "12:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=60817",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "niubei-mountain-night-hike",
+      "name": "牛背山夜徒线",
+      "group_tour_search_terms": [
+        "牛背山夜徒",
+        "牛背山跟团",
+        "成都牛背山两日游"
+      ],
+      "start_location": "牛背山悦山长廊",
+      "end_location": "牛背山3666观景平台",
+      "latitude": 29.605,
+      "longitude": 102.135,
+      "distance_km": 8.0,
+      "ascent_m": 866,
+      "highest_altitude_m": 3666,
+      "hiking_minutes": 360,
+      "difficulty": "hard",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "秋",
+        "冬"
+      ],
+      "scenery": [
+        "雪山",
+        "云海",
+        "星空",
+        "日出"
+      ],
+      "risks": [
+        "高海拔反应",
+        "夜间视线不良",
+        "暗冰湿滑",
+        "失温"
+      ],
+      "transport_modes": [
+        "group_tour"
+      ],
+      "parking": "牛背山景区游客中心停车场",
+      "supplies": "需自备路餐和充足饮水，夜间山顶补给有限",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "徒步途中部分路段无信号，山顶观景平台有信号",
+      "camping": "山顶有客栈和帐篷营地，本行程为夜徒看日出后下山",
+      "source_url": "https://m.youxiake.com/lines.html?id=60770",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:48:03+08:00",
+      "updated_at": "2024-05-15T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "牛背山团队门票及中转车费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 168,
+          "max_cny": 168,
+          "source_url": "https://m.youxiake.com/lines.html?id=60770",
+          "updated_at": "2024-05-15T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "牛背山夜徒跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 328,
+          "max_cny": 328,
+          "source_url": "https://m.youxiake.com/lines.html?id=60770",
+          "updated_at": "2024-05-15T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 300,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 0,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "雅康高速泸定段",
+        "牛背山盘山公路"
+      ],
+      "best_departure_time": "19:00前",
+      "suggested_return_time": "12:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=60770",
+      "updated_at": "2024-05-15T10:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "shudao-jinghua-line",
+      "name": "蜀道精华线",
+      "group_tour_search_terms": [
+        "蜀道",
+        "拦马墙",
+        "抄手铺",
+        "昭化古城",
+        "金牛古道"
+      ],
+      "start_location": "广元市剑阁县拦马墙",
+      "end_location": "广元市昭化区抄手铺",
+      "latitude": 32.034,
+      "longitude": 105.452,
+      "distance_km": 16.0,
+      "ascent_m": 600,
+      "highest_altitude_m": 900,
+      "hiking_minutes": 510,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 30,
+      "best_seasons": [
+        "春",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "古道",
+        "古城"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "蚊虫叮咬"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "拦马墙及抄手铺起点均有农家乐或路边停车位，昭化古城有专用停车场",
+      "supplies": "沿途无补给，需自带路餐和充足饮水，昭化古城及普安镇可就餐",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "部分古道深处信号较弱，建议提前下载离线地图",
+      "camping": "不允许野外露营，夜宿昭化古城民宿或酒店",
+      "source_url": "https://m.youxiake.com/lines.html?id=62098",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:49:23+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用(成人)",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 478,
+          "max_cny": 478,
+          "source_url": "https://m.youxiake.com/lines.html?id=62098",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用(儿童)",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 358,
+          "max_cny": 358,
+          "source_url": "https://m.youxiake.com/lines.html?id=62098",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 240,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "成都绕城高速",
+        "成绵高速",
+        "京昆高速绵阳至广元段"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=62098",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "mengtun-river-valley",
+      "name": "孟屯河谷",
+      "group_tour_search_terms": [
+        "孟屯河谷",
+        "高桥沟",
+        "理县露营",
+        "亲子徒步"
+      ],
+      "start_location": "成都",
+      "end_location": "理县孟屯河谷高桥沟",
+      "latitude": 31.582,
+      "longitude": 103.385,
+      "distance_km": 4.0,
+      "ascent_m": 150,
+      "highest_altitude_m": 2700,
+      "hiking_minutes": 120,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "草甸",
+        "瀑布",
+        "溪流",
+        "星空"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "早晚温差大"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "营地及景区有停车场",
+      "supplies": "营地提供餐饮，周边有农家乐",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "营地及徒步起点有手机信号，深处可能较弱",
+      "camping": "高桥沟营地提供帐篷露营，可自带或租赁",
+      "source_url": "https://m.youxiake.com/lines.html?id=58842",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:50:36+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "高桥沟营地环保费",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 0,
+          "max_cny": 20,
+          "source_url": "https://m.youxiake.com/lines.html?id=58842",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "孟屯河谷2日亲子跟团游",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 398,
+          "max_cny": 478,
+          "source_url": "https://m.youxiake.com/lines.html?id=58842",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 180,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "汶川至理县路段",
+        "都汶高速"
+      ],
+      "best_departure_time": "07:30前",
+      "suggested_return_time": "15:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=58842",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "menghuocheng-yelehu",
+      "name": "孟获城+冶勒湖",
+      "group_tour_search_terms": [
+        "孟获城",
+        "冶勒湖",
+        "石棉",
+        "亲子"
+      ],
+      "start_location": "孟获城",
+      "end_location": "冶勒湖",
+      "latitude": 29.15,
+      "longitude": 102.35,
+      "distance_km": 10.0,
+      "ascent_m": 200,
+      "highest_altitude_m": 2600,
+      "hiking_minutes": 300,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "point_to_point",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "高山草甸",
+        "湖泊",
+        "森林"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "紫外线强"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "景区设有停车场",
+      "supplies": "石棉县城及景区内有餐饮和小卖部",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "景区大部分区域有信号，部分深山无信号",
+      "camping": "景区不允许随意露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=61914",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:52:04+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "孟获城景交车+冶勒湖卫生费",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 40,
+          "max_cny": 40,
+          "source_url": "https://m.youxiake.com/lines.html?id=61914",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用(成人)",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 478,
+          "max_cny": 478,
+          "source_url": "https://m.youxiake.com/lines.html?id=61914",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用(儿童)",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 278,
+          "max_cny": 278,
+          "source_url": "https://m.youxiake.com/lines.html?id=61914",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 300,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "雅西高速",
+        "石棉县城"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "13:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=61914",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "wugongshan-dongjiangcun-classic",
+      "name": "武功山",
+      "group_tour_search_terms": [
+        "武功山",
+        "东江村",
+        "高山草甸",
+        "萍乡徒步"
+      ],
+      "start_location": "江西省萍乡市东江村",
+      "end_location": "江西省萍乡市武功山金顶",
+      "latitude": 27.456,
+      "longitude": 114.145,
+      "distance_km": 15.0,
+      "ascent_m": 1700,
+      "highest_altitude_m": 1918,
+      "hiking_minutes": 600,
+      "difficulty": "hard",
+      "duration_days": 2,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 90,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "高山草甸",
+        "云海",
+        "日出",
+        "星空"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "高山失温",
+        "体力透支"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive",
+        "public_transit"
+      ],
+      "parking": "东江村登山口农家院落可停车",
+      "supplies": "沿途及山顶客栈提供餐饮补给",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "山脊及客栈有信号，部分山谷路段无信号",
+      "camping": "山顶客栈周边及金顶指定区域可露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=47291",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:53:21+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "下山索道（一级）",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 50,
+          "max_cny": 50,
+          "source_url": "https://m.youxiake.com/lines.html?id=47291",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "轻装武功山2日跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 380,
+          "max_cny": 398,
+          "source_url": "https://m.youxiake.com/lines.html?id=47291",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 90,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 20,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 40,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 90,
+      "morning_extra_minutes": 15,
+      "evening_extra_minutes": 20,
+      "common_bottlenecks": [
+        "萍乡市区出城路段",
+        "东江村进山窄路"
+      ],
+      "best_departure_time": "08:30前",
+      "suggested_return_time": "15:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=47291",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.85
+    }
+  },
+  {
+    "route": {
+      "id": "shaobing-ancient-trail",
+      "name": "烧饼古道",
+      "group_tour_search_terms": [
+        "烧饼古道",
+        "岩下村",
+        "仙居徒步",
+        "缙云石头村",
+        "百丈岩"
+      ],
+      "start_location": "浙江省台州市仙居县徒步起点（龙王殿附近）",
+      "end_location": "浙江省台州市仙居县横溪镇",
+      "latitude": 28.805,
+      "longitude": 120.525,
+      "distance_km": 19.0,
+      "ascent_m": 900,
+      "highest_altitude_m": 1100,
+      "hiking_minutes": 660,
+      "difficulty": "moderate",
+      "duration_days": 2,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 15,
+      "best_seasons": [
+        "春",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "古村",
+        "云海",
+        "竹海",
+        "瀑布"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "蛇虫叮咬",
+        "夜间视线不佳"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "徒步起点及终点均有农家乐或村镇停车场，自驾可停放",
+      "supplies": "沿途无补给，岩下村有农家乐和烧饼摊，需自带路餐和水",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "部分山脊线和深谷无手机信号，村庄有信号",
+      "camping": "岩下村可租赁帐篷露营或住农家",
+      "source_url": "https://m.youxiake.com/lines.html?id=32544",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:54:49+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 390,
+          "max_cny": 390,
+          "source_url": "https://m.youxiake.com/lines.html?id=32544",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 300,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 90,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 180,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "沪昆高速",
+        "杭州湾跨海大桥",
+        "诸永高速"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=32544",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "zheban-maclehose-trail-shuitongao",
+      "name": "麦理浩径",
+      "group_tour_search_terms": [
+        "浙版麦理浩径",
+        "水桶岙",
+        "温岭海岸",
+        "小箬村",
+        "台州麦理浩径"
+      ],
+      "start_location": "小交陈村",
+      "end_location": "小交陈村",
+      "latitude": 28.335,
+      "longitude": 121.585,
+      "distance_km": 14.0,
+      "ascent_m": 800,
+      "highest_altitude_m": 250,
+      "hiking_minutes": 390,
+      "difficulty": "moderate",
+      "duration_days": 2,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "秋",
+        "冬"
+      ],
+      "scenery": [
+        "海岸",
+        "沙滩",
+        "山脊",
+        "渔村"
+      ],
+      "risks": [
+        "高温中暑",
+        "雨天湿滑",
+        "暴晒无遮阴"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "小交陈村大巴停车点或路边停车位",
+      "supplies": "起点有小卖部可买雨衣鞋套，水桶岙沙滩适合路餐，终点山下有冷饮售卖",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "山脊和海岸线大部分区域有信号，部分山谷可能较弱",
+      "camping": "水桶岙沙滩允许露营，有重装徒步露营路线",
+      "source_url": "https://m.youxiake.com/lines.html?id=51360",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:56:01+08:00",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用(含车宿领队)",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 660,
+          "max_cny": 860,
+          "source_url": "https://m.youxiake.com/lines.html?id=51360",
+          "updated_at": "2024-05-20T10:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 330,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "沈海高速台州段",
+        "松门镇进岛道路"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=51360",
+      "updated_at": "2024-05-20T10:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "jingxian",
+      "name": "泾县",
+      "group_tour_search_terms": [
+        "泾县",
+        "查济",
+        "桃花潭",
+        "水墨汀溪",
+        "宣纸文化园"
+      ],
+      "start_location": "杭州黄龙体育中心",
+      "end_location": "杭州黄龙体育中心",
+      "latitude": 30.68,
+      "longitude": 118.28,
+      "distance_km": 12.0,
+      "ascent_m": 100,
+      "highest_altitude_m": 600,
+      "hiking_minutes": 300,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "古村",
+        "溪流",
+        "人文"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "夏季蚊虫"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "各景区均有停车场",
+      "supplies": "景区内及沿途有农家乐和小卖部",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "全程信号良好",
+      "camping": "行程包含民宿，无需露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63585",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:57:57+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "景区门票(查济/桃花潭/水墨汀溪/宣纸文化园/黄田)",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 0,
+          "max_cny": 0,
+          "source_url": "https://m.youxiake.com/lines.html?id=63585",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 699,
+          "max_cny": 699,
+          "source_url": "https://m.youxiake.com/lines.html?id=63585",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 220,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "杭州绕城高速",
+        "杭瑞高速"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "17:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63585",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "dongji-island-loop",
+      "name": "东极岛环线",
+      "group_tour_search_terms": [
+        "东极岛",
+        "东福山",
+        "庙子湖",
+        "后会无期"
+      ],
+      "start_location": "上海市徐汇区华石路50号",
+      "end_location": "舟山市普陀区东极镇东福山岛",
+      "latitude": 30.141,
+      "longitude": 122.773,
+      "distance_km": 7.0,
+      "ascent_m": 300,
+      "highest_altitude_m": 90,
+      "hiking_minutes": 240,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "海岛",
+        "海岸线",
+        "日出",
+        "石屋"
+      ],
+      "risks": [
+        "台风停航",
+        "大风",
+        "浓雾",
+        "晕船"
+      ],
+      "transport_modes": [
+        "group_tour"
+      ],
+      "parking": "跟团游统一大巴接送，无需自驾停车",
+      "supplies": "岛上有小卖部和餐饮，建议自带部分零食和饮用水",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "部分海岛区域信号较弱，民宿内信号正常",
+      "camping": "岛上以渔家民宿住宿为主，不建议野外露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63031",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T18:59:22+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "庙子湖岛景交车",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 0,
+          "max_cny": 50,
+          "source_url": "https://m.youxiake.com/lines.html?id=63031",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "东极岛2日跟团游",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 860,
+          "max_cny": 860,
+          "source_url": "https://m.youxiake.com/lines.html?id=63031",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 270,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "沈家湾码头排队",
+        "东海大桥拥堵",
+        "东极岛船票紧张"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "13:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63031",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "huihang-ancient-trail",
+      "name": "徽杭古道",
+      "group_tour_search_terms": [
+        "徽杭古道",
+        "华东入门徒步",
+        "蓝天凹",
+        "江南第一关"
+      ],
+      "start_location": "浙江省杭州市临安区清凉峰镇永来村",
+      "end_location": "安徽省宣城市绩溪县伏岭镇岩口亭",
+      "latitude": 30.115,
+      "longitude": 118.885,
+      "distance_km": 15.0,
+      "ascent_m": 400,
+      "highest_altitude_m": 1050,
+      "hiking_minutes": 420,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 120,
+      "best_seasons": [
+        "春",
+        "秋"
+      ],
+      "scenery": [
+        "森林",
+        "峡谷",
+        "草甸",
+        "古道"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "迷路"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "永来村和岩口亭均有停车场，但穿越路线需考虑车辆接驳或选择跟团大巴。",
+      "supplies": "沿途有农家和补给点，蓝天凹和下雪堂有住宿和餐饮。",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "大部分路段有手机信号，部分峡谷深处信号较弱。",
+      "camping": "下雪堂和蓝天凹附近可露营，需自带或租赁帐篷，部分农家提供营地。",
+      "source_url": "https://m.youxiake.com/lines.html?id=19993",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T19:01:01+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "徽杭古道门票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 0,
+          "max_cny": 68,
+          "source_url": "https://m.youxiake.com/lines.html?id=19993",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 340,
+          "max_cny": 390,
+          "source_url": "https://m.youxiake.com/lines.html?id=19993",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 300,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 90,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 180,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "沪昆高速",
+        "杭州绕城高速",
+        "杭瑞高速"
+      ],
+      "best_departure_time": "06:30前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=19993",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "xianju-gongyu",
+      "name": "仙居公盂",
+      "group_tour_search_terms": [
+        "仙居公盂",
+        "公盂古道",
+        "公盂村",
+        "公盂背"
+      ],
+      "start_location": "浙江省台州市仙居县前坑村",
+      "end_location": "浙江省台州市仙居县林坑村",
+      "latitude": 28.735,
+      "longitude": 120.565,
+      "distance_km": 11.0,
+      "ascent_m": 618,
+      "highest_altitude_m": 1200,
+      "hiking_minutes": 420,
+      "difficulty": "moderate",
+      "duration_days": 2,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 60,
+      "best_seasons": [
+        "春",
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "古村",
+        "梯田",
+        "云海",
+        "日出",
+        "星空",
+        "森林"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "碎石路滑",
+        "夜间视线不佳"
+      ],
+      "transport_modes": [
+        "self_drive",
+        "group_tour"
+      ],
+      "parking": "前坑村和林坑村均有农家乐停车场，可停车",
+      "supplies": "公盂村有农家乐和少量小卖部，建议自备路餐和饮用水",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "公盂村及公盂背部分区域信号较弱，移动和电信信号相对较好",
+      "camping": "公盂村有指定露营点，可租赁帐篷或自带，需平整地面",
+      "source_url": "https://m.youxiake.com/lines.html?id=20099",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T19:03:18+08:00",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "公盂村卫生费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 0,
+          "max_cny": 20,
+          "source_url": "https://m.youxiake.com/lines.html?id=20099",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 390,
+          "max_cny": 390,
+          "source_url": "https://m.youxiake.com/lines.html?id=20099",
+          "updated_at": "2026-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 330,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 40,
+      "common_bottlenecks": [
+        "沪昆高速",
+        "杭州湾跨海大桥",
+        "仙居收费站"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=20099",
+      "updated_at": "2026-07-01T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "jiami-peak-youxiake-62787",
+      "name": "加米峰",
+      "group_tour_search_terms": [
+        "加米峰",
+        "玛波东伽",
+        "孔玉华山",
+        "川版巴塔"
+      ],
+      "start_location": "甘孜州康定市孔玉乡下索子",
+      "end_location": "甘孜州康定市孔玉乡下索子",
+      "latitude": 30.152,
+      "longitude": 102.285,
+      "distance_km": 7.0,
+      "ascent_m": 640,
+      "highest_altitude_m": 4200,
+      "hiking_minutes": 300,
+      "difficulty": "moderate",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "雪山",
+        "高山草甸",
+        "云海",
+        "奇石"
+      ],
+      "risks": [
+        "高海拔缺氧",
+        "天气多变",
+        "失温"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "下索子起点处可停车，需换乘当地中转车上山",
+      "supplies": "营地提供晚餐和早餐，路餐需自备，山上无补给商店",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "营地及山顶信号较弱，部分区域无信号",
+      "camping": "入住山腰营地通铺，也可自带帐篷露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=62787",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T19:04:53+08:00",
+      "updated_at": "2024-05-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "进山清洁费",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 10,
+          "max_cny": 10,
+          "source_url": "https://m.youxiake.com/lines.html?id=62787",
+          "updated_at": "2024-05-01T12:00:00+08:00"
+        },
+        {
+          "name": "当地中转车辆往返",
+          "cost_type": "shuttle",
+          "billing_unit": "person",
+          "min_cny": 750,
+          "max_cny": 750,
+          "source_url": "https://m.youxiake.com/lines.html?id=62787",
+          "updated_at": "2024-05-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 528,
+          "max_cny": 528,
+          "source_url": "https://m.youxiake.com/lines.html?id=62787",
+          "updated_at": "2024-05-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 480,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "雅康高速",
+        "二郎山隧道",
+        "泸定收费站"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "14:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=62787",
+      "updated_at": "2024-05-01T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "gechuanjian",
+      "name": "搁船尖",
+      "group_tour_search_terms": [
+        "搁船尖",
+        "重装徒步",
+        "华东户外",
+        "高山草甸",
+        "星空露营"
+      ],
+      "start_location": "上海市宜山路地铁站/浩川村",
+      "end_location": "上海市/浩川村山底农家",
+      "latitude": 30.145,
+      "longitude": 118.562,
+      "distance_km": 13.0,
+      "ascent_m": 1000,
+      "highest_altitude_m": 1487,
+      "hiking_minutes": 480,
+      "difficulty": "hard",
+      "duration_days": 2,
+      "route_type": "loop",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "草甸",
+        "瀑布",
+        "星空",
+        "云海",
+        "日出"
+      ],
+      "risks": [
+        "雨天湿滑",
+        "陡坡",
+        "夜间低温"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "起点农家乐及山底民宿可停车",
+      "supplies": "起点农家乐、3km处小卖部、福泉村农家可补给水和食物",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "山顶及深山路段信号较弱",
+      "camping": "山顶千亩草甸可露营，需自带或租赁帐篷",
+      "source_url": "https://m.youxiake.com/lines.html?id=54518",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T19:06:06+08:00",
+      "updated_at": "2024-10-24T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 490,
+          "max_cny": 490,
+          "source_url": "https://m.youxiake.com/lines.html?id=54518",
+          "updated_at": "2024-10-24T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 270,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 20,
+      "weekend_extra_max": 60,
+      "holiday_extra_min": 40,
+      "holiday_extra_max": 120,
+      "morning_extra_minutes": 20,
+      "evening_extra_minutes": 30,
+      "common_bottlenecks": [
+        "上海出城高速",
+        "皖南山区盘山公路"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "12:00后",
+      "source_url": "https://m.youxiake.com/lines.html?id=54518",
+      "updated_at": "2024-10-24T12:00:00+08:00",
+      "confidence": 0.9
+    }
+  },
+  {
+    "route": {
+      "id": "quanzhou-tianhu-chaping-zhenbaoding",
+      "name": "全州天湖-茶坪-真宝顶",
+      "group_tour_search_terms": [
+        "全州天湖",
+        "茶坪",
+        "真宝顶",
+        "广西阿勒泰"
+      ],
+      "start_location": "真宝顶",
+      "end_location": "茶坪",
+      "latitude": 26.06,
+      "longitude": 110.94,
+      "distance_km": 12.0,
+      "ascent_m": 570,
+      "highest_altitude_m": 2100,
+      "hiking_minutes": 360,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "point_to_point",
+      "is_traverse": true,
+      "traverse_transfer_minutes": 15,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "高山草甸",
+        "湖泊",
+        "风车"
+      ],
+      "risks": [
+        "高海拔天气突变",
+        "设施不完善"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "景区停车场",
+      "supplies": "酒店含早，山上无补给，需自备路餐",
+      "has_toilet": true,
+      "has_supply_shop": false,
+      "signal": "高山区域信号较弱",
+      "camping": "住景区酒店，不建议野外露营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63325",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T19:07:28+08:00",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "天湖门票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 0,
+          "max_cny": 0,
+          "source_url": "https://m.youxiake.com/lines.html?id=63325",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "跟团游费用",
+          "cost_type": "other",
+          "billing_unit": "person",
+          "min_cny": 630,
+          "max_cny": 860,
+          "source_url": "https://m.youxiake.com/lines.html?id=63325",
+          "updated_at": "2024-05-20T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 150,
+      "weekday_extra_min": 0,
+      "weekday_extra_max": 10,
+      "weekend_extra_min": 10,
+      "weekend_extra_max": 30,
+      "holiday_extra_min": 30,
+      "holiday_extra_max": 60,
+      "morning_extra_minutes": 10,
+      "evening_extra_minutes": 20,
+      "common_bottlenecks": [
+        "盘山公路"
+      ],
+      "best_departure_time": "08:00前",
+      "suggested_return_time": "16:00前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63325",
+      "updated_at": "2024-05-20T12:00:00+08:00",
+      "confidence": 0.8
+    }
+  },
+  {
+    "route": {
+      "id": "ninghai-bay-beachcombing",
+      "name": "宁海湾赶海",
+      "group_tour_search_terms": [
+        "宁海湾赶海",
+        "横山岛",
+        "象山漂流",
+        "亲子赶海",
+        "宁海横山岛"
+      ],
+      "start_location": "宁波市宁海县强蛟镇宁海湾码头",
+      "end_location": "宁波市宁海县强蛟镇横山岛",
+      "latitude": 29.385,
+      "longitude": 121.355,
+      "distance_km": 3.5,
+      "ascent_m": 50,
+      "highest_altitude_m": 50,
+      "hiking_minutes": 150,
+      "difficulty": "easy",
+      "duration_days": 2,
+      "route_type": "out_and_back",
+      "is_traverse": false,
+      "traverse_transfer_minutes": 0,
+      "best_seasons": [
+        "夏",
+        "秋"
+      ],
+      "scenery": [
+        "海岛",
+        "滩涂",
+        "峡谷",
+        "海洋"
+      ],
+      "risks": [
+        "滩涂湿滑",
+        "潮汐变化",
+        "夏日中暑",
+        "礁石划伤"
+      ],
+      "transport_modes": [
+        "group_tour",
+        "self_drive"
+      ],
+      "parking": "宁海湾码头及强蛟镇有公共停车场，自驾可停放",
+      "supplies": "码头周边有农家乐和便利店，岛上及滩涂无补给，需自备饮水和零食",
+      "has_toilet": true,
+      "has_supply_shop": true,
+      "signal": "近海区域及滩涂手机信号良好，部分海岛密林处可能较弱",
+      "camping": "行程包含酒店住宿，滩涂及海岛保护区内禁止野营",
+      "source_url": "https://m.youxiake.com/lines.html?id=63445",
+      "source_name": "游侠客",
+      "collected_at": "2026-07-01T19:09:02+08:00",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.9,
+      "reviewed": false
+    },
+    "costs": {
+      "route_fees": [
+        {
+          "name": "横山岛门票及往返船票",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 50,
+          "max_cny": 80,
+          "source_url": "https://m.youxiake.com/lines.html?id=63445",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        },
+        {
+          "name": "龙溪峡谷漂流",
+          "cost_type": "ticket",
+          "billing_unit": "person",
+          "min_cny": 100,
+          "max_cny": 150,
+          "source_url": "https://m.youxiake.com/lines.html?id=63445",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ],
+      "transport_options": [
+        {
+          "transport_mode": "group_tour",
+          "name": "成人跟团费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 920,
+          "max_cny": 920,
+          "source_url": "https://m.youxiake.com/lines.html?id=63445",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        },
+        {
+          "transport_mode": "group_tour",
+          "name": "儿童跟团费",
+          "cost_type": "bus",
+          "billing_unit": "person",
+          "min_cny": 750,
+          "max_cny": 750,
+          "source_url": "https://m.youxiake.com/lines.html?id=63445",
+          "updated_at": "2024-07-01T12:00:00+08:00"
+        }
+      ]
+    },
+    "traffic": {
+      "base_one_way_minutes": 240,
+      "weekday_extra_min": 10,
+      "weekday_extra_max": 30,
+      "weekend_extra_min": 30,
+      "weekend_extra_max": 90,
+      "holiday_extra_min": 60,
+      "holiday_extra_max": 180,
+      "morning_extra_minutes": 30,
+      "evening_extra_minutes": 60,
+      "common_bottlenecks": [
+        "杭州湾跨海大桥",
+        "沈海高速宁波段",
+        "宁海出口"
+      ],
+      "best_departure_time": "07:00前",
+      "suggested_return_time": "16:30前",
+      "source_url": "https://m.youxiake.com/lines.html?id=63445",
+      "updated_at": "2024-07-01T12:00:00+08:00",
+      "confidence": 0.85
+    }
+  }
+]
