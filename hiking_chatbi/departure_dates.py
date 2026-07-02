@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 from typing import Any
 
@@ -33,9 +34,33 @@ def resolve_departure_date(expression: str, reference_date: date) -> dict[str, A
         "下周六": 12,
         "下周日": 13,
     }
+    supported_expressions = {
+        *single_offsets,
+        *week_offsets,
+        "周六",
+        "周日",
+        "本周末",
+        "下周末",
+    }
+    if normalized not in supported_expressions:
+        matches = re.findall(
+            r"本周末|下周末|本周六|本周日|下周六|下周日|今天|明天|后天|周六|周日",
+            normalized,
+        )
+        unique_matches = list(dict.fromkeys(matches))
+        if len(unique_matches) > 1:
+            raise ValueError(
+                f"相对日期表达包含多个相对日期，无法确定出发日: {normalized}"
+            )
+        if len(unique_matches) == 1:
+            normalized = unique_matches[0]
 
     if normalized in single_offsets:
         targets = [reference_date + timedelta(days=single_offsets[normalized])]
+    elif normalized in ("周六", "周日"):
+        target_weekday = 5 if normalized == "周六" else 6
+        days_ahead = (target_weekday - reference_date.weekday()) % 7
+        targets = [reference_date + timedelta(days=days_ahead)]
     elif normalized in week_offsets:
         targets = [week_start + timedelta(days=week_offsets[normalized])]
     elif normalized == "本周末":

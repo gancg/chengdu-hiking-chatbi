@@ -51,3 +51,15 @@ class DepartureDateTest(unittest.TestCase):
         """不支持的相对日期表达不得由工具猜测。"""
         with self.assertRaisesRegex(ValueError, "不支持的相对日期表达"):
             resolve_departure_date("过阵子", date(2026, 6, 13))
+
+    def test_natural_phrase_extracts_single_relative_date(self) -> None:
+        """中文测试：自然短句中的唯一相对日期应被正确提取。"""
+        result = resolve_departure_date("本周日出发", date(2026, 7, 2))
+
+        self.assertEqual("本周日", result["expression"])
+        self.assertEqual("2026-07-05", result["candidates"][0]["date"])
+
+    def test_natural_phrase_rejects_multiple_relative_dates(self) -> None:
+        """中文测试：一句话包含多个相对日期时不得擅自选择。"""
+        with self.assertRaisesRegex(ValueError, "包含多个相对日期"):
+            resolve_departure_date("本周六或者本周日出发", date(2026, 7, 2))

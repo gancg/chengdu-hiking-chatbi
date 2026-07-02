@@ -13,7 +13,8 @@ from datetime import date, datetime
 from typing import Any
 
 from qwen_agent.agents import Assistant
-from qwen_agent.llm.schema import SYSTEM
+from qwen_agent.llm.schema import FUNCTION, SYSTEM, Message
+from qwen_agent.settings import MAX_LLM_CALL_PER_RUN
 from qwen_agent.tools.base import BaseTool
 
 from .config import QWEN_SEED
@@ -83,18 +84,21 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     筛选出符合用户预期的候选路线。前期对话不得询问或要求用户选择交通方式，也不得展示交通方式选项。
     形成候选路线时可以不传 `transport_modes`，不得为了调用推荐工具而虚构交通方式。
     给出候选路线后，必须先让用户明确选择其中一条路线，不得在同一轮追加交通方式问题。
-    用户尚未明确选定路线时，不得询问或展示交通方式选项。用户明确选定某条路线后，下一步只确认交通方式，且必须严格使用以下格式：
+    用户尚未明确选定路线时，不得询问或展示交通方式选项。用户明确选定某条路线后，若日期已确定，
+    必须先调用 `estimate_route_weather` 并展示该路线天气；天气返回后再确认交通方式，且必须严格使用以下格式：
 请选择交通方式：
 1. 自驾
 2. 报团
-3. 公共交通
 
-直接回复 1、2 或 3 即可。
+直接回复 1 或 2 即可。
     不得给交通方式问题本身编号，不得形成外层问题编号和内层选项编号；不得追加路线对比或任何第二个问题；
     不得增加“其他”选项，不得使用图标、装饰标题或在选项后添加括号说明。
     如果用户提前主动提供交通方式，可以暂存，但仍须先完成路线选择。
-23. 输出候选路线时，必须按固定顺序组织信息：推荐路线、推荐理由、天气参考、设施与风险、路线选择。
-    每条路线先给路线名称和核心行程数据，再解释为什么推荐；天气参考先说官方预警，再说温度和简单天气现象。
+23. 输出多条候选路线时，必须按固定顺序组织信息：推荐路线、推荐理由、设施与风险、路线选择。
+    每条路线先给路线名称和核心行程数据，再解释为什么推荐。多条候选路线的起点坐标不同，
+    不得调用 `estimate_route_weather`，不得展示“天气参考”，也不得把任意一条路线的天气概括为全部候选路线的天气。
+    推荐结果只有一条路线，或用户已经选定具体路线后，才可按该路线的起点坐标查询并展示天气；
+    展示时天气参考先说官方预警，再说温度和简单天气现象。
     候选路线阶段不得展开交通和费用比较，结尾只让用户选择一条路线。选定路线并确认交通方式后，
     再补充去程与返程耗时、交通数据类型、费用范围和最终方案；缺少工具结果时说明暂无参考，不得自行补全。
 24. 展示天气参考时，如果工具结果的 `data_sources`、`official_alerts.source` 或 `daily_weather.source`
@@ -108,11 +112,54 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     也不得在查询失败时回退到静态报团费用或旧商团数据。
 26. 用户明确点名想去的地方，且该地点命中已审核路线名称或检索词时，目的地已经足以限定候选路线。
     如果尚未确定具体出发日期，只确认日期，不得再询问人数、体力、经验、距离、爬升、难度、风景、设施或最晚返回时间。
-    日期确定后立即调用所需工具并推荐命中的路线，不得为了补齐普通访谈字段继续追问。此规则优先于通用访谈轮次规则。"""
+    日期确定后立即调用所需工具并推荐命中的路线，不得为了补齐普通访谈字段继续追问。此规则优先于通用访谈轮次规则。
+27. `routes.cost_min_cny` 和 `routes.cost_max_cny` 表示预计报团费用区间。用户选择自驾后，
+    不得展示这两个字段对应的费用，不得输出“路线费用”或“预计总费用”。如果工具结果表明油费自理且
+    无额外交通费用，只写“自驾交通费：油费自理，无额外交通费用”。
+28. 公共交通出行方式暂未开放。不得向用户展示、询问或推荐公共交通，也不得向工具传递 `public_transit`；
+    当前只提供自驾和报团两种交通方式。
+29. 一句话同时包含相对日期、目的地、交通方式和天气等多个信息时，工具必须按依赖关系串行调用，
+    必须先从用户原话提炼明确的目的地名称，例如从“去爬巴朗山”提炼 `destination_name=巴朗山`，
+    再用该名称匹配路线目录；`destination_name` 是自然语言地点，`route_id` 只能填写匹配成功后的路线唯一标识。
+    每一步取得成功结果后才能进入下一步：先调用 `resolve_departure_date`；再把其返回的具体日期传给
+    `resolve_public_holiday`；然后把提炼出的 `destination_name` 传给 `recommend_hiking_routes`，由推荐结果
+    唯一确认路线；再使用推荐结果返回的准确 `route_id` 调用 `estimate_route_weather`；用户选择报团时，
+    最后使用同一 `route_id` 调用 `find_group_tour_links`。不得跳过路线推荐直接查询天气，也不得把这些
+    有依赖关系的工具放在同一批并行调用。
+    任一步失败时，必须停止依赖该结果的后续工具调用，说明失败或请用户确认；不得自行推算日期、星期、
+    日期类型，也不得把自然语言目的地名称当作 `route_id`。
+30. 用户已经提供出发日期或相对日期、明确风景偏好并要求推荐路线时，信息已经足够。
+    不得再询问体力、距离、爬升、难度或其他普通偏好；完成日期和节假日解析后，必须直接调用
+    `recommend_hiking_routes`，未提供的筛选条件使用系统默认值。
+31. 用户已经提供出发日期或相对日期、说明需要适合新手或入门的路线并明确要求推荐时，信息已经足够。
+    不得再询问强度、经验、距离、爬升或难度；完成日期和节假日解析后，直接使用保守的 `easy`
+    最高难度调用 `recommend_hiking_routes`。"""
 
 
 def _json_result(payload: Any) -> str:
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
+def _has_multiple_recommendations(tool_name: str, tool_result: str) -> bool:
+    """Return whether a recommendation result requires an explicit user choice."""
+    if tool_name != "recommend_hiking_routes":
+        return False
+    try:
+        payload = json.loads(tool_result)
+    except (TypeError, json.JSONDecodeError):
+        return False
+    return isinstance(payload, dict) and payload.get("count", 0) > 1
+
+
+def _requests_user_input(content: str) -> bool:
+    """Return whether assistant text asks the user to provide an answer."""
+    normalized = content.strip()
+    if not normalized:
+        return False
+    return "？" in normalized or "?" in normalized or any(
+        marker in normalized
+        for marker in ("请回复", "请选择", "请告诉我", "请确认")
+    )
 
 
 def _message_role(message: Any) -> str:
@@ -125,6 +172,19 @@ def _message_content(message: Any) -> str:
     if isinstance(message, dict):
         return str(message.get("content", ""))
     return str(getattr(message, "content", ""))
+
+
+def _message_name(message: Any) -> str:
+    if isinstance(message, dict):
+        return str(message.get("name", ""))
+    return str(getattr(message, "name", ""))
+
+
+def _has_tool_result(messages: list[Any], tool_name: str) -> bool:
+    return any(
+        _message_role(message) == FUNCTION and _message_name(message) == tool_name
+        for message in messages
+    )
 
 
 def _has_explicit_route_selection(messages: list[Any]) -> bool:
@@ -231,6 +291,58 @@ def _match_route_id(content: str, routes: list[dict[str, Any]]) -> str | None:
     if len(matches) > 1 and matches[0][0] == matches[1][0]:
         return None
     return matches[0][1]
+
+
+def _matched_group_tour_search_terms(
+    content: str,
+    routes: list[dict[str, Any]],
+) -> list[str]:
+    """Return stored search terms mentioned by the user without matching route names."""
+    normalized_content = content.replace(" ", "")
+    terms = {
+        str(term).strip()
+        for route in routes
+        for term in (route.get("group_tour_search_terms") or [])
+        if str(term).strip() and str(term).replace(" ", "") in normalized_content
+    }
+    return sorted(terms, key=len, reverse=True)
+
+
+def _extract_scenery_preferences(
+    content: str,
+    routes: list[dict[str, Any]],
+) -> list[str]:
+    """Extract reviewed scenery labels explicitly mentioned in user text."""
+    normalized_content = content.replace("日出发", "日 出发")
+    preferences = {
+        str(scenery).strip()
+        for route in routes
+        for scenery in (route.get("scenery") or [])
+        if str(scenery).strip() and str(scenery).strip() in normalized_content
+    }
+    return sorted(preferences, key=len, reverse=True)
+
+
+def _remove_unfounded_invalid_counts(
+    query: dict[str, Any],
+    user_content: str,
+) -> None:
+    """Restore count defaults when invalid optional values were model-generated."""
+    count_markers = {
+        "party_size": r"-?\d+\s*个?\s*(?:人|位)",
+        "vehicle_count": r"-?\d+\s*(?:辆|台)(?:车)?",
+    }
+    for field, pattern in count_markers.items():
+        if field not in query:
+            continue
+        value = query[field]
+        is_positive_integer = (
+            isinstance(value, int)
+            and not isinstance(value, bool)
+            and value > 0
+        )
+        if not is_positive_integer and re.search(pattern, user_content) is None:
+            query.pop(field)
 
 
 def _resolve_numbered_choice(
@@ -390,6 +502,86 @@ def build_interview_guidance(
     """Build turn-aware guidance for a natural hiking requirement interview."""
     user_turns = sum(_message_role(message) == "user" for message in messages)
     state = build_conversation_state(messages, routes or [])
+    latest_user_content = next(
+        (
+            _message_content(message)
+            for message in reversed(messages)
+            if _message_role(message) == "user"
+        ),
+        "",
+    )
+    matched_route_id = _match_route_id(latest_user_content, routes or [])
+    matched_destination_terms = _matched_group_tour_search_terms(
+        latest_user_content,
+        routes or [],
+    )
+    scenery_preferences = _extract_scenery_preferences(
+        latest_user_content,
+        routes or [],
+    )
+    has_relative_date = any(
+        expression in latest_user_content
+        for expression in ("周六", "周日", "周末", "明天", "后天")
+    )
+    has_weather_request = "天气" in latest_user_content
+    has_group_tour_request = any(
+        expression in latest_user_content for expression in ("报团", "抱团")
+    )
+    if (
+        matched_route_id is not None
+        and has_relative_date
+        and has_weather_request
+        and has_group_tour_request
+    ):
+        destination_name = (
+            matched_destination_terms[0]
+            if matched_destination_terms
+            else "用户原话中的目的地"
+        )
+        return (
+            "用户在一句话中同时提供了相对日期、已审核目的地、报团方式和天气查询需求。"
+            "必须从用户原话提炼自然语言目的地名称，并通过推荐工具匹配路线，不能把目的地名称当作 route_id。"
+            f"本次提炼 destination_name={destination_name}。必须严格串行执行，不能并行调用："
+            "第一步只调用 resolve_departure_date 解析用户的相对日期；成功后，第二步把其返回的具体日期"
+            "传给 resolve_public_holiday；成功后，第三步调用 recommend_hiking_routes，并传入上述 destination_name，"
+            "从推荐结果中取得唯一的准确 route_id；第四步只能使用该推荐结果的 route_id 调用 estimate_route_weather；"
+            "最后使用同一个 route_id 调用 find_group_tour_links。不得跳过路线推荐。每一步必须等待上一步工具结果。"
+            "任一步失败都要停止依赖该结果的后续调用，不得自行推算日期、星期或日期类型，"
+            "也不得把自然语言目的地名称当作 route_id。全部成功后再统一回答天气和报团链接。"
+        )
+    has_explicit_date = has_relative_date or re.search(
+        r"\d{4}-\d{1,2}-\d{1,2}|\d{1,2}月\d{1,2}日",
+        latest_user_content,
+    ) is not None
+    has_recommendation_request = "推荐" in latest_user_content
+    if has_explicit_date and scenery_preferences and has_recommendation_request:
+        scenery_text = "、".join(scenery_preferences)
+        return (
+            f"用户已经提供出发日期和明确风景偏好（风景偏好：{scenery_text}），并要求推荐路线，"
+            "现有信息已经足够。不得再询问体力、距离、爬升或难度，也不得要求用户确认是否使用默认值。"
+            "如果日期是相对日期，先调用 resolve_departure_date；取得具体日期后调用 resolve_public_holiday；"
+            "随后直接调用 recommend_hiking_routes，并传入 scenery_preferences。未提供的筛选条件使用系统默认值。"
+            "推荐出多条路线后只展示候选并请用户选择，不得替用户选择。"
+        )
+    is_beginner_request = any(
+        marker in latest_user_content for marker in ("新手", "入门", "第一次徒步")
+    )
+    if has_explicit_date and is_beginner_request and has_recommendation_request:
+        return (
+            "用户已经提供出发日期，并明确要求推荐适合新手的路线，现有信息已经足够。"
+            "不得再询问强度、经验、距离、爬升或难度，也不得要求用户选择轻松、适中或挑战。"
+            "如果日期是相对日期，先调用 resolve_departure_date；取得具体日期后调用 resolve_public_holiday；"
+            "随后直接调用 recommend_hiking_routes，并使用 max_difficulty=easy。"
+            "未提供的其他条件使用系统默认值。推荐出多条路线后只展示候选并请用户选择。"
+        )
+    if state.transport_mode == "public_transit" and state.has_current_transport_choice:
+        return (
+            "用户当前选择了公共交通，但该出行方式暂未开放。请简短说明暂不提供公共交通方案，"
+            "并只请用户重新选择：\n"
+            "1. 自驾\n"
+            "2. 报团\n\n"
+            "直接回复 1 或 2 即可。不得查询、推荐或整合公共交通信息。"
+        )
     if (
         routes is not None
         and state.transport_mode == "group_tour"
@@ -417,6 +609,25 @@ def build_interview_guidance(
             "本轮不得调用 find_group_tour_links；应根据用户当前问题正常回答，"
             "不得把历史报团选择误当成新的在线查询指令。"
         )
+    if routes is not None and state.transport_mode == "self_drive":
+        cost_guidance = (
+            "用户已经选择自驾。routes.cost_min_cny 和 routes.cost_max_cny 是预计报团费用区间，"
+            "自驾方案不得展示这两个字段对应的费用，不得展示“路线费用”，不得展示“预计总费用”。"
+            "若工具结果表明油费自理且无额外交通费用，只写“自驾交通费：油费自理，无额外交通费用”。"
+        )
+        if (
+            state.selected_route_id is not None
+            and not _has_tool_result(messages, "estimate_route_weather")
+        ):
+            return (
+                f"用户已经选定路线并确认自驾，准确 route_id={state.selected_route_id}。"
+                "用户已经明确选择自驾，不得重复询问交通方式。"
+                "检查对话中已解析的具体出发日期；日期存在时必须先调用 estimate_route_weather，"
+                "并使用上述 route_id 和具体日期。不得用泛化天气提醒代替工具查询；"
+                "若尚无具体日期，只确认日期，不得猜测。天气工具成功返回后再输出最终方案。"
+                f"{cost_guidance}"
+            )
+        return cost_guidance
     if routes is None and _has_group_tour_selection_after_route(messages):
         return (
             "用户已经选定路线并明确选择报团。请立即调用 find_group_tour_links，"
@@ -425,22 +636,65 @@ def build_interview_guidance(
             "进入对应商团网站核实及完成后续操作；不得推断价格、团期或余位。"
         )
     if state.has_current_route_choice or (routes is None and _has_explicit_route_selection(messages)):
+        if (
+            routes is not None
+            and state.selected_route_id is not None
+            and not _has_tool_result(messages, "estimate_route_weather")
+        ):
+            if state.transport_mode is None:
+                transport_followup = (
+                    "用户尚未明确出行方式。天气返回后先展示天气，再询问交通方式，"
+                    "并严格输出以下内容，不得增删：\n"
+                    "请选择交通方式：\n"
+                    "1. 自驾\n"
+                    "2. 报团\n\n"
+                    "直接回复 1 或 2 即可。不得替用户选择。"
+                )
+            else:
+                transport_name = (
+                    "自驾" if state.transport_mode == "self_drive" else "报团"
+                )
+                transport_followup = (
+                    f"用户已经明确选择{transport_name}。天气返回后沿用该出行方式，"
+                    "不得重复询问交通方式。"
+                )
+            return (
+                "用户已经明确选定路线，"
+                f"准确 route_id={state.selected_route_id}。检查对话中已解析的具体出发日期；"
+                "日期存在时立即调用 estimate_route_weather，使用上述 route_id 和具体日期，"
+                "不得等待用户先选择交通方式，也不得用泛化天气提醒代替查询。"
+                f"{transport_followup}"
+                "若尚无具体日期，只确认日期，不得猜测。"
+            )
         return (
-            "用户已经明确选定路线。下一步只确认交通方式。"
+            "用户已经明确选定路线且天气查询已经完成。下一步只确认交通方式。"
             "本轮不得给问题本身编号，不得形成嵌套编号；"
             "不得追加路线对比或任何第二个问题；不得增加“其他”选项；"
             "不得使用图标、装饰标题或括号说明。请严格输出以下内容，不得增删：\n"
             "请选择交通方式：\n"
             "1. 自驾\n"
-            "2. 报团\n"
-            "3. 公共交通\n\n"
-            "直接回复 1、2 或 3 即可。"
+            "2. 报团\n\n"
+            "直接回复 1 或 2 即可。"
         )
     named_route_terms = _find_named_route_terms(messages, route_search_terms or [])
     if named_route_terms:
         matched_terms = "、".join(named_route_terms)
+        route_id = _match_route_id(
+            " ".join(
+                _message_content(message)
+                for message in messages
+                if _message_role(message) == "user"
+            ),
+            routes or [],
+        )
+        route_reference = (
+            f"已匹配的准确 route_id={route_id}。"
+            if route_id is not None
+            else "尚未得到唯一的路线 ID，不得猜测 route_id。"
+        )
         return (
             f"用户点名的目的地已命中已审核路线（匹配词：{matched_terms}）。"
+            f"{route_reference}"
             "该目的地已经足以限定候选路线，不再执行通用的偏好访谈。"
             "若尚未确定具体出发日期，只确认具体出发日期；不得询问体力、经验、人数、距离、爬升、难度、风景、设施或最晚返回时间。"
             "日期确定后立即推荐命中的路线：先按具体日期调用节假日查询工具，再调用推荐及天气等所需工具；"
@@ -473,6 +727,113 @@ def build_interview_guidance(
 class GuidedHikingAssistant(Assistant):
     """Qwen Assistant with turn-aware hiking interview guidance."""
 
+    def _run_one_tool_at_a_time(
+        self,
+        messages: list[Any],
+        lang: str,
+        **kwargs: Any,
+    ) -> Iterator[list[Any]]:
+        """Execute at most one model-generated tool call before asking the model again."""
+        response: list[Any] = []
+        remaining_calls = MAX_LLM_CALL_PER_RUN
+        is_waiting_for_route_choice = False
+        while remaining_calls > 0:
+            remaining_calls -= 1
+            extra_generate_cfg: dict[str, Any] = {"lang": lang}
+            if kwargs.get("seed") is not None:
+                extra_generate_cfg["seed"] = kwargs["seed"]
+            output: list[Any] = []
+            has_requested_user_input_in_stream = False
+            pending_user_input_output: list[Any] = []
+            for streamed_output in self._call_llm(
+                messages=messages,
+                functions=[tool.function for tool in self.function_map.values()],
+                extra_generate_cfg=extra_generate_cfg,
+            ):
+                output = streamed_output
+                streamed_visible_output: list[Any] = []
+                has_streamed_tool = False
+                is_streamed_requesting_user_input = any(
+                    not self._detect_tool(item)[0]
+                    and _requests_user_input(_message_content(item))
+                    for item in streamed_output
+                )
+                if is_streamed_requesting_user_input:
+                    has_requested_user_input_in_stream = True
+                    pending_user_input_output = [
+                        item
+                        for item in streamed_output
+                        if not self._detect_tool(item)[0]
+                    ]
+                for item in streamed_output:
+                    use_tool, _, _, _ = self._detect_tool(item)
+                    if use_tool:
+                        if (
+                            is_waiting_for_route_choice
+                            or has_requested_user_input_in_stream
+                        ):
+                            continue
+                        if has_streamed_tool:
+                            continue
+                        has_streamed_tool = True
+                    streamed_visible_output.append(item)
+                if streamed_visible_output:
+                    yield response + streamed_visible_output
+            if not output:
+                break
+
+            first_tool: tuple[Any, str, str] | None = None
+            visible_output: list[Any] = []
+            is_requesting_user_input = any(
+                not self._detect_tool(item)[0]
+                and _requests_user_input(_message_content(item))
+                for item in output
+            ) or has_requested_user_input_in_stream
+            for item in output:
+                use_tool, tool_name, tool_args, _ = self._detect_tool(item)
+                if use_tool:
+                    if is_waiting_for_route_choice or is_requesting_user_input:
+                        continue
+                    if first_tool is None:
+                        first_tool = (item, tool_name, tool_args)
+                        visible_output.append(item)
+                    continue
+                visible_output.append(item)
+
+            if is_requesting_user_input and not visible_output:
+                visible_output = pending_user_input_output
+
+            response.extend(visible_output)
+            messages.extend(visible_output)
+            yield response
+            if is_waiting_for_route_choice or is_requesting_user_input:
+                break
+            if first_tool is None:
+                break
+
+            tool_message, tool_name, tool_args = first_tool
+            tool_result = self._call_tool(
+                tool_name,
+                tool_args,
+                messages=messages,
+                **kwargs,
+            )
+            function_message = Message(
+                role=FUNCTION,
+                name=tool_name,
+                content=tool_result,
+                extra={"function_id": (tool_message.extra or {}).get("function_id", "1")},
+            )
+            messages.append(function_message)
+            response.append(function_message)
+            yield response
+            is_waiting_for_route_choice = _has_multiple_recommendations(
+                tool_name,
+                tool_result,
+            )
+
+        yield response
+
     def _run(self, messages: list[Any], **kwargs: Any) -> Iterator[list[Any]]:
         call_id = uuid.uuid4().hex[:12]
         started_at = time.perf_counter()
@@ -504,9 +865,24 @@ class GuidedHikingAssistant(Assistant):
                 guided_messages[0].content = (
                     f"{guided_messages[0].content}\n\n# 当前对话策略\n{guidance}"
                 )
-            for response in super()._run(messages=guided_messages, **kwargs):
-                output_batches += 1
-                yield response
+            if not hasattr(self, "mem"):
+                for response in super()._run(messages=guided_messages, **kwargs):
+                    output_batches += 1
+                    yield response
+            else:
+                lang = str(kwargs.pop("lang", "zh"))
+                guided_messages = self._prepend_knowledge_prompt(
+                    messages=guided_messages,
+                    lang=lang,
+                    **kwargs,
+                )
+                for response in self._run_one_tool_at_a_time(
+                    messages=guided_messages,
+                    lang=lang,
+                    **kwargs,
+                ):
+                    output_batches += 1
+                    yield response
         except Exception as exc:
             elapsed_ms = round((time.perf_counter() - started_at) * 1000)
             exception_code = getattr(exc, "code", None) or "n/a"
@@ -579,6 +955,16 @@ class RecommendHikingRoutesTool(HikingTool):
     )
     parameters = [
         {
+            "name": "route_id",
+            "type": "string",
+            "description": "路线目录匹配成功后的唯一标识；不得填写自然语言目的地",
+        },
+        {
+            "name": "destination_name",
+            "type": "string",
+            "description": "从用户原话提炼的明确目的地名称，例如从“去爬巴朗山”提炼“巴朗山”",
+        },
+        {
             "name": "departure_at",
             "type": "string",
             "description": "出发时间，必须是带日期的 ISO 8601 时间，例如 2026-06-13T06:30:00+08:00",
@@ -589,7 +975,7 @@ class RecommendHikingRoutesTool(HikingTool):
             "name": "transport_modes",
             "type": "array",
             "items": {"type": "string"},
-            "description": "交通方式，可选 self_drive、public_transit、carpool、group_tour",
+            "description": "交通方式，当前仅可选 self_drive、group_tour；公共交通暂未开放",
         },
         {"name": "party_size", "type": "integer", "description": "出行人数"},
         {"name": "vehicle_count", "type": "integer", "description": "车辆数"},
@@ -624,7 +1010,81 @@ class RecommendHikingRoutesTool(HikingTool):
 
     def call(self, params: str | dict[str, Any], **kwargs: Any) -> str:
         query = self.verify_params(params)
+        if "public_transit" in query.get("transport_modes", []):
+            raise ValueError("公共交通出行方式暂未开放，请选择自驾或报团")
+        routes = self.service.routes()
+        known_ids = {str(route["id"]) for route in routes}
+        latest_user_content = next(
+            (
+                _message_content(message)
+                for message in reversed(kwargs.get("messages", []))
+                if _message_role(message) == "user"
+            ),
+            "",
+        )
+        user_content = " ".join(
+            _message_content(message)
+            for message in kwargs.get("messages", [])
+            if _message_role(message) == "user"
+        )
+        _remove_unfounded_invalid_counts(query, user_content)
+        if any(
+            marker in latest_user_content
+            for marker in ("新手", "入门", "第一次徒步")
+        ):
+            query["max_difficulty"] = "easy"
+        extracted_scenery = _extract_scenery_preferences(
+            latest_user_content,
+            routes,
+        )
+        if extracted_scenery:
+            query["scenery_preferences"] = sorted({
+                *query.get("scenery_preferences", []),
+                *extracted_scenery,
+            })
+        destination_name = str(query.pop("destination_name", "")).strip()
+        if destination_name:
+            destination_matches = self.service.routes_by_group_tour_search_term(
+                destination_name,
+            )
+            destination_route_ids = {
+                str(route["id"])
+                for route in destination_matches
+            }
+            if len(destination_route_ids) == 1:
+                query["route_id"] = next(iter(destination_route_ids))
+            elif len(destination_route_ids) > 1:
+                raise ValueError("目的地名称命中多条路线，请用户进一步确认具体路线")
+            else:
+                raise ValueError("目的地名称未匹配到已审核路线，请用户确认目的地")
+        requested_route_id = str(query.get("route_id", "")).strip()
+        if requested_route_id and requested_route_id not in known_ids:
+            parameter_matches = self.service.routes_by_group_tour_search_term(
+                requested_route_id,
+            )
+            parameter_route_ids = {
+                str(route["id"])
+                for route in parameter_matches
+            }
+            if len(parameter_route_ids) == 1:
+                query["route_id"] = next(iter(parameter_route_ids))
+            elif len(parameter_route_ids) > 1:
+                raise ValueError("目的地检索词命中多条路线，请用户进一步确认具体路线")
+        matched_route_ids = {
+            str(route["id"])
+            for term in _matched_group_tour_search_terms(user_content, routes)
+            for route in self.service.routes_by_group_tour_search_term(term)
+        }
+        if len(matched_route_ids) == 1:
+            query["route_id"] = next(iter(matched_route_ids))
+        elif len(matched_route_ids) > 1:
+            raise ValueError("目的地检索词命中多条路线，请用户进一步确认具体路线")
         items = self.service.recommendations(query)
+        if len(items) > 1:
+            items = [
+                {key: value for key, value in item.items() if key != "weather"}
+                for item in items
+            ]
         return _json_result({"count": len(items), "items": items})
 
 
@@ -688,6 +1148,12 @@ class EstimateRouteWeatherTool(HikingTool):
 
     def call(self, params: str | dict[str, Any], **kwargs: Any) -> str:
         query = self.verify_params(params)
+        routes = self.service.routes()
+        known_ids = {str(route["id"]) for route in routes}
+        if str(query["route_id"]) not in known_ids:
+            matched_route_id = _match_route_id(str(query["route_id"]), routes)
+            if matched_route_id is not None:
+                query["route_id"] = matched_route_id
         return _json_result(self.service.weather(query))
 
 
@@ -827,8 +1293,8 @@ def run_qwen_web(
             "prompt.suggestions": [
                 "本周六从成都出发，推荐适合新手的路线",
                 "路线不超过10公里或者爬升不超过 800 米的路线",
-                "本周末出发，有森林的徒步路线推荐",
-                "周六想报团去爬巴朗山，不知道天气怎么样",
+                "本周日出发，有草甸的徒步路线推荐",
+                "周六想去爬巴朗山，不知道天气怎么样",
             ]
         },
     ).run(server_name=host, server_port=port)

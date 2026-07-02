@@ -53,6 +53,9 @@ def recommend(
         reasons: list[str] = []
         if modes and not modes.intersection(route["transport_modes"]):
             continue
+        matched_scenery = sorted(scenery.intersection(route["scenery"]))
+        if scenery and not matched_scenery:
+            continue
         if route["distance_km"] > query.get("max_distance_km", float("inf")):
             continue
         if route["ascent_m"] > query.get("max_ascent_m", float("inf")):
@@ -110,7 +113,6 @@ def recommend(
         if latest_return and arrival > latest_return:
             continue
 
-        matched_scenery = sorted(scenery.intersection(route["scenery"]))
         score = route["confidence"] * 30 + route["traffic_confidence"] * 10
         score += max(0, 25 - outbound["max_minutes"] / 12)
         score += len(matched_scenery) * 8

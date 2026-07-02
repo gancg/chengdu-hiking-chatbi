@@ -8,6 +8,7 @@ from typing import Any
 
 from .db import (
     connect,
+    find_routes_by_group_tour_search_term,
     get_route,
     import_routes,
     initialize,
@@ -58,11 +59,24 @@ class ChatBIService:
     def routes(self) -> list[dict[str, Any]]:
         return list_routes(self.db_path)
 
+    def routes_by_group_tour_search_term(
+        self,
+        search_term: str,
+    ) -> list[dict[str, Any]]:
+        """Return reviewed routes matched only by group-tour search terms."""
+        return find_routes_by_group_tour_search_term(self.db_path, search_term)
+
     def recommendations(self, query: dict[str, Any]) -> list[dict[str, Any]]:
         if "departure_at" not in query:
             raise ValueError("缺少 departure_at")
+        routes = self.routes()
+        route_id = query.get("route_id")
+        if route_id is not None:
+            routes = [route for route in routes if route["id"] == route_id]
+            if not routes:
+                raise ValueError("指定路线不存在或未审核")
         results = recommend(
-            self.routes(),
+            routes,
             query,
             self.provider,
             self.alert_provider,

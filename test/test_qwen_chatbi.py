@@ -3,9 +3,12 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from copy import deepcopy
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
+
+from qwen_agent.llm.schema import ASSISTANT, Message
 
 from hiking_chatbi.config import SAMPLE_DATA_PATH, optional_int_from_env
 import hiking_chatbi.qwen_chatbi as qwen_chatbi
@@ -53,15 +56,175 @@ class QwenChatBITest(unittest.TestCase):
         """自然语言代理使用的推荐工具应复用现有推荐规则。"""
         result = json.loads(RecommendHikingRoutesTool(self.service).call({
             "departure_at": self.departure,
-            "transport_modes": ["public_transit"],
+            "transport_modes": ["self_drive"],
             "max_distance_km": 13,
             "max_ascent_m": 800,
-            "max_budget_cny": 120,
+            "max_budget_cny": 200,
             "traffic_tolerance": "high",
         }))
 
-        self.assertEqual(1, result["count"], "符合条件时应返回一条路线")
-        self.assertEqual("qingcheng-back-mountain", result["items"][0]["route"]["id"])
+        self.assertGreater(result["count"], 0, "符合条件时应返回自驾路线")
+
+    def test_recommend_tool_uses_default_count_for_unfounded_zero(self) -> None:
+        """用户未提供人数时，模型生成的零不得覆盖默认人数。"""
+        with patch.object(self.service, "recommendations", return_value=[]) as call:
+            RecommendHikingRoutesTool(self.service).call(
+                {
+                    "departure_at": self.departure,
+                    "party_size": 0,
+                    "vehicle_count": None,
+                },
+                messages=[{
+                    "role": "user",
+                    "content": "本周日出发，有草甸的徒步路线推荐",
+                }],
+            )
+
+        normalized_query = call.call_args.args[0]
+        self.assertNotIn("party_size", normalized_query)
+        self.assertNotIn("vehicle_count", normalized_query)
+
+    def test_recommend_tool_rejects_explicit_zero_party_size(self) -> None:
+        """用户明确说零人出行时，不得静默改成默认一人。"""
+        with self.assertRaisesRegex(ValueError, "party_size 必须为正整数"):
+            RecommendHikingRoutesTool(self.service).call(
+                {"departure_at": self.departure, "party_size": 0},
+                messages=[{"role": "user", "content": "我们0个人去徒步"}],
+            )
+
+    def test_recommend_tool_rejects_disabled_public_transit(self) -> None:
+        """模型暂时不得通过推荐工具选择公共交通。"""
+        with self.assertRaisesRegex(ValueError, "公共交通出行方式暂未开放"):
+            RecommendHikingRoutesTool(self.service).call({
+                "departure_at": self.departure,
+                "transport_modes": ["public_transit"],
+            })
+
+    def test_recommend_tool_locks_named_balangshan_route(self) -> None:
+        """用户点名巴朗山时，推荐工具不得返回其他相似雪山路线。"""
+        result = json.loads(RecommendHikingRoutesTool(self.service).call(
+            {
+                "departure_at": self.departure,
+                "transport_modes": ["group_tour"],
+            },
+            messages=[{
+                "role": "user",
+                "content": "周六想报团去爬巴朗山，不知道天气怎么样",
+            }],
+        ))
+
+        self.assertEqual(1, result["count"], "点名路线后只能返回唯一命中路线")
+        self.assertEqual(
+            "wenchuan-balangshan-panda-peak",
+            result["items"][0]["route"]["id"],
+        )
+
+    def test_recommend_tool_normalizes_search_term_route_id(self) -> None:
+        """模型把巴朗山放入 route_id 时，应先按报团检索词规范化。"""
+        result = json.loads(RecommendHikingRoutesTool(self.service).call({
+            "route_id": "巴朗山",
+            "departure_at": self.departure,
+            "transport_modes": ["group_tour"],
+        }))
+
+        self.assertEqual(1, result["count"], "检索词唯一命中后只能推荐该路线")
+        self.assertEqual(
+            "wenchuan-balangshan-panda-peak",
+            result["items"][0]["route"]["id"],
+        )
+
+    def test_recommend_tool_resolves_extracted_destination_name(self) -> None:
+        """模型提炼出的目的地名称应通过报团检索词转换为路线 ID。"""
+        tool = RecommendHikingRoutesTool(self.service)
+        result = json.loads(tool.call({
+            "destination_name": "巴朗山",
+            "departure_at": self.departure,
+            "transport_modes": ["group_tour"],
+        }))
+
+        self.assertIn(
+            "destination_name",
+            {parameter["name"] for parameter in tool.parameters},
+            "推荐工具应向模型提供独立的目的地名称字段",
+        )
+        self.assertEqual(1, result["count"])
+        self.assertEqual(
+            "wenchuan-balangshan-panda-peak",
+            result["items"][0]["route"]["id"],
+        )
+
+    def test_recommend_tool_does_not_match_route_name(self) -> None:
+        """推荐工具点名匹配不得使用路线 name 字段。"""
+        routes = [{
+            "id": "route-by-name-only",
+            "name": "只存在于名称里的目的地",
+            "group_tour_search_terms": ["完全不同的检索词"],
+        }]
+        with (
+            patch.object(self.service, "routes", return_value=routes),
+            patch.object(self.service, "recommendations", return_value=[]) as call,
+        ):
+            RecommendHikingRoutesTool(self.service).call(
+                {"departure_at": self.departure},
+                messages=[{
+                    "role": "user",
+                    "content": "我想去只存在于名称里的目的地",
+                }],
+            )
+
+        self.assertNotIn("route_id", call.call_args.args[0], "name 字段不得用于锁定路线")
+
+    def test_service_fuzzy_matches_group_tour_search_terms_json(self) -> None:
+        """服务应通过数据库检索词 JSON 字段模糊匹配巴朗山。"""
+        routes = self.service.routes_by_group_tour_search_term("巴朗山")
+
+        self.assertEqual(
+            ["wenchuan-balangshan-panda-peak"],
+            [route["id"] for route in routes],
+        )
+
+    def test_service_rejects_unknown_locked_route(self) -> None:
+        """指定路线不存在时不得回退为全库推荐。"""
+        with self.assertRaisesRegex(ValueError, "指定路线不存在或未审核"):
+            self.service.recommendations({
+                "route_id": "missing-route",
+                "departure_at": self.departure,
+            })
+
+    def test_recommend_tool_hides_weather_for_multiple_routes(self) -> None:
+        """推荐多条候选路线时，不应返回任意路线的天气供模型统一展示。"""
+        result = json.loads(RecommendHikingRoutesTool(self.service).call({
+            "departure_at": self.departure,
+            "max_distance_km": 10,
+            "max_ascent_m": 800,
+            "traffic_tolerance": "high",
+        }))
+
+        self.assertGreater(result["count"], 1, "测试条件应产生多条候选路线")
+        for item in result["items"]:
+            self.assertNotIn("weather", item, "多路线候选结果不应暴露天气详情")
+
+    def test_recommend_tool_extracts_snow_mountain_preference_from_user(self) -> None:
+        """用户原话提到雪山时，推荐工具应只返回含雪山标签的路线。"""
+        result = json.loads(RecommendHikingRoutesTool(self.service).call(
+            {"departure_at": self.departure},
+            messages=[{
+                "role": "user",
+                "content": "本周日出发，有雪山的徒步路线推荐",
+            }],
+        ))
+
+        self.assertGreater(result["count"], 0, "样例数据应包含雪山路线")
+        for item in result["items"]:
+            self.assertIn(
+                "雪山",
+                item["route"]["scenery"],
+                "提炼出的雪山偏好应作为路线过滤条件",
+            )
+            self.assertTrue(
+                any("匹配风景偏好：雪山" in reason for reason in item["reasons"]),
+                "推荐理由应说明命中的风景偏好",
+            )
 
     def test_traffic_tool_reports_missing_required_field(self) -> None:
         """交通工具缺少必填字段时应返回明确异常。"""
@@ -165,6 +328,223 @@ class QwenChatBITest(unittest.TestCase):
                 "route_id": "qingcheng-back-mountain",
             })
 
+    def test_weather_tool_normalizes_named_destination_to_route_id(self) -> None:
+        """天气工具收到巴朗山检索词时，应解析为库内路线 ID。"""
+        with patch.object(self.service, "weather", return_value={"official_alerts": []}) as call:
+            result = json.loads(EstimateRouteWeatherTool(self.service).call({
+                "route_id": "巴朗山",
+                "departure_at": self.departure,
+            }))
+
+        self.assertEqual([], result["official_alerts"])
+        call.assert_called_once()
+        self.assertEqual(
+            "wenchuan-balangshan-panda-peak",
+            call.call_args.args[0]["route_id"],
+            "自然语言目的地应规范化为准确路线 ID",
+        )
+
+    def test_agent_executes_only_first_tool_from_parallel_model_output(self) -> None:
+        """模型并行生成工具时，只执行首个并基于其结果继续生成。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        parallel_output = [
+            Message(
+                role=ASSISTANT,
+                content="",
+                function_call={"name": "resolve_departure_date", "arguments": "{}"},
+            ),
+            Message(
+                role=ASSISTANT,
+                content="",
+                function_call={"name": "resolve_public_holiday", "arguments": "{}"},
+            ),
+        ]
+        final_output = [Message(role=ASSISTANT, content="已完成")]
+        llm_messages: list[list[Message]] = []
+
+        def call_llm(**kwargs: object) -> object:
+            llm_messages.append(deepcopy(kwargs["messages"]))
+            return iter([parallel_output if len(llm_messages) == 1 else final_output])
+
+        with (
+            patch.object(agent, "_call_llm", side_effect=call_llm),
+            patch.object(
+                agent,
+                "_call_tool",
+                return_value='{"departure_date":"2026-07-04"}',
+            ) as call_tool,
+        ):
+            list(agent._run_one_tool_at_a_time([], "zh"))
+
+        call_tool.assert_called_once()
+        self.assertEqual("resolve_departure_date", call_tool.call_args.args[0])
+        self.assertEqual(2, len(llm_messages), "首个工具返回后应再次请求模型")
+        second_call_messages = llm_messages[1]
+        self.assertTrue(
+            any(
+                message.role == "function"
+                and message.name == "resolve_departure_date"
+                and "2026-07-04" in message.content
+                for message in second_call_messages
+            ),
+            "下一次模型生成必须基于首个工具的真实返回值",
+        )
+        self.assertFalse(
+            any(
+                message.name == "resolve_public_holiday"
+                for message in second_call_messages
+            ),
+            "同轮生成但未执行的工具调用不得进入后续消息",
+        )
+
+    def test_agent_streams_text_before_model_generation_finishes(self) -> None:
+        """模型生成普通文本时，应在整轮完成前持续返回累计内容。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        partial_output = [Message(role=ASSISTANT, content="正在查询")]
+        final_output = [Message(role=ASSISTANT, content="正在查询天气")]
+
+        def stream_output(**kwargs: object) -> object:
+            yield partial_output
+            yield final_output
+
+        with patch.object(agent, "_call_llm", side_effect=stream_output):
+            responses = list(agent._run_one_tool_at_a_time([], "zh"))
+
+        self.assertGreaterEqual(len(responses), 2, "至少应包含增量输出和最终输出")
+        self.assertEqual("正在查询", responses[0][0].content)
+        self.assertEqual("正在查询天气", responses[1][0].content)
+
+    def test_agent_waits_for_user_after_multiple_route_recommendations(self) -> None:
+        """推荐多条候选后，不得在同一用户轮次替用户选路线并查询天气。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        recommend_output = [Message(
+            role=ASSISTANT,
+            content="",
+            function_call={"name": "recommend_hiking_routes", "arguments": "{}"},
+        )]
+        unauthorized_weather_output = [
+            Message(role=ASSISTANT, content="请选择木骡子、二古溪或大二普三海"),
+            Message(
+                role=ASSISTANT,
+                content="",
+                function_call={
+                    "name": "estimate_route_weather",
+                    "arguments": '{"route_id":"muluozi"}',
+                },
+            ),
+        ]
+
+        with (
+            patch.object(
+                agent,
+                "_call_llm",
+                side_effect=[
+                    iter([recommend_output]),
+                    iter([unauthorized_weather_output]),
+                ],
+            ),
+            patch.object(
+                agent,
+                "_call_tool",
+                return_value='{"count":3,"items":[{},{},{}]}',
+            ) as call_tool,
+        ):
+            responses = list(agent._run_one_tool_at_a_time([], "zh"))
+
+        call_tool.assert_called_once()
+        self.assertEqual("recommend_hiking_routes", call_tool.call_args.args[0])
+        self.assertTrue(
+            any(
+                message.content == "请选择木骡子、二古溪或大二普三海"
+                for response in responses
+                for message in response
+            ),
+            "应展示候选路线并等待用户选择",
+        )
+        self.assertFalse(
+            any(
+                message.name == "estimate_route_weather"
+                for response in responses
+                for message in response
+            ),
+            "未经用户选择的天气调用不应暴露或执行",
+        )
+
+    def test_agent_does_not_call_tool_after_asking_user_question(self) -> None:
+        """模型已经询问路线偏好时，必须等待用户回答再调用推荐工具。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        output = [
+            Message(
+                role=ASSISTANT,
+                content="你对距离、爬升高度或者难度有什么特别的要求吗？",
+            ),
+            Message(
+                role=ASSISTANT,
+                content="",
+                function_call={
+                    "name": "recommend_hiking_routes",
+                    "arguments": '{"departure_at":"2026-07-05T06:30:00+08:00"}',
+                },
+            ),
+        ]
+
+        with (
+            patch.object(agent, "_call_llm", return_value=iter([output])),
+            patch.object(agent, "_call_tool") as call_tool,
+        ):
+            responses = list(agent._run_one_tool_at_a_time([], "zh"))
+
+        call_tool.assert_not_called()
+        self.assertTrue(
+            any(
+                "有什么特别的要求吗" in message.content
+                for response in responses
+                for message in response
+            ),
+            "应保留向用户提出的问题",
+        )
+        self.assertFalse(
+            any(
+                message.name == "recommend_hiking_routes"
+                for response in responses
+                for message in response
+            ),
+            "等待用户回答时不得展示工具调用",
+        )
+
+    def test_agent_remembers_question_across_stream_chunks(self) -> None:
+        """提问和工具位于不同流片段时，也必须等待用户回答。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        question_output = [Message(
+            role=ASSISTANT,
+            content="这次徒步强度你更倾向哪一种？",
+        )]
+        later_tool_output = [Message(
+            role=ASSISTANT,
+            content="",
+            function_call={"name": "recommend_hiking_routes", "arguments": "{}"},
+        )]
+
+        with (
+            patch.object(
+                agent,
+                "_call_llm",
+                return_value=iter([question_output, later_tool_output]),
+            ),
+            patch.object(agent, "_call_tool") as call_tool,
+        ):
+            responses = list(agent._run_one_tool_at_a_time([], "zh"))
+
+        call_tool.assert_not_called()
+        self.assertTrue(
+            any(
+                "强度你更倾向" in message.content
+                for response in responses
+                for message in response
+            ),
+            "最终响应应保留先前流片段中的问题",
+        )
+
     def test_interview_guidance_changes_with_conversation_rounds(self) -> None:
         """访谈提示应随用户轮次从探索逐步进入推荐阶段。"""
         first_round = build_interview_guidance([
@@ -218,6 +598,49 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("不得继续追问", guidance)
         self.assertIn("巴朗山", guidance)
 
+    def test_compound_relative_date_weather_group_tour_is_strictly_sequential(self) -> None:
+        """相对日期、天气和报团在同一句中时，应按依赖关系串行调用工具。"""
+        routes = self.service.routes()
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "周六想报团去爬巴朗山，不知道天气怎么样"}],
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        route_id = "wenchuan-balangshan-panda-peak"
+        self.assertNotIn(
+            f"route_id={route_id}",
+            guidance,
+            "推荐工具返回前不得提前提供路线 ID，使模型绕过路线确认",
+        )
+        self.assertIn("destination_name=巴朗山", guidance)
+        expected_order = [
+            "resolve_departure_date",
+            "resolve_public_holiday",
+            "recommend_hiking_routes",
+            "estimate_route_weather",
+            "find_group_tour_links",
+        ]
+        positions = [guidance.index(tool_name) for tool_name in expected_order]
+        self.assertEqual(sorted(positions), positions, "工具应按依赖关系依次调用")
+        self.assertIn("不能并行调用", guidance)
+        self.assertIn("每一步必须等待上一步工具结果", guidance)
+        self.assertIn("任一步失败都要停止", guidance)
+        self.assertIn("不得自行推算日期、星期或日期类型", guidance)
+        self.assertIn("不得把自然语言目的地名称当作 route_id", guidance)
+        self.assertIn("不得跳过路线推荐", guidance)
+
+    def test_named_destination_guidance_exposes_exact_route_id(self) -> None:
+        """点名库内目的地时，应向模型提供准确路线 ID，避免使用自然语言名称调用工具。"""
+        routes = self.service.routes()
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "想去巴朗山看看天气"}],
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("route_id=wenchuan-balangshan-panda-peak", guidance)
+
     def test_generic_request_does_not_trigger_named_destination_guidance(self) -> None:
         """未点名库内目的地时，应保留原有引导式访谈。"""
         route_search_terms = build_route_search_terms(self.service.routes())
@@ -228,6 +651,46 @@ class QwenChatBITest(unittest.TestCase):
         )
 
         self.assertIn("探索阶段", guidance)
+
+    def test_date_and_scenery_request_recommends_without_follow_up(self) -> None:
+        """日期和风景偏好均明确时，应直接推荐而不是追问普通偏好。"""
+        routes = self.service.routes()
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "本周日出发，有草甸的徒步路线推荐"}],
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("风景偏好：草甸", guidance)
+        self.assertNotIn("日出", guidance, "“本周日出发”不得误识别为日出风景偏好")
+        self.assertIn("直接调用 recommend_hiking_routes", guidance)
+        self.assertIn("不得再询问体力、距离、爬升或难度", guidance)
+
+    def test_date_and_beginner_request_recommends_without_follow_up(self) -> None:
+        """日期和新手要求均明确时，应按保守难度直接推荐。"""
+        routes = self.service.routes()
+        messages = [{
+            "role": "user",
+            "content": "本周六从成都出发，推荐适合新手的路线",
+        }]
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("新手", guidance)
+        self.assertIn("直接调用 recommend_hiking_routes", guidance)
+        self.assertIn("max_difficulty=easy", guidance)
+        self.assertIn("不得再询问强度", guidance)
+
+        with patch.object(self.service, "recommendations", return_value=[]) as call:
+            RecommendHikingRoutesTool(self.service).call(
+                {"departure_at": self.departure},
+                messages=messages,
+            )
+
+        self.assertEqual("easy", call.call_args.args[0]["max_difficulty"])
         self.assertNotIn("命中已审核路线", guidance)
 
     def test_agent_uses_guided_interview_prompt(self) -> None:
@@ -378,6 +841,17 @@ class QwenChatBITest(unittest.TestCase):
             "本周末不得错误解析为六月十四日和十五日",
         )
 
+    def test_departure_date_tool_resolves_plain_saturday(self) -> None:
+        """用户只说周六时，应解析为参考日期起最近的周六。"""
+        result = json.loads(ResolveDepartureDateTool(self.service).call({
+            "expression": "周六",
+            "reference_date": "2026-07-01",
+        }))
+
+        self.assertEqual(1, len(result["candidates"]), "周六应得到唯一日期")
+        self.assertEqual("2026-07-04", result["candidates"][0]["date"])
+        self.assertEqual("星期六", result["candidates"][0]["weekday_name"])
+
     def test_agent_prompt_requires_relative_date_tool(self) -> None:
         """Qwen Agent 不得自行推算本周末等相对日期。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
@@ -426,12 +900,40 @@ class QwenChatBITest(unittest.TestCase):
         """Qwen Agent 推荐候选时应先让用户选路线，再补交通和费用。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
 
-        expected_order = "推荐路线、推荐理由、天气参考、设施与风险、路线选择"
+        expected_order = "推荐路线、推荐理由、设施与风险、路线选择"
         self.assertIn(expected_order, agent.system_message, "候选推荐应以路线选择结束")
         self.assertIn("每条路线先给路线名称和核心行程数据", agent.system_message)
+        self.assertIn("多条候选路线的起点坐标不同", agent.system_message)
+        self.assertIn("不得调用 `estimate_route_weather`", agent.system_message)
+        self.assertIn("不得展示“天气参考”", agent.system_message)
+        self.assertIn("推荐结果只有一条路线", agent.system_message)
         self.assertIn("天气参考先说官方预警", agent.system_message)
         self.assertIn("候选路线阶段不得展开交通和费用比较", agent.system_message)
         self.assertIn("选定路线并确认交通方式后", agent.system_message)
+
+    def test_self_drive_cost_guidance_hides_group_fee_and_total(self) -> None:
+        """用户选择自驾后，不应展示报团费用或预计总费用。"""
+        routes = self.service.routes()
+        messages = [
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "1. 自驾 2. 报团 3. 公共交通"},
+            {"role": "user", "content": "1"},
+        ]
+
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("不得展示“路线费用”", guidance, "自驾方案应隐藏路线费用项")
+        self.assertIn("自驾交通费：油费自理，无额外交通费用", guidance)
+        self.assertIn("不得展示“预计总费用”", guidance)
+        self.assertIn("cost_min_cny", guidance)
+        self.assertIn("预计报团费用区间", guidance)
+        self.assertIn("estimate_route_weather", guidance)
+        self.assertIn("route_id=qingcheng-back-mountain", guidance)
+        self.assertIn("不得用泛化天气提醒代替工具查询", guidance)
 
     def test_agent_prompt_requires_weather_source_display(self) -> None:
         """Qwen Agent 展示和风天气结果时应明确天气来源。"""
@@ -471,24 +973,71 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("这一轮不得询问交通方式", guidance)
         self.assertNotIn("1. 自驾", guidance, "路线未选定时不得展示交通方式选项")
 
-    def test_interview_guidance_confirms_transport_after_explicit_route_choice(self) -> None:
-        """用户明确选择路线后，下一步才确认自驾、报团或公共交通。"""
-        guidance = build_interview_guidance([
+    def test_interview_guidance_queries_weather_after_explicit_route_choice(self) -> None:
+        """用户明确选择路线后，应先查天气再确认交通方式。"""
+        routes = self.service.routes()
+        messages = [
             {"role": "user", "content": "周六出发"},
+            {
+                "role": "function",
+                "name": "resolve_departure_date",
+                "content": '{"candidates":[{"date":"2026-07-04"}]}',
+            },
             {"role": "assistant", "content": "这里有三条候选路线，请先选择一条"},
             {"role": "user", "content": "我选青城后山环线"},
-        ])
+        ]
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
 
         self.assertIn("用户已经明确选定路线", guidance)
-        self.assertIn("下一步只确认交通方式", guidance)
+        self.assertIn("estimate_route_weather", guidance)
+        self.assertIn("route_id=qingcheng-back-mountain", guidance)
+        self.assertIn("天气返回后", guidance)
+        self.assertIn("再询问交通方式", guidance)
         self.assertIn(
-            "请选择交通方式：\n1. 自驾\n2. 报团\n3. 公共交通\n\n直接回复 1、2 或 3 即可。",
+            "请选择交通方式：\n1. 自驾\n2. 报团\n\n直接回复 1 或 2 即可。",
             guidance,
         )
-        self.assertIn("不得给问题本身编号", guidance)
-        self.assertIn("不得追加路线对比或任何第二个问题", guidance)
-        self.assertIn("不得增加“其他”选项", guidance)
-        self.assertIn("不得使用图标、装饰标题或括号说明", guidance)
+
+    def test_route_weather_does_not_repeat_known_transport_mode(self) -> None:
+        """确认路线时已说明自驾，天气返回后不得重复询问交通方式。"""
+        routes = self.service.routes()
+        guidance = build_interview_guidance(
+            [
+                {"role": "user", "content": "2026-07-04 出发"},
+                {"role": "assistant", "content": "请选择一条路线"},
+                {"role": "user", "content": "我选青城后山环线，自驾"},
+            ],
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("estimate_route_weather", guidance)
+        self.assertIn("已经明确选择自驾", guidance)
+        self.assertIn("不得重复询问交通方式", guidance)
+        self.assertNotIn("请选择交通方式：", guidance)
+
+    def test_interview_guidance_rejects_current_public_transit_choice(self) -> None:
+        """用户主动选择已下线的公共交通时，应说明不可用并重新提供两种选项。"""
+        routes = self.service.routes()
+        messages = [
+            {"role": "user", "content": "我选青城后山环线"},
+            {"role": "assistant", "content": "请选择交通方式"},
+            {"role": "user", "content": "公共交通"},
+        ]
+
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("该出行方式暂未开放", guidance)
+        self.assertIn("1. 自驾\n2. 报团", guidance)
+        self.assertIn("不得查询、推荐或整合公共交通信息", guidance)
 
     def test_agent_prompt_uses_fixed_transport_choice_template(self) -> None:
         """路线选定后的交通选择应简单唯一，避免嵌套编号和额外问题。"""
@@ -497,11 +1046,11 @@ class QwenChatBITest(unittest.TestCase):
         expected = (
             "请选择交通方式：\n"
             "1. 自驾\n"
-            "2. 报团\n"
-            "3. 公共交通\n\n"
-            "直接回复 1、2 或 3 即可。"
+            "2. 报团\n\n"
+            "直接回复 1 或 2 即可。"
         )
         self.assertIn(expected, agent.system_message)
+        self.assertIn("公共交通出行方式暂未开放", agent.system_message)
         self.assertIn("不得给交通方式问题本身编号", agent.system_message)
         self.assertIn("不得追加路线对比或任何第二个问题", agent.system_message)
         self.assertIn("不得增加“其他”选项", agent.system_message)

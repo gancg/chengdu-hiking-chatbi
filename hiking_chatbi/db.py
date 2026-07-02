@@ -380,3 +380,27 @@ def list_routes(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
 def get_route(path: Path, route_id: str) -> dict[str, Any] | None:
     routes = [route for route in list_routes(path, reviewed_only=False) if route["id"] == route_id]
     return routes[0] if routes else None
+
+
+def find_routes_by_group_tour_search_term(
+    path: Path,
+    search_term: str,
+    reviewed_only: bool = True,
+) -> list[dict[str, Any]]:
+    """Find routes by fuzzy matching only the stored group-tour search terms JSON."""
+    normalized_term = search_term.strip()
+    if not normalized_term:
+        return []
+    escaped_term = (
+        normalized_term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    )
+    query = "SELECT id FROM routes WHERE group_tour_search_terms_json LIKE ? ESCAPE '\\'"
+    parameters: list[Any] = [f"%{escaped_term}%"]
+    if reviewed_only:
+        query += " AND reviewed = 1"
+    with closing(connect(path)) as connection:
+        route_ids = {
+            str(row["id"])
+            for row in connection.execute(query, parameters).fetchall()
+        }
+    return [route for route in list_routes(path, reviewed_only) if route["id"] in route_ids]
