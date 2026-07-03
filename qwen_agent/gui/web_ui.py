@@ -15,6 +15,7 @@
 import os
 import pprint
 import re
+from html import escape
 from typing import List, Optional, Union
 
 from qwen_agent import Agent, MultiAgentHub
@@ -70,6 +71,10 @@ class WebUI:
         } for agent in self.agent_list]
 
         self.input_placeholder = chatbot_config.get('input.placeholder', '跟我聊聊吧～')
+        self.is_upload_enabled = chatbot_config.get('input.upload.enabled', True)
+        self.is_audio_enabled = chatbot_config.get('input.audio.enabled', True)
+        self.header_title = chatbot_config.get('header.title', '')
+        self.header_subtitle = chatbot_config.get('header.subtitle', '')
         self.prompt_suggestions = chatbot_config.get('prompt.suggestions', [])
         self.verbose = chatbot_config.get('verbose', False)
 
@@ -93,8 +98,9 @@ class WebUI:
         from qwen_agent.gui.gradio_dep import gr, mgr, ms
 
         customTheme = gr.themes.Default(
-            primary_hue=gr.themes.utils.colors.blue,
-            radius_size=gr.themes.utils.sizes.radius_none,
+            primary_hue=gr.themes.utils.colors.sky,
+            neutral_hue=gr.themes.utils.colors.slate,
+            radius_size=gr.themes.utils.sizes.radius_lg,
         )
 
         with gr.Blocks(
@@ -103,8 +109,16 @@ class WebUI:
         ) as demo:
             history = gr.State([])
             with ms.Application():
+                if self.header_title:
+                    gr.HTML(
+                        '<section class="hiking-hero">'
+                        f'<div class="hiking-hero__eyebrow">CHENGDU · HIKING</div>'
+                        f'<h1>{escape(self.header_title)}</h1>'
+                        f'<p>{escape(self.header_subtitle)}</p>'
+                        '</section>'
+                    )
                 with gr.Row(elem_classes='container'):
-                    with gr.Column(scale=4):
+                    with gr.Column(scale=4, elem_classes='hiking-main'):
                         chatbot = mgr.Chatbot(value=convert_history_to_chatbot(messages=messages),
                                               avatar_images=[
                                                   self.user_config,
@@ -144,13 +158,19 @@ class WebUI:
                                                   'display': True
                                               }])
 
-                        input = mgr.MultimodalInput(placeholder=self.input_placeholder,)
-                        audio_input = gr.Audio(
-                            sources=["microphone"],
-                            type="filepath"
+                        input = mgr.MultimodalInput(
+                            placeholder=self.input_placeholder,
+                            sources=['upload'] if self.is_upload_enabled else [],
                         )
+                        if self.is_audio_enabled:
+                            audio_input = gr.Audio(
+                                sources=["microphone"],
+                                type="filepath"
+                            )
+                        else:
+                            audio_input = gr.State(None)
 
-                    with gr.Column(scale=1):
+                    with gr.Column(scale=1, elem_classes='hiking-sidebar'):
                         if len(self.agent_list) > 1:
                             agent_selector = gr.Dropdown(
                                 [(agent.name, i) for i, agent in enumerate(self.agent_list)],

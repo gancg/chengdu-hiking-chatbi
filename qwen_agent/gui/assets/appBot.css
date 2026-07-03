@@ -127,3 +127,146 @@
   border-radius: 4px;
   font-size: 0.9em;
 }
+
+/* Chengdu hiking theme */
+:root {
+  --hiking-sky: #2189d8;
+  --hiking-sky-soft: #eaf6ff;
+  --hiking-pine: #16745b;
+  --hiking-ink: #183447;
+  --hiking-muted: #698093;
+  --hiking-line: #dce9ef;
+  --hiking-surface: rgba(255, 255, 255, 0.94);
+}
+
+body,
+.gradio-container {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(115, 199, 245, 0.18), transparent 28rem),
+    linear-gradient(180deg, #f7fcff 0%, #f4faf7 100%) !important;
+  color: var(--hiking-ink);
+}
+
+.gradio-container {
+  min-height: 100vh;
+  padding: 24px 28px 36px !important;
+  font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif !important;
+}
+
+.hiking-hero {
+  max-width: 1480px;
+  margin: 0 auto 20px;
+  padding: 8px 4px;
+}
+
+.hiking-hero__eyebrow {
+  color: var(--hiking-pine);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.hiking-hero h1 {
+  margin: 7px 0 5px;
+  color: var(--hiking-ink);
+  font-size: clamp(25px, 3vw, 38px);
+  font-weight: 720;
+  letter-spacing: -0.03em;
+}
+
+.hiking-hero p {
+  margin: 0;
+  color: var(--hiking-muted);
+  font-size: 15px;
+}
+
+.container {
+  max-width: 1480px;
+  margin: 0 auto;
+  gap: 20px !important;
+  align-items: stretch !important;
+}
+
+.hiking-main,
+.hiking-sidebar {
+  border: 1px solid var(--hiking-line) !important;
+  border-radius: 20px !important;
+  background: var(--hiking-surface) !important;
+  box-shadow: 0 14px 38px rgba(35, 91, 118, 0.08) !important;
+  overflow: hidden;
+}
+
+.hiking-main {
+  padding: 14px !important;
+}
+
+.hiking-sidebar {
+  padding: 16px !important;
+}
+
+.bot_cover {
+  min-height: auto !important;
+  padding: 14px 10px 18px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(155deg, var(--hiking-sky-soft), #f1fbf5) !important;
+  box-shadow: none !important;
+}
+
+.bot_avatar,
+.bot_avatar img {
+  width: 92px !important;
+  height: 92px !important;
+}
+
+.bot_avatar img {
+  margin-bottom: 8px !important;
+  border: 4px solid #fff;
+  box-shadow: 0 8px 24px rgba(33, 137, 216, 0.18);
+}
+
+.bot_name {
+  color: var(--hiking-ink) !important;
+  font-size: 18px !important;
+}
+
+.bot_desp {
+  max-width: 260px;
+  color: var(--hiking-muted) !important;
+  font-size: 13px !important;
+}
+
+button.primary,
+button.lg.primary {
+  border-color: var(--hiking-sky) !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, var(--hiking-sky), #2aa68a) !important;
+  box-shadow: 0 7px 18px rgba(33, 137, 216, 0.18) !important;
+}
+
+textarea,
+input {
+  border-radius: 12px !important;
+}
+
+footer {
+  opacity: 0.55;
+}
+
+@media (max-width: 900px) {
+  .gradio-container {
+    padding: 16px 12px 24px !important;
+  }
+
+  .container {
+    flex-direction: column !important;
+  }
+
+  .hiking-sidebar {
+    order: -1;
+  }
+
+  .hiking-hero {
+    margin-bottom: 14px;
+  }
+}

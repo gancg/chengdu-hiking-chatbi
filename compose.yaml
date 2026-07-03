@@ -1,0 +1,22 @@
+services:
+  chatbi:
+    image: chengdu-hiking-chatbi:local
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      CHATBI_HOST: 0.0.0.0
+      CHATBI_WEB_HOST: 0.0.0.0
+      CHATBI_DB_PATH: /app/runtime/chatbi.db
+    ports:
+      - "8000:8000"
+      - "7860:7860"
+    volumes:
+      - chatbi-runtime:/app/runtime
+    restart: unless-stopped
+
+volumes:
+  chatbi-runtime:

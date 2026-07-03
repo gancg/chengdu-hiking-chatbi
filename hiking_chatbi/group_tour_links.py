@@ -9,12 +9,11 @@ from typing import Any, Protocol
 from urllib.parse import parse_qs, quote, urljoin, urlparse
 from urllib.request import Request, urlopen
 
+from .config import DAE_URL, MIDO_URL, YOUXIAKE_LIST_URL
 
 logger = logging.getLogger(__name__)
 
-YOUXIAKE_AROUND_URL = "https://www.youxiake.com/search/results/0-0-0-1-0-0/azEtaTE.html"
-DAE_URL = "https://www.cddee.cn/"
-MIDO_URL = "https://cdmdtb.360jlb.cn/events?mid=52240"
+YOUXIAKE_AROUND_URL = YOUXIAKE_LIST_URL
 ALLOWED_YOUXIAKE_HOSTS = {"www.youxiake.com", "m.youxiake.com"}
 BLOCKED_PAGE_MARKERS = ("验证码", "安全验证", "访问验证", "请先登录")
 

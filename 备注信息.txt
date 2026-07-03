@@ -28,6 +28,16 @@ python .\youxiake_route_enricher.py
 
 
 
+安装 Docker Desktop 后可运行：
+Copy-Item .env.example .env
+docker compose up --build -d
+
+ghcr.io/gancg/chengdu-hiking-chatbi
+
+
+
+
+
 
 # 项目名 · chengdu-hiking-chatbi
 

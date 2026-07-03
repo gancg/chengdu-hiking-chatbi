@@ -1,3 +1,5 @@
 qwen-agent[gui]==0.0.34
 soundfile==0.13.1
 playwright==1.60.0
+pydantic==2.9.2
+pydantic-core==2.23.4

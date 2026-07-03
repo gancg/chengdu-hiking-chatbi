@@ -14,10 +14,19 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 from urllib.parse import urljoin, urlparse, parse_qs
 
+from .config import (
+    COLLECTOR_BROWSER_TIMEOUT_SECONDS,
+    COLLECTOR_LEGACY_OUTPUT_PATH,
+    COLLECTOR_MAX_PAGES,
+    COLLECTOR_MODEL,
+    COLLECTOR_REQUEST_TIMEOUT_SECONDS,
+    DASHSCOPE_CHAT_COMPLETIONS_URL,
+    YOUXIAKE_LIST_URL,
+)
 
-LIST_URL = "https://www.youxiake.com/search/results/0-0-0-1-0-0/azEtaTE.html"
-OUTPUT_PATH = Path("data/youxiake_chengdu_day_hikes_40.json")
-MODEL_NAME = "qwen3.7-max"
+LIST_URL = YOUXIAKE_LIST_URL
+OUTPUT_PATH = COLLECTOR_LEGACY_OUTPUT_PATH
+MODEL_NAME = COLLECTOR_MODEL
 HIKING_WORDS = ("徒步", "轻徒", "登山", "古道", "穿越", "爬山", "溯溪", "攀登", "牧场")
 DIFFICULTIES = {"easy", "moderate", "hard", "expert"}
 ROUTE_TYPES = {"loop", "out_and_back", "point_to_point"}
@@ -181,13 +190,15 @@ def call_qwen(detail_text: str, extracted: dict[str, Any], api_key: str) -> dict
         "response_format": {"type": "json_object"},
     }, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
-        "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        DASHSCOPE_CHAT_COMPLETIONS_URL,
         data=body,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
+        with urllib.request.urlopen(
+            request, timeout=COLLECTOR_REQUEST_TIMEOUT_SECONDS
+        ) as response:
             result = json.loads(response.read().decode("utf-8"))
         return json.loads(result["choices"][0]["message"]["content"])
     except (urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
@@ -221,7 +232,7 @@ def collect_routes(
     detail_fetcher: Callable[[str], str],
     completer: Callable[[str, dict[str, Any]], dict[str, Any]],
     count: int = 40,
-    max_pages: int = 30,
+    max_pages: int = COLLECTOR_MAX_PAGES,
 ) -> dict[str, list[dict[str, Any]]]:
     """发现候选、读取详情并生成通过门槛的路线集合。"""
     candidates: list[dict[str, str]] = []
@@ -278,7 +289,11 @@ class PlaywrightFetcher:
     def fetch_list(self, page_number: int) -> list[dict[str, str]]:
         url = re.sub(r"/azEtaTE\.html$", f"/azEtaTE_{page_number}.html", LIST_URL) if page_number > 1 else LIST_URL
         try:
-            self._page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            self._page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=COLLECTOR_BROWSER_TIMEOUT_SECONDS * 1000,
+            )
         except Exception as exc:
             raise RuntimeError(f"无法打开游侠客列表页 {url}: {exc}") from exc
         self._page.wait_for_timeout(1500)
@@ -291,7 +306,11 @@ class PlaywrightFetcher:
 
     def fetch_detail(self, url: str) -> str:
         try:
-            self._page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            self._page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=COLLECTOR_BROWSER_TIMEOUT_SECONDS * 1000,
+            )
         except Exception as exc:
             raise RuntimeError(f"无法打开游侠客详情页 {url}: {exc}") from exc
         self._page.wait_for_timeout(1200)

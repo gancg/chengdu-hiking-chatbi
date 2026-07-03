@@ -1,0 +1,39 @@
+# Version control and local configuration
+.git
+.github
+.env
+.env.*
+!.env.example
+
+# Python environments and caches
+.venv
+venv
+env
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Local data and runtime output
+*.db
+*.sqlite
+*.sqlite3
+runtime
+work
+workspace
+outputs
+image_show
+*.log
+
+# Editor and operating-system files
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Tests and specifications are not needed at runtime
+test
+tests
+spec

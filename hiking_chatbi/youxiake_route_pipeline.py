@@ -14,16 +14,38 @@ from typing import Any, Callable, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 if __package__:
+    from .config import (
+        COLLECTOR_BROWSER_TIMEOUT_SECONDS,
+        COLLECTOR_DEFAULT_COUNT,
+        COLLECTOR_INPUT_PATH,
+        COLLECTOR_LINK_TIMEOUT_SECONDS,
+        COLLECTOR_MODEL,
+        COLLECTOR_OUTPUT_PATH,
+        COLLECTOR_REQUEST_TIMEOUT_SECONDS,
+        DASHSCOPE_CHAT_COMPLETIONS_URL,
+        YOUXIAKE_LIST_URL,
+    )
     from .validation import validate_import_item
 else:
     sys.path.insert(0, str(ROOT))
+    from hiking_chatbi.config import (
+        COLLECTOR_BROWSER_TIMEOUT_SECONDS,
+        COLLECTOR_DEFAULT_COUNT,
+        COLLECTOR_INPUT_PATH,
+        COLLECTOR_LINK_TIMEOUT_SECONDS,
+        COLLECTOR_MODEL,
+        COLLECTOR_OUTPUT_PATH,
+        COLLECTOR_REQUEST_TIMEOUT_SECONDS,
+        DASHSCOPE_CHAT_COMPLETIONS_URL,
+        YOUXIAKE_LIST_URL,
+    )
     from hiking_chatbi.validation import validate_import_item
 
 
-INPUT_PATH = ROOT / "data" / "youxiake_chengdu_day_route_links_40.json"
-OUTPUT_PATH = ROOT / "data" / "youxiake_routes_enriched_40.json"
-MODEL_NAME = "qwen3.7-max"
-LIST_URL = "https://www.youxiake.com/search/results/0-0-0-1-0-0/azEtaTE.html"
+INPUT_PATH = COLLECTOR_INPUT_PATH
+OUTPUT_PATH = COLLECTOR_OUTPUT_PATH
+MODEL_NAME = COLLECTOR_MODEL
+LIST_URL = YOUXIAKE_LIST_URL
 ROUTE_COST_TYPES = {"ticket", "parking", "shuttle", "waste", "other"}
 TRANSPORT_COST_TYPES = {"fuel", "toll", "train", "bus", "other"}
 BILLING_UNITS = {"person", "vehicle", "group"}
@@ -138,7 +160,11 @@ def select_unique_routes(
 class RouteLinkFetcher:
     """使用 Playwright 逐页读取游侠客活动名称和详情链接。"""
 
-    def __init__(self, page_url: str = LIST_URL, timeout_seconds: int = 45) -> None:
+    def __init__(
+        self,
+        page_url: str = LIST_URL,
+        timeout_seconds: int = COLLECTOR_LINK_TIMEOUT_SECONDS,
+    ) -> None:
         from playwright.sync_api import sync_playwright
 
         self.page_url = page_url
@@ -330,13 +356,15 @@ def call_qwen(prompt: str, api_key: str) -> dict[str, Any]:
         ensure_ascii=False,
     ).encode("utf-8")
     request = urllib.request.Request(
-        "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        DASHSCOPE_CHAT_COMPLETIONS_URL,
         data=body,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=240) as response:
+        with urllib.request.urlopen(
+            request, timeout=COLLECTOR_REQUEST_TIMEOUT_SECONDS
+        ) as response:
             payload = json.loads(response.read().decode("utf-8"))
         return _json_from_model_text(payload["choices"][0]["message"]["content"])
     except (urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
@@ -464,7 +492,10 @@ def generate_validated_item(
 class DetailFetcher:
     """在一个浏览器会话中依次读取游侠客详情。"""
 
-    def __init__(self, timeout_seconds: int = 60) -> None:
+    def __init__(
+        self,
+        timeout_seconds: int = COLLECTOR_BROWSER_TIMEOUT_SECONDS,
+    ) -> None:
         from playwright.sync_api import sync_playwright
 
         self.timeout_ms = timeout_seconds * 1000
@@ -505,7 +536,12 @@ def write_output(path: Path, items: list[dict[str, Any]]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="抓取并核验游侠客路线，生成完整 JSON")
-    parser.add_argument("--count", type=int, default=40, help="路线数量，默认 40")
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=COLLECTOR_DEFAULT_COUNT,
+        help="路线数量，默认由 CHATBI_COLLECTOR_DEFAULT_COUNT 配置",
+    )
     parser.add_argument("--page-url", default=LIST_URL, help="游侠客筛选页 URL")
     parser.add_argument("--links-file", type=Path, help="第一阶段链接检查点路径")
     parser.add_argument("--output", type=Path, help="最终完整路线 JSON 路径")

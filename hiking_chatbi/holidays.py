@@ -1,65 +1,56 @@
 from __future__ import annotations
 
+import json
 from datetime import date
+from pathlib import Path
 from typing import Any
 
+from .config import HOLIDAY_DATA_PATH
 
-CALENDAR_SOURCE = "本地维护的中国大陆全国性节假日日历"
+
 WEEKDAY_NAMES = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
 
-HOLIDAYS_2026 = [
-    {
-        "name": "元旦",
-        "aliases": ["元旦节"],
-        "festival_date": "2026-01-01",
-        "start_date": "2026-01-01",
-        "end_date": "2026-01-03",
-    },
-    {
-        "name": "春节",
-        "aliases": ["农历新年", "过年"],
-        "festival_date": "2026-02-17",
-        "start_date": "2026-02-15",
-        "end_date": "2026-02-23",
-    },
-    {
-        "name": "清明节",
-        "aliases": ["清明"],
-        "festival_date": "2026-04-05",
-        "start_date": "2026-04-04",
-        "end_date": "2026-04-06",
-    },
-    {
-        "name": "劳动节",
-        "aliases": ["五一", "五一劳动节"],
-        "festival_date": "2026-05-01",
-        "start_date": "2026-05-01",
-        "end_date": "2026-05-05",
-    },
-    {
-        "name": "端午节",
-        "aliases": ["端午"],
-        "festival_date": "2026-06-19",
-        "start_date": "2026-06-19",
-        "end_date": "2026-06-21",
-    },
-    {
-        "name": "中秋节",
-        "aliases": ["中秋"],
-        "festival_date": "2026-09-25",
-        "start_date": "2026-09-25",
-        "end_date": "2026-09-27",
-    },
-    {
-        "name": "国庆节",
-        "aliases": ["国庆", "十一"],
-        "festival_date": "2026-10-01",
-        "start_date": "2026-10-01",
-        "end_date": "2026-10-07",
-    },
-]
 
-HOLIDAY_CALENDARS = {2026: HOLIDAYS_2026}
+def load_holiday_calendars(path: Path) -> tuple[str, dict[int, list[dict[str, Any]]]]:
+    """从数据文件加载并校验节假日日历。"""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"节假日数据文件不存在: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"节假日数据文件不是有效 JSON: {path}: {exc}") from exc
+
+    source = payload.get("source")
+    calendars = payload.get("calendars")
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("节假日数据 source 必须是非空字符串")
+    if not isinstance(calendars, dict):
+        raise ValueError("节假日数据 calendars 必须是对象")
+
+    normalized: dict[int, list[dict[str, Any]]] = {}
+    required_fields = {"name", "aliases", "festival_date", "start_date", "end_date"}
+    for raw_year, raw_items in calendars.items():
+        try:
+            year = int(raw_year)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"节假日年份必须是整数: {raw_year}") from exc
+        if not isinstance(raw_items, list):
+            raise ValueError(f"{year} 年节假日数据必须是数组")
+        for item in raw_items:
+            if not isinstance(item, dict) or not required_fields <= item.keys():
+                raise ValueError(f"{year} 年节假日记录缺少必要字段")
+            for field in ("festival_date", "start_date", "end_date"):
+                try:
+                    parsed_date = date.fromisoformat(str(item[field]))
+                except ValueError as exc:
+                    raise ValueError(f"{year} 年节假日 {field} 不是 ISO 日期") from exc
+                if parsed_date.year != year:
+                    raise ValueError(f"{year} 年节假日 {field} 年份不一致")
+        normalized[year] = raw_items
+    return source.strip(), normalized
+
+
+CALENDAR_SOURCE, HOLIDAY_CALENDARS = load_holiday_calendars(HOLIDAY_DATA_PATH)
 
 
 def _unknown_result(reason: str) -> dict[str, Any]:
@@ -105,7 +96,7 @@ def resolve_public_holiday(
     year: int | None = None,
     date_value: str | None = None,
 ) -> dict[str, Any]:
-    """Resolve a named public holiday or determine whether a date is a holiday."""
+    """解析节假日名称，或判断指定日期是否属于法定节假日。"""
     if not name and not date_value:
         raise ValueError("节假日查询必须提供 name 或 date")
 

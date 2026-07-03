@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 from qwen_agent.agents import Assistant
@@ -17,7 +18,7 @@ from qwen_agent.llm.schema import FUNCTION, SYSTEM, Message
 from qwen_agent.settings import MAX_LLM_CALL_PER_RUN
 from qwen_agent.tools.base import BaseTool
 
-from .config import QWEN_SEED
+from .config import QWEN_MODEL, QWEN_SEED
 from .service import ChatBIService
 from .departure_dates import resolve_departure_date
 from .holidays import HOLIDAY_CALENDARS, WEEKDAY_NAMES, resolve_public_holiday
@@ -226,6 +227,28 @@ TRANSPORT_LABELS = {
     "报团": "group_tour",
     "抱团": "group_tour",
     "公共交通": "public_transit",
+}
+
+WEB_CHATBOT_CONFIG = {
+    "input.upload.enabled": False,
+    "input.audio.enabled": False,
+    "user.avatar": str(
+        Path(__file__).resolve().parents[1]
+        / "qwen_agent"
+        / "gui"
+        / "assets"
+        / "akita-user-avatar.png"
+    ),
+    "agent.avatar": str(
+        Path(__file__).resolve().parents[1]
+        / "qwen_agent"
+        / "gui"
+        / "assets"
+        / "hiking-logo.png"
+    ),
+    "header.title": "成都山野徒步助手",
+    "header.subtitle": "查路线、看天气、估交通、查商团活动，让每一次成都周边徒步都更从容。",
+    "input.placeholder": "想去哪里徒步？告诉我时间、难度或风景偏好…",
 }
 
 
@@ -1207,7 +1230,7 @@ class ResolveDepartureDateTool(HikingTool):
         return _json_result(resolve_departure_date(query["expression"], reference))
 
 
-def build_qwen_agent(service: ChatBIService, model: str = "qwen-plus") -> GuidedHikingAssistant:
+def build_qwen_agent(service: ChatBIService, model: str = QWEN_MODEL) -> GuidedHikingAssistant:
     """Build a Qwen Agent that can only call read-only hiking tools."""
     system_message = (
         f"{SYSTEM_PROMPT}\n\n# 当前日期上下文\n{build_departure_date_guidance()}"
@@ -1224,7 +1247,7 @@ def build_qwen_agent(service: ChatBIService, model: str = "qwen-plus") -> Guided
             "generate_cfg": generate_cfg,
         },
         name="成都徒步 ChatBI 助手",
-        description="根据用户约束查询和推荐成都周边徒步路线",
+        description="根据用户要求查询和推荐成都周边徒步路线",
         system_message=system_message,
         function_list=[
             ListHikingRoutesTool(service),
@@ -1249,7 +1272,7 @@ def require_dashscope_api_key() -> str:
     return api_key
 
 
-def run_qwen_chat(service: ChatBIService, model: str = "qwen-plus") -> None:
+def run_qwen_chat(service: ChatBIService, model: str = QWEN_MODEL) -> None:
     """Run a continuous terminal conversation with the hiking agent."""
     require_dashscope_api_key()
     agent = build_qwen_agent(service, model)
@@ -1278,7 +1301,7 @@ def run_qwen_chat(service: ChatBIService, model: str = "qwen-plus") -> None:
 
 def run_qwen_web(
     service: ChatBIService,
-    model: str = "qwen-plus",
+    model: str = QWEN_MODEL,
     host: str | None = None,
     port: int | None = None,
 ) -> None:
@@ -1290,6 +1313,7 @@ def run_qwen_web(
     WebUI(
         build_qwen_agent(service, model),
         chatbot_config={
+            **WEB_CHATBOT_CONFIG,
             "prompt.suggestions": [
                 "本周六从成都出发，推荐适合新手的路线",
                 "路线不超过10公里或者爬升不超过 800 米的路线",

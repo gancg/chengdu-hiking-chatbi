@@ -10,6 +10,11 @@ from typing import Any, Protocol
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from .config import (
+    WEATHER_CACHE_TTL_MINUTES,
+    WEATHER_REQUEST_TIMEOUT_SECONDS,
+    qweather_api_host_from_env,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +30,10 @@ class AlertProvider(Protocol):
 
 
 class _TimedCache:
-    def __init__(self, ttl: timedelta = timedelta(minutes=30)) -> None:
+    def __init__(
+        self,
+        ttl: timedelta = timedelta(minutes=WEATHER_CACHE_TTL_MINUTES),
+    ) -> None:
         self.ttl = ttl
         self.items: dict[tuple[Any, ...], tuple[datetime, Any]] = {}
 
@@ -85,7 +93,7 @@ class MockAlertProvider:
 def _get_json(url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
     logger.debug("开始请求外部天气预警服务 url=%s", url)
     request = Request(url, headers=headers or {})
-    with urlopen(request, timeout=10) as response:
+    with urlopen(request, timeout=WEATHER_REQUEST_TIMEOUT_SECONDS) as response:
         body = response.read()
         content_encoding = (response.headers.get("Content-Encoding") or "").lower()
         if "gzip" in content_encoding or body.startswith(b"\x1f\x8b"):
@@ -178,7 +186,7 @@ class QWeatherAlertProvider:
 def alert_provider_from_name(name: str) -> AlertProvider:
     if name == "qweather":
         api_key = os.getenv("QWEATHER_API_KEY", "").strip()
-        api_host = os.getenv("QWEATHER_API_HOST", "n32k5q6wdt.re.qweatherapi.com").strip()
+        api_host = qweather_api_host_from_env()
         if not api_key:
             logger.warning("缺少 QWEATHER_API_KEY，官方天气预警 Provider 未启用")
             return NoAlertProvider()
