@@ -7,7 +7,7 @@ from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from hiking_chatbi.config import SAMPLE_DATA_PATH
+from test_data import SAMPLE_DATA_PATH
 from hiking_chatbi.db import connect, initialize
 from hiking_chatbi.importer import load_import_file
 from hiking_chatbi.service import ChatBIService

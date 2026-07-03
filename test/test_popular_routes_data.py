@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hiking_chatbi.config import SAMPLE_DATA_PATH
+from test_data import SAMPLE_DATA_PATH
 from hiking_chatbi.db import get_route
 from hiking_chatbi.importer import import_file, load_import_file
 

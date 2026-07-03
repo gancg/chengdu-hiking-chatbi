@@ -102,8 +102,7 @@ def main() -> None:
         count = import_file(DB_PATH, Path(args.path))
         logger.info("路线文件导入完成 count=%s source=%s", count, args.path)
     elif args.command in {"qwen-chat", "qwen-web", "app"}:
-        if not service.routes():
-            service.seed(SAMPLE_DATA_PATH)
+        service.seed(SAMPLE_DATA_PATH)
         from .qwen_chatbi import run_qwen_chat, run_qwen_web
 
         if args.command == "qwen-chat":
@@ -115,8 +114,7 @@ def main() -> None:
 
             run_app(service, HOST, PORT, WEB_HOST, WEB_PORT, QWEN_MODEL)
     else:
-        if not service.routes():
-            service.seed(SAMPLE_DATA_PATH)
+        service.seed(SAMPLE_DATA_PATH)
         serve(service, HOST, PORT)
 
 

@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from hiking_chatbi.config import SAMPLE_DATA_PATH
+from test_data import SAMPLE_DATA_PATH
 from hiking_chatbi.db import initialize
 from hiking_chatbi.group_tour_links import (
     DaeGroupTourLinkProvider,

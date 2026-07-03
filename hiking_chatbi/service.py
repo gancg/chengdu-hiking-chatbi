@@ -14,7 +14,7 @@ from .db import (
     initialize,
     list_routes,
 )
-from .importer import import_file
+from .importer import replace_file
 from .group_tour_links import (
     GroupTourLinkProvider,
     MultiGroupTourLinkProvider,
@@ -52,7 +52,7 @@ class ChatBIService:
         logger.info("ChatBIService 初始化完成 db_path=%s", db_path)
 
     def seed(self, sample_path: Path) -> int:
-        count = import_file(self.db_path, sample_path)
+        count = replace_file(self.db_path, sample_path)
         logger.info("样例路线初始化完成 count=%s", count)
         return count
 

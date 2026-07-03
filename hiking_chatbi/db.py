@@ -380,6 +380,19 @@ def import_routes(path: Path, items: Iterable[dict[str, Any]]) -> int:
     return count
 
 
+def replace_routes(path: Path, items: Iterable[dict[str, Any]]) -> int:
+    """Replace all route business data with a validated authoritative data set."""
+    initialize(path)
+    count = 0
+    with closing(connect(path)) as connection:
+        with connection:
+            connection.execute("DELETE FROM routes")
+            for item in items:
+                upsert_route(connection, item)
+                count += 1
+    return count
+
+
 def list_routes(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
     query = """
         SELECT r.*, t.base_one_way_minutes, t.weekday_extra_min, t.weekday_extra_max,

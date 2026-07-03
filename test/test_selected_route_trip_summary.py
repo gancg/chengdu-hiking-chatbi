@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from qwen_agent.llm.schema import ASSISTANT, Message
 
-from hiking_chatbi.config import SAMPLE_DATA_PATH
+from test_data import SAMPLE_DATA_PATH
 from hiking_chatbi.qwen_chatbi import (
     build_interview_guidance,
     build_qwen_agent,

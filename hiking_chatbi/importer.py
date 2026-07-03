@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from .db import import_routes
+from .db import import_routes, replace_routes
 from .validation import validate_import_item
 
 
@@ -26,4 +26,12 @@ def load_import_file(path: Path) -> list[dict[str, Any]]:
 def import_file(db_path: Path, source_path: Path) -> int:
     count = import_routes(db_path, load_import_file(source_path))
     logger.info("路线文件导入数据库完成 source=%s count=%s", source_path, count)
+    return count
+
+
+def replace_file(db_path: Path, source_path: Path) -> int:
+    """Replace existing route data with one fully validated import file."""
+    items = load_import_file(source_path)
+    count = replace_routes(db_path, items)
+    logger.info("路线权威数据替换完成 source=%s count=%s", source_path, count)
     return count

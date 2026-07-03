@@ -6,7 +6,7 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
-from hiking_chatbi.config import SAMPLE_DATA_PATH
+from test_data import SAMPLE_DATA_PATH
 from hiking_chatbi.db import connect
 from hiking_chatbi.qwen_chatbi import (
     FindRouteParkingPointsTool,

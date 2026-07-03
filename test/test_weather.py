@@ -11,7 +11,7 @@ from threading import Thread
 from unittest.mock import patch
 
 from hiking_chatbi.api import create_server
-from hiking_chatbi.config import SAMPLE_DATA_PATH
+from test_data import SAMPLE_DATA_PATH
 from hiking_chatbi.service import ChatBIService
 from hiking_chatbi.traffic import NoTrafficProvider
 from hiking_chatbi.weather import (

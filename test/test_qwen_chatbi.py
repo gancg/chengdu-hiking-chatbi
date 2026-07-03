@@ -10,7 +10,8 @@ from unittest.mock import patch
 
 from qwen_agent.llm.schema import ASSISTANT, Message
 
-from hiking_chatbi.config import SAMPLE_DATA_PATH, optional_int_from_env
+from hiking_chatbi.config import optional_int_from_env
+from test_data import SAMPLE_DATA_PATH
 import hiking_chatbi.qwen_chatbi as qwen_chatbi
 from hiking_chatbi.qwen_chatbi import (
     EstimateRouteTrafficTool,
