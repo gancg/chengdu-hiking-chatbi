@@ -15,13 +15,13 @@ from typing import Any
 
 from qwen_agent.agents import Assistant
 from qwen_agent.llm.schema import FUNCTION, SYSTEM, Message
-from qwen_agent.settings import MAX_LLM_CALL_PER_RUN
 from qwen_agent.tools.base import BaseTool
 
-from .config import QWEN_MODEL, QWEN_SEED
+from .config import QWEN_MAX_LLM_CALLS, QWEN_MAX_RETRIES, QWEN_MODEL, QWEN_SEED
 from .service import ChatBIService
 from .departure_dates import resolve_departure_date
 from .holidays import HOLIDAY_CALENDARS, WEEKDAY_NAMES, resolve_public_holiday
+from .recommend import parking_points_with_navigation
 
 
 logger = logging.getLogger(__name__)
@@ -137,6 +137,13 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     最高难度调用 `recommend_hiking_routes`。"""
 
 
+SYSTEM_PROMPT += """
+32. 用户明确选择自驾后，如果停车点工具返回停车点，应展示首选停车点名称、导航链接和停车说明，并提醒用户以现场管制为准。没有已审核停车点但工具返回 `trailhead_reference` 时，应先明确暂无已审核停车场信息，再展示徒步起点参考；必须明确说明该位置仅供参考、不代表可以停车，请以现场停车标识和交通管制为准。不得把徒步起点称为推荐停车场，也不得自行编造停车位置。
+33. 用户已经选定具体路线并确认自驾后，工具必须严格串行调用：先调用 `estimate_route_weather`，天气成功返回后再调用 `find_route_parking_points`。不得先查停车点再查天气，也不得把两个工具并行调用。停车点有数据时展示名称、经纬度、非空停车说明和导航链接；无数据时按工具返回展示徒步起点参考及风险提示。不得凭模型知识补全。
+34. 已选路线的天气和停车点查询均完成后，必须直接输出最终路线总结。总结至少包含“路线信息”“天气信息”“推荐停车场”三部分：路线信息包含名称、起终点、距离、爬升、预计徒步时长、难度、设施和风险；天气信息包含官方预警、温度、天气现象和来源；推荐停车场包含名称、经纬度、停车说明和导航链接。工具未返回的内容必须明确说明暂无数据，不得自行补全。
+"""
+
+
 def _json_result(payload: Any) -> str:
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
@@ -182,10 +189,16 @@ def _message_name(message: Any) -> str:
 
 
 def _has_tool_result(messages: list[Any], tool_name: str) -> bool:
-    return any(
-        _message_role(message) == FUNCTION and _message_name(message) == tool_name
-        for message in messages
-    )
+    for message in messages:
+        if _message_role(message) != FUNCTION or _message_name(message) != tool_name:
+            continue
+        try:
+            payload = json.loads(_message_content(message))
+        except (TypeError, ValueError):
+            return True
+        if not isinstance(payload, dict) or payload.get("blocked") is not True:
+            return True
+    return False
 
 
 def _has_explicit_route_selection(messages: list[Any]) -> bool:
@@ -453,6 +466,48 @@ def build_conversation_state(
     )
 
 
+def trim_completed_trip_context(
+    messages: list[Any],
+    routes: list[dict[str, Any]],
+) -> list[Any]:
+    """Start a fresh task at the first user message after a completed selection."""
+    user_indexes = [
+        index for index, message in enumerate(messages)
+        if _message_role(message) == "user"
+    ]
+    reset_user_index: int | None = None
+    for position, user_index in enumerate(user_indexes[:-1]):
+        state = build_conversation_state(messages[:user_index + 1], routes)
+        if state.selected_route_id is not None and state.has_current_transport_choice:
+            reset_user_index = user_indexes[position + 1]
+    if reset_user_index is None:
+        return messages
+    system_messages = [
+        message for message in messages[:reset_user_index]
+        if _message_role(message) == SYSTEM
+    ]
+    return [*system_messages, *messages[reset_user_index:]]
+
+
+def _build_selected_route_context(
+    routes: list[dict[str, Any]],
+    route_id: str,
+) -> str:
+    """Build a compact, reviewed route snapshot for the final trip summary."""
+    route = next(
+        (item for item in routes if str(item.get("id")) == route_id),
+        None,
+    )
+    if route is None:
+        return "暂无已审核路线详情"
+    fields = (
+        "id", "name", "start_location", "end_location", "distance_km",
+        "ascent_m", "highest_altitude_m", "hiking_minutes", "difficulty",
+        "route_type", "has_toilet", "has_supply_shop", "risks",
+    )
+    return _json_result({field: route.get(field) for field in fields})
+
+
 def build_route_search_terms(routes: list[dict[str, Any]]) -> list[str]:
     """Return unique user-facing terms for matching reviewed route destinations."""
     terms: list[str] = []
@@ -632,6 +687,52 @@ def build_interview_guidance(
             "本轮不得调用 find_group_tour_links；应根据用户当前问题正常回答，"
             "不得把历史报团选择误当成新的在线查询指令。"
         )
+    if (
+        routes is not None
+        and state.selected_route_id is not None
+        and state.transport_mode == "self_drive"
+        and state.has_current_transport_choice
+    ):
+        route_id = state.selected_route_id
+        route_context = _build_selected_route_context(routes, route_id)
+        cost_guidance = (
+            "用户已经选择自驾。routes.cost_min_cny 和 routes.cost_max_cny 是预计报团费用区间，"
+            "自驾方案不得展示这两个字段对应的费用，不得展示“路线费用”，不得展示“预计总费用”。"
+            "若工具结果表明油费自理且无额外交通费用，只写“自驾交通费：油费自理，无额外交通费用”。"
+        )
+        if not _has_tool_result(messages, "estimate_route_weather"):
+            return (
+                "用户已经选定路线并在当前轮明确确认自驾，"
+                f"准确 route_id={route_id}。用户已经明确选择自驾，不得重复询问交通方式。"
+                "检查对话中已解析的具体出发日期；日期存在时必须先调用 estimate_route_weather，"
+                "并使用上述 route_id 和具体日期。天气返回后再调用 "
+                "find_route_parking_points 查询同一路线的已审核停车点。"
+                "两个工具必须串行调用，不得并行，不得用泛化天气提醒代替工具查询；"
+                "若尚无具体日期，只确认日期，不得猜测。停车点返回后直接输出路线总结。"
+                f"最终总结使用以下已审核路线信息，不得自行补全：{route_context}。"
+                f"{cost_guidance}"
+            )
+        if not _has_tool_result(messages, "find_route_parking_points"):
+            return (
+                "用户已经选定路线、确认自驾且天气查询已经完成，"
+                f"准确 route_id={route_id}。立即调用 find_route_parking_points 查询该路线已审核停车点。"
+                "不得把徒步起点冒充停车点，不得重复查询天气，也不得再次询问路线、日期或交通方式。"
+                "停车点返回后直接输出路线总结；即使停车点数量为零，也应进入总结，明确暂无已审核停车场信息，"
+                "并在工具提供 trailhead_reference 时将其作为徒步起点参考展示，强调不代表可以停车。"
+                f"最终总结使用以下已审核路线信息，不得自行补全：{route_context}。"
+                f"{cost_guidance}"
+            )
+        return (
+            "已选路线的天气和停车点查询均已完成。不要继续调用工具，不要再次询问路线、日期或交通方式，"
+            "直接输出最终路线总结，并严格包含以下部分："
+            "路线信息（名称、起终点、距离、爬升、预计徒步时长、难度、设施与风险）；"
+            "天气信息（官方预警、温度、天气现象与来源）；"
+            "推荐停车场（名称、经纬度、停车说明与导航链接）。"
+            "停车点结果为空时明确写暂无已审核停车场信息；若工具返回 trailhead_reference，"
+            "另行展示为徒步起点参考并强调仅供参考、不代表可以停车。任何工具未返回的信息都说明暂无数据，不得凭模型知识补全。"
+            f"路线部分只能使用以下已审核路线信息：{route_context}。"
+            f"{cost_guidance}"
+        )
     if routes is not None and state.transport_mode == "self_drive":
         cost_guidance = (
             "用户已经选择自驾。routes.cost_min_cny 和 routes.cost_max_cny 是预计报团费用区间，"
@@ -750,6 +851,20 @@ def build_interview_guidance(
 class GuidedHikingAssistant(Assistant):
     """Qwen Assistant with turn-aware hiking interview guidance."""
 
+    def _required_self_drive_tool(self, messages: list[Any]) -> str | None:
+        """Return the next mandatory tool for a confirmed self-drive trip."""
+        state = build_conversation_state(
+            messages,
+            getattr(self, "route_catalog", []),
+        )
+        if state.selected_route_id is None or state.transport_mode != "self_drive":
+            return None
+        if not _has_tool_result(messages, "estimate_route_weather"):
+            return "estimate_route_weather"
+        if not _has_tool_result(messages, "find_route_parking_points"):
+            return "find_route_parking_points"
+        return None
+
     def _run_one_tool_at_a_time(
         self,
         messages: list[Any],
@@ -758,10 +873,13 @@ class GuidedHikingAssistant(Assistant):
     ) -> Iterator[list[Any]]:
         """Execute at most one model-generated tool call before asking the model again."""
         response: list[Any] = []
-        remaining_calls = MAX_LLM_CALL_PER_RUN
+        remaining_calls = QWEN_MAX_LLM_CALLS
+        self._last_model_call_count = 0
+        self._last_tool_call_count = 0
         is_waiting_for_route_choice = False
         while remaining_calls > 0:
             remaining_calls -= 1
+            self._last_model_call_count += 1
             extra_generate_cfg: dict[str, Any] = {"lang": lang}
             if kwargs.get("seed") is not None:
                 extra_generate_cfg["seed"] = kwargs["seed"]
@@ -832,15 +950,36 @@ class GuidedHikingAssistant(Assistant):
             if is_waiting_for_route_choice or is_requesting_user_input:
                 break
             if first_tool is None:
-                break
+                required_tool = self._required_self_drive_tool(messages)
+                if required_tool is None:
+                    break
+                messages.append(Message(
+                    role=SYSTEM,
+                    content=(
+                        f"当前自驾行程尚未完成。不要输出‘请稍等’或承诺稍后查询；"
+                        f"现在必须立即调用 {required_tool}。"
+                    ),
+                ))
+                continue
 
             tool_message, tool_name, tool_args = first_tool
-            tool_result = self._call_tool(
-                tool_name,
-                tool_args,
-                messages=messages,
-                **kwargs,
-            )
+            if (
+                tool_name == "find_route_parking_points"
+                and not _has_tool_result(messages, "estimate_route_weather")
+            ):
+                tool_result = _json_result({
+                    "blocked": True,
+                    "error": "停车点查询依赖天气结果，必须先查询天气",
+                    "required_next_tool": "estimate_route_weather",
+                })
+            else:
+                tool_result = self._call_tool(
+                    tool_name,
+                    tool_args,
+                    messages=messages,
+                    **kwargs,
+                )
+                self._last_tool_call_count += 1
             function_message = Message(
                 role=FUNCTION,
                 name=tool_name,
@@ -879,6 +1018,10 @@ class GuidedHikingAssistant(Assistant):
         )
         try:
             guided_messages = deepcopy(messages)
+            guided_messages = trim_completed_trip_context(
+                guided_messages,
+                getattr(self, "route_catalog", []),
+            )
             guidance = build_interview_guidance(
                 guided_messages,
                 getattr(self, "route_search_terms", []),
@@ -912,7 +1055,8 @@ class GuidedHikingAssistant(Assistant):
             exception_message = getattr(exc, "message", None) or str(exc) or repr(exc)
             logger.exception(
                 "Qwen Agent 对话调用失败 call_id=%s model=%s message_count=%s "
-                "user_turns=%s last_user_chars=%s output_batches=%s elapsed_ms=%s "
+                "user_turns=%s last_user_chars=%s output_batches=%s model_calls=%s "
+                "tool_calls=%s elapsed_ms=%s "
                 "exception_type=%s exception_code=%s exception_message=%s",
                 call_id,
                 model,
@@ -920,6 +1064,8 @@ class GuidedHikingAssistant(Assistant):
                 user_turns,
                 last_user_chars,
                 output_batches,
+                getattr(self, "_last_model_call_count", 0),
+                getattr(self, "_last_tool_call_count", 0),
                 elapsed_ms,
                 type(exc).__name__,
                 exception_code,
@@ -929,13 +1075,16 @@ class GuidedHikingAssistant(Assistant):
         elapsed_ms = round((time.perf_counter() - started_at) * 1000)
         logger.info(
             "Qwen Agent 对话调用完成 call_id=%s model=%s message_count=%s "
-            "user_turns=%s last_user_chars=%s output_batches=%s elapsed_ms=%s",
+            "user_turns=%s last_user_chars=%s output_batches=%s model_calls=%s "
+            "tool_calls=%s elapsed_ms=%s",
             call_id,
             model,
             len(messages),
             user_turns,
             last_user_chars,
             output_batches,
+            getattr(self, "_last_model_call_count", 0),
+            getattr(self, "_last_tool_call_count", 0),
             elapsed_ms,
         )
 
@@ -966,7 +1115,17 @@ class ListHikingRoutesTool(HikingTool):
 
     def call(self, params: str | dict[str, Any], **kwargs: Any) -> str:
         self.verify_params(params)
-        routes = self.service.routes()
+        routes = [
+            {
+                key: route.get(key)
+                for key in (
+                    "id", "name", "distance_km", "ascent_m", "highest_altitude_m",
+                    "hiking_minutes", "difficulty", "duration_days", "scenery", "risks",
+                    "transport_modes", "has_toilet", "has_supply_shop",
+                )
+            }
+            for route in self.service.routes()
+        ]
         return _json_result({"count": len(routes), "items": routes})
 
 
@@ -1105,7 +1264,10 @@ class RecommendHikingRoutesTool(HikingTool):
         items = self.service.recommendations(query)
         if len(items) > 1:
             items = [
-                {key: value for key, value in item.items() if key != "weather"}
+                {
+                    key: value for key, value in item.items()
+                    if key in {"route", "score", "reasons"}
+                }
                 for item in items
             ]
         return _json_result({"count": len(items), "items": items})
@@ -1127,6 +1289,53 @@ class FindGroupTourLinksTool(HikingTool):
         query = self.verify_params(params)
         items = self.service.group_tour_links(query["route_id"])
         return _json_result({"count": len(items), "items": items})
+
+
+class FindRouteParkingPointsTool(HikingTool):
+    name = "find_route_parking_points"
+    description = "用户选定路线并确认自驾后，查询该路线已审核停车点、位置和停车说明。"
+    parameters = [
+        {
+            "name": "route_id",
+            "type": "string",
+            "description": "用户已经选定的路线唯一标识",
+            "required": True,
+        },
+    ]
+
+    def call(self, params: str | dict[str, Any], **kwargs: Any) -> str:
+        query = self.verify_params(params)
+        route_id = str(query["route_id"])
+        items = parking_points_with_navigation(
+            self.service.parking_points(route_id)
+        )
+        result: dict[str, Any] = {"count": len(items), "items": items}
+        if items:
+            return _json_result(result)
+
+        route = next(
+            (item for item in self.service.routes() if str(item["id"]) == route_id),
+            None,
+        )
+        if route is None:
+            raise ValueError("路线不存在或未审核")
+        reference: dict[str, Any] = {
+            "name": str(route["start_location"]),
+            "latitude": route.get("latitude"),
+            "longitude": route.get("longitude"),
+            "is_parking_point": False,
+            "reference_only": True,
+        }
+        if route.get("latitude") is not None and route.get("longitude") is not None:
+            reference = parking_points_with_navigation([reference])[0]
+        warning = (
+            "暂无已审核停车场信息。该位置仅为徒步起点参考，不代表可以停车，"
+            "请以现场停车标识和交通管制为准。"
+        )
+        reference["note"] = warning
+        result["trailhead_reference"] = reference
+        result["warning"] = warning
+        return _json_result(result)
 
 
 class EstimateRouteTrafficTool(HikingTool):
@@ -1236,7 +1445,7 @@ def build_qwen_agent(service: ChatBIService, model: str = QWEN_MODEL) -> GuidedH
         f"{SYSTEM_PROMPT}\n\n# 当前日期上下文\n{build_departure_date_guidance()}"
         f"\n\n# 已收录节假日摘要\n{build_public_holiday_guidance()}"
     )
-    generate_cfg: dict[str, Any] = {"max_retries": 3}
+    generate_cfg: dict[str, Any] = {"max_retries": QWEN_MAX_RETRIES}
     if QWEN_SEED is not None:
         generate_cfg["seed"] = QWEN_SEED
     logger.info("构建 Qwen Agent model=%s seed=%s", model, QWEN_SEED)
@@ -1255,6 +1464,7 @@ def build_qwen_agent(service: ChatBIService, model: str = QWEN_MODEL) -> GuidedH
             EstimateRouteTrafficTool(service),
             EstimateRouteWeatherTool(service),
             FindGroupTourLinksTool(service),
+            FindRouteParkingPointsTool(service),
             ResolveDepartureDateTool(service),
             ResolvePublicHolidayTool(service),
         ],
@@ -1316,7 +1526,7 @@ def run_qwen_web(
             **WEB_CHATBOT_CONFIG,
             "prompt.suggestions": [
                 "本周六从成都出发，推荐适合新手的路线",
-                "路线不超过10公里或者爬升不超过 800 米的路线",
+                "路程不超过10公里或者爬升不超过 800 米的路线",
                 "本周日出发，有草甸的徒步路线推荐",
                 "周六想去爬巴朗山，不知道天气怎么样",
             ]

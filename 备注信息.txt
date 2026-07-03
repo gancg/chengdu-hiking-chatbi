@@ -36,6 +36,10 @@ ghcr.io/gancg/chengdu-hiking-chatbi
 
 
 
+docker login ghcr.io -u gancg -p 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
+
+
+
 
 
 
@@ -74,3 +78,24 @@ ghcr.io/gancg/chengdu-hiking-chatbi
 遇到问题：
 1.内外网的切换问题
 2.对话多轮：ERROR dashscope 
+
+
+
+
+
+
+
+
+部署Linux环境：
+
+1.拉取镜像（先在github配置读取package的token），先安装好docker和docker-compose
+2.docker run -d --name chengdu-hiking-chatbi-container -p 7860:7860 ghcr.io/gancg/chengdu-hiking-chatbi
+该命令将基于 ghcr.io/gancg/chengdu-hiking-chatbi 镜像启动一个名为 chengdu-hiking-chatbi-container 的容器，并将主机的 8080 端口映射到容器的 8080 端口（假设项目默认使用 8080 端口）。
+
+-d 表示后台运行容器。
+如果项目实际使用其他端口，请替换 8080:8080 为正确的端口映射（例如 3000:3000）。
+3.创建docker-compose.yaml配置文件，将关键信息写入配置文件（dashscope_api_key）
+
+
+
+http://8.160.166.239:7860/

@@ -17,7 +17,7 @@ class QwenDashScopeLoggingTest(unittest.TestCase):
             request_id="req-123",
         )
 
-        with self.assertLogs("qwen_agent_logger", level="ERROR") as logs:
+        with self.assertLogs("qwen_agent_logger", level="WARNING") as logs:
             with self.assertRaises(ModelServiceError):
                 list(QwenChatAtDS._full_stream_output(
                     [chunk],
@@ -44,8 +44,8 @@ class QwenDashScopeLoggingTest(unittest.TestCase):
             raise ConnectionError("connection reset by peer")
             yield
 
-        with self.assertLogs("qwen_agent_logger", level="ERROR") as logs:
-            with self.assertRaises(ConnectionError):
+        with self.assertLogs("qwen_agent_logger", level="WARNING") as logs:
+            with self.assertRaises(ModelServiceError):
                 list(QwenChatAtDS._full_stream_output(
                     broken_stream(),
                     context={

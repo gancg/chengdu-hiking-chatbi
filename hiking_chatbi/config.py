@@ -43,6 +43,8 @@ TRAFFIC_PROVIDER = os.getenv("CHATBI_TRAFFIC_PROVIDER", "none")
 ALERT_PROVIDER = os.getenv("CHATBI_ALERT_PROVIDER", "qweather")
 QWEN_MODEL = os.getenv("CHATBI_QWEN_MODEL", "qwen-max")
 QWEN_SEED = optional_int_from_env("CHATBI_QWEN_SEED", 42)
+QWEN_MAX_LLM_CALLS = positive_int_from_env("CHATBI_QWEN_MAX_LLM_CALLS", 10)
+QWEN_MAX_RETRIES = positive_int_from_env("CHATBI_QWEN_MAX_RETRIES", 2)
 YOUXIAKE_AROUND_URL = os.getenv(
     "CHATBI_YOUXIAKE_AROUND_URL", "https://www.youxiake.com/around?site=19"
 )

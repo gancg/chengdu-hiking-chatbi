@@ -46,7 +46,7 @@ def _get_dashscope_request_id(response: Any) -> Any:
 
 
 def _log_dashscope_error(response: Any, context: Dict[str, Any]) -> None:
-    logger.error(
+    logger.warning(
         'DashScope model call failed model=%s stream=%s delta_stream=%s status_code=%s '
         'code=%s message=%s request_id=%s chunk_index=%s received_chunks=%s',
         context.get('model', 'unknown'),
@@ -62,7 +62,7 @@ def _log_dashscope_error(response: Any, context: Dict[str, Any]) -> None:
 
 
 def _log_dashscope_exception(exc: BaseException, context: Dict[str, Any]) -> None:
-    logger.exception(
+    logger.warning(
         'DashScope model call raised model=%s stream=%s delta_stream=%s message_count=%s '
         'chunk_index=%s received_chunks=%s exception_type=%s exception_message=%s',
         context.get('model', 'unknown'),
@@ -73,6 +73,7 @@ def _log_dashscope_exception(exc: BaseException, context: Dict[str, Any]) -> Non
         context.get('received_chunks', 'n/a'),
         type(exc).__name__,
         str(exc) or repr(exc),
+        exc_info=True,
     )
 
 
@@ -110,7 +111,7 @@ class QwenChatAtDS(BaseFnCallModel):
                 'delta_stream': delta_stream,
                 'message_count': len(messages),
             })
-            raise
+            raise ModelServiceError(exception=exc) from exc
         context = {
             'model': self.model,
             'stream': True,
@@ -145,7 +146,7 @@ class QwenChatAtDS(BaseFnCallModel):
                 'delta_stream': False,
                 'message_count': len(messages),
             })
-            raise
+            raise ModelServiceError(exception=exc) from exc
         if response.status_code == HTTPStatus.OK:
             return [
                 Message(role=ASSISTANT,
@@ -196,7 +197,7 @@ class QwenChatAtDS(BaseFnCallModel):
             error_context = dict(context)
             error_context.update(chunk_index=received_chunks, received_chunks=received_chunks)
             _log_dashscope_exception(exc, error_context)
-            raise
+            raise ModelServiceError(exception=exc) from exc
 
     @staticmethod
     def _full_stream_output(response, context: Optional[Dict[str, Any]] = None) -> Iterator[List[Message]]:
@@ -262,7 +263,7 @@ class QwenChatAtDS(BaseFnCallModel):
             error_context = dict(context)
             error_context.update(chunk_index=received_chunks, received_chunks=received_chunks)
             _log_dashscope_exception(exc, error_context)
-            raise
+            raise ModelServiceError(exception=exc) from exc
 
 
 def initialize_dashscope(cfg: Optional[Dict] = None) -> None:

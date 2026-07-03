@@ -59,6 +59,13 @@ class ChatBIService:
     def routes(self) -> list[dict[str, Any]]:
         return list_routes(self.db_path)
 
+    def parking_points(self, route_id: str) -> list[dict[str, Any]]:
+        """Return reviewed parking points for one reviewed route."""
+        route = next((item for item in self.routes() if item["id"] == route_id), None)
+        if route is None:
+            raise ValueError("路线不存在或未审核")
+        return list(route.get("parking_points", []))
+
     def routes_by_group_tour_search_term(
         self,
         search_term: str,

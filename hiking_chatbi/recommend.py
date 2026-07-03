@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 import logging
 from typing import Any
+from urllib.parse import urlencode
 
 from .costs import calculate_cost_estimates
 from .traffic import LEVEL_RANK, TrafficProvider, estimate_traffic
@@ -15,6 +16,36 @@ from .weather import (
 
 DIFFICULTY_RANK = {"easy": 0, "moderate": 1, "hard": 2, "expert": 3}
 logger = logging.getLogger(__name__)
+
+
+def parking_points_with_navigation(
+    parking_points: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    for parking_point in parking_points:
+        item = dict(parking_point)
+        name = str(item["name"])
+        latitude = float(item["latitude"])
+        longitude = float(item["longitude"])
+        amap_query = urlencode({
+            "to": f"{longitude},{latitude},{name}",
+            "mode": "car",
+            "coordinate": "gaode",
+            "callnative": "1",
+        })
+        baidu_query = urlencode({
+            "destination": f"latlng:{latitude},{longitude}|name:{name}",
+            "mode": "driving",
+            "coord_type": "gcj02",
+            "output": "html",
+            "src": "chengdu-hiking-chatbi",
+        })
+        item["navigation_links"] = {
+            "amap": f"https://uri.amap.com/navigation?{amap_query}",
+            "baidu": f"https://api.map.baidu.com/direction?{baidu_query}",
+        }
+        results.append(item)
+    return results
 
 
 def _parse_datetime(value: str, field: str) -> datetime:
@@ -126,8 +157,7 @@ def recommend(
         reasons.append(
             f"徒步约 {route['distance_km']} 公里，爬升 {route['ascent_m']} 米"
         )
-        results.append(
-            {
+        result = {
                 "route": {
                     key: route[key]
                     for key in (
@@ -152,7 +182,11 @@ def recommend(
                     (arrival - departure).total_seconds() / 60
                 ),
             }
-        )
+        if "self_drive" in modes:
+            result["parking_points"] = parking_points_with_navigation(
+                route.get("parking_points", [])
+            )
+        results.append(result)
     sorted_results = sorted(results, key=lambda item: item["score"], reverse=True)
     logger.info("路线推荐计算完成 result_count=%s", len(sorted_results))
     return sorted_results

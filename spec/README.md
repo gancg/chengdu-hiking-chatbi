@@ -456,7 +456,7 @@ score =
 
 ## 8. 已验证行为
 
-当前测试位于历史目录 `/tests`，覆盖：
+当前测试统一位于 `/test`，覆盖：
 
 - 工作日、周末和节假日交通时间逐级增加
 - 临近出发时使用实时交通适配器
@@ -469,10 +469,9 @@ score =
 
 ```powershell
 python -m unittest discover -s test -v
-python -m unittest discover -s tests -v
 ```
 
-按项目开发规范，后续新增测试放在 `/test`，文件名为 `test_*.py`。`/tests` 为历史测试目录，因此当前需要分别运行两个目录的测试。
+按项目开发规范，全部测试统一放在 `/test`，文件名为 `test_*.py`。
 
 ## 9. 当前边界与已知风险
 

@@ -1,5 +1,36 @@
 # 成都徒步 ChatBI
 
+## 使用 Qwen 补全停车点候选
+
+脚本会读取 `data/chatbi.db` 中的全部路线，逐条调用启用联网搜索的
+`qwen3.7-max`，并将找到的停车点候选写入 `route_parking_points`：
+
+```powershell
+$env:DASHSCOPE_API_KEY="你的 DashScope API Key"
+$env:CHATBI_COLLECTOR_REQUEST_TIMEOUT_SECONDS="240"
+.venv\Scripts\python.exe -m hiking_chatbi.parking_points_enricher `
+  --db data\chatbi.db `
+  --batch-size 1
+```
+
+Linux 下使用：
+
+```bash
+export DASHSCOPE_API_KEY="你的 DashScope API Key"
+export CHATBI_COLLECTOR_REQUEST_TIMEOUT_SECONDS="240"
+python -m hiking_chatbi.parking_points_enricher \
+  --db data/chatbi.db \
+  --batch-size 1
+```
+
+建议保持 `--batch-size 1`，避免单次联网搜索过重。脚本最多为每条路线保存两个候选，
+找不到可核验停车点时保存为空结果。只有全部路线查询成功并通过校验后才会统一写库；
+运行中断不会产生半成品。
+
+Qwen 生成的候选统一标记为 `is_reviewed=false`，不会直接展示给用户。人工核对名称、
+GCJ-02 坐标、来源链接和停车说明后，需要将可信记录的 `is_reviewed` 更新为 `true`。
+脚本再次运行只替换未审核候选，不会删除人工审核记录。
+
 ## 使用 Docker 本地打包
 
 前置条件：Windows 安装 Docker Desktop，并切换到 Linux containers。
@@ -72,4 +103,3 @@ docker run -d --name hiking-chatbi --restart unless-stopped \
 
 生产环境建议固定使用 `sha-<短提交号>` 标签，确认新版本正常后再更新容器，避免
 `latest` 变化导致不可预期升级。
-

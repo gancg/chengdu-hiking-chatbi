@@ -16,6 +16,7 @@ from hiking_chatbi.qwen_chatbi import (
     EstimateRouteTrafficTool,
     EstimateRouteWeatherTool,
     FindGroupTourLinksTool,
+    FindRouteParkingPointsTool,
     ListHikingRoutesTool,
     RecommendHikingRoutesTool,
     ResolveDepartureDateTool,
@@ -50,7 +51,11 @@ class QwenChatBITest(unittest.TestCase):
 
         self.assertEqual(16, result["count"], "应返回十六条样例路线")
         self.assertIn("has_toilet", result["items"][0], "应包含路线设施字段")
-        self.assertIn("route_fees", result["items"][0], "应包含路线费用明细")
+        self.assertNotIn(
+            "route_fees",
+            result["items"][0],
+            "路线列表只返回筛选摘要，费用明细应在用户选定路线后再查询",
+        )
 
     def test_recommend_tool_uses_existing_recommendation_service(self) -> None:
         """自然语言代理使用的推荐工具应复用现有推荐规则。"""
@@ -244,6 +249,7 @@ class QwenChatBITest(unittest.TestCase):
                 "estimate_route_traffic",
                 "estimate_route_weather",
                 "find_group_tour_links",
+                "find_route_parking_points",
                 "resolve_departure_date",
                 "resolve_public_holiday",
             },

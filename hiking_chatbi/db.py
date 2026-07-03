@@ -50,6 +50,20 @@ CREATE TABLE IF NOT EXISTS routes (
     reviewed INTEGER NOT NULL DEFAULT 0 CHECK(reviewed IN (0,1))
 );
 
+CREATE TABLE IF NOT EXISTS route_parking_points (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    route_id TEXT NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    latitude REAL NOT NULL CHECK(latitude >= -90 AND latitude <= 90),
+    longitude REAL NOT NULL CHECK(longitude >= -180 AND longitude <= 180),
+    note TEXT,
+    is_recommended INTEGER NOT NULL DEFAULT 0 CHECK(is_recommended IN (0,1)),
+    is_reviewed INTEGER NOT NULL DEFAULT 0 CHECK(is_reviewed IN (0,1)),
+    source_url TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(route_id, name)
+);
+
 CREATE TABLE IF NOT EXISTS traffic_profiles (
     route_id TEXT PRIMARY KEY REFERENCES routes(id) ON DELETE CASCADE,
     base_one_way_minutes INTEGER NOT NULL,
@@ -272,6 +286,8 @@ def upsert_route(connection: sqlite3.Connection, item: dict[str, Any]) -> None:
         values,
     )
     _replace_cost_items(connection, route["id"], item["costs"])
+    if "parking_points" in item:
+        _replace_parking_points(connection, route["id"], item["parking_points"])
 
     traffic_columns = [
         "route_id", "base_one_way_minutes", "weekday_extra_min", "weekday_extra_max",
@@ -326,6 +342,33 @@ def _replace_cost_items(
         )
 
 
+def _replace_parking_points(
+    connection: sqlite3.Connection,
+    route_id: str,
+    parking_points: list[dict[str, Any]],
+) -> None:
+    """Replace all maintained parking points when the import explicitly supplies them."""
+    connection.execute(
+        "DELETE FROM route_parking_points WHERE route_id = ?",
+        (route_id,),
+    )
+    for item in parking_points:
+        connection.execute(
+            """INSERT INTO route_parking_points
+            (route_id,name,latitude,longitude,note,is_recommended,is_reviewed,source_url,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                route_id,
+                item["name"],
+                item["latitude"],
+                item["longitude"],
+                item.get("note"),
+                item["is_recommended"],
+                item["is_reviewed"],
+                item["source_url"],
+                item["updated_at"],
+            ),
+        )
 def import_routes(path: Path, items: Iterable[dict[str, Any]]) -> int:
     initialize(path)
     count = 0
@@ -369,11 +412,25 @@ def list_routes(path: Path, reviewed_only: bool = True) -> list[dict[str, Any]]:
         ):
             item = dict(row)
             transport_options.setdefault(item.pop("route_id"), []).append(item)
+        parking_points: dict[str, list[dict[str, Any]]] = {}
+        for row in connection.execute(
+            """SELECT route_id,name,latitude,longitude,note,is_recommended,
+                      is_reviewed,source_url,updated_at
+               FROM route_parking_points
+               WHERE is_reviewed = 1
+               ORDER BY is_recommended DESC, id"""
+        ):
+            item = dict(row)
+            route_id = item.pop("route_id")
+            item["is_recommended"] = bool(item["is_recommended"])
+            item["is_reviewed"] = bool(item["is_reviewed"])
+            parking_points.setdefault(route_id, []).append(item)
         for route in routes:
             route.pop("cost_min_cny", None)
             route.pop("cost_max_cny", None)
             route["route_fees"] = route_fees.get(route["id"], [])
             route["transport_options"] = transport_options.get(route["id"], [])
+            route["parking_points"] = parking_points.get(route["id"], [])
         return routes
 
 

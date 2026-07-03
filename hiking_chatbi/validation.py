@@ -71,9 +71,54 @@ def validate_import_item(item: dict[str, Any]) -> None:
     if not 0 <= float(traffic["confidence"]) <= 1:
         raise ValueError("traffic confidence 必须在 0 到 1 之间")
     _validate_costs(costs, modes)
+    if "parking_points" in item:
+        _validate_parking_points(item["parking_points"])
     for field in ("collected_at", "updated_at"):
         _parse_time(route[field], f"route.{field}")
     _parse_time(traffic["updated_at"], "traffic.updated_at")
+
+
+def _validate_parking_points(value: Any) -> None:
+    if not isinstance(value, list):
+        raise ValueError("parking_points 必须为数组")
+    names: set[str] = set()
+    recommended_count = 0
+    required = {
+        "name", "latitude", "longitude", "is_recommended", "is_reviewed",
+        "source_url", "updated_at",
+    }
+    for item in value:
+        if not isinstance(item, dict):
+            raise ValueError("parking_points 每一项必须为对象")
+        _require_fields(item, required, "parking_points")
+        name = item["name"]
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("parking_points.name 不得为空")
+        normalized_name = name.strip()
+        if normalized_name in names:
+            raise ValueError("parking_points 名称不得重复")
+        names.add(normalized_name)
+        try:
+            latitude = float(item["latitude"])
+            longitude = float(item["longitude"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("parking_points 经纬度必须为数字") from exc
+        if not -90 <= latitude <= 90:
+            raise ValueError("parking_points.latitude 必须在 -90 到 90 之间")
+        if not -180 <= longitude <= 180:
+            raise ValueError("parking_points.longitude 必须在 -180 到 180 之间")
+        for field in ("is_recommended", "is_reviewed"):
+            if not isinstance(item[field], bool):
+                raise ValueError(f"parking_points.{field} 必须为布尔值")
+        note = item.get("note")
+        if note is not None and not isinstance(note, str):
+            raise ValueError("parking_points.note 必须为字符串或 null")
+        if not isinstance(item["source_url"], str) or not item["source_url"].strip():
+            raise ValueError("parking_points.source_url 不得为空")
+        _parse_time(item["updated_at"], "parking_points.updated_at")
+        recommended_count += int(item["is_recommended"])
+    if recommended_count > 1:
+        raise ValueError("parking_points 最多一个首选停车点")
 
 
 def _validate_group_tour_search_terms(value: Any) -> None:

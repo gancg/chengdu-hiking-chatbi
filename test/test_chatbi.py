@@ -24,6 +24,7 @@ class ChatBITest(unittest.TestCase):
         return next(route for route in self.service.routes() if route["id"] == route_id)
 
     def test_weekend_and_holiday_raise_traffic_estimate(self) -> None:
+        """中文测试：周末和节假日的交通耗时应依次高于工作日。"""
         route = self.route()
         weekday = historical_estimate(route, datetime.fromisoformat("2026-06-11T06:00:00+08:00"), "outbound")
         weekend = historical_estimate(route, datetime.fromisoformat("2026-06-13T06:00:00+08:00"), "outbound")
@@ -32,6 +33,7 @@ class ChatBITest(unittest.TestCase):
         self.assertLess(weekend["max_minutes"], holiday["max_minutes"])
 
     def test_realtime_provider_is_used_for_near_departure(self) -> None:
+        """中文测试：临近出发时应优先使用实时交通服务。"""
         service = ChatBIService(self.db_path, MockTrafficProvider())
         now = datetime.now().astimezone()
         result = service.traffic({
@@ -41,6 +43,7 @@ class ChatBITest(unittest.TestCase):
         self.assertEqual("realtime", result["data_type"])
 
     def test_realtime_unavailable_falls_back_explicitly(self) -> None:
+        """中文测试：实时交通不可用时应明确降级到历史估算。"""
         now = datetime.now().astimezone()
         result = self.service.traffic({
             "route_id": "qingcheng-back-mountain",
@@ -50,9 +53,8 @@ class ChatBITest(unittest.TestCase):
         self.assertIn("历史估算", result["fallback_reason"])
 
     def test_recommendation_respects_constraints_and_latest_return(self) -> None:
-        departure = (datetime.now().astimezone() + timedelta(days=1)).replace(
-            hour=6, minute=0, second=0, microsecond=0
-        )
+        """中文测试：路线推荐应遵守筛选条件和最晚返回时间。"""
+        departure = datetime.fromisoformat("2026-07-04T06:00:00+08:00")
         query = {
             "origin": "成都",
             "departure_at": departure.isoformat(),
@@ -67,11 +69,12 @@ class ChatBITest(unittest.TestCase):
         }
         results = self.service.recommendations(query)
         self.assertEqual(
-            ["qingcheng-back-mountain", "pengzhou-panlong-valley"],
+            ["qingcheng-back-mountain"],
             [item["route"]["id"] for item in results],
         )
 
     def test_severe_holiday_traffic_can_filter_all_routes(self) -> None:
+        """中文测试：无法接受节假日拥堵时应允许过滤全部路线。"""
         departure = (datetime.now().astimezone() + timedelta(days=1)).replace(
             hour=8, minute=0, second=0, microsecond=0
         )
@@ -85,6 +88,7 @@ class ChatBITest(unittest.TestCase):
         self.assertEqual([], results)
 
     def test_feedback_changes_historical_estimate_after_three_samples(self) -> None:
+        """中文测试：累计三条反馈后应修正历史交通估算。"""
         for minutes in (180, 190, 200):
             self.service.record_feedback({
                 "route_id": "qingcheng-back-mountain",
