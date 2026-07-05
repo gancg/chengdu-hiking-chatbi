@@ -17,7 +17,13 @@ from qwen_agent.agents import Assistant
 from qwen_agent.llm.schema import ASSISTANT, FUNCTION, SYSTEM, Message
 from qwen_agent.tools.base import BaseTool
 
-from .config import QWEN_MAX_LLM_CALLS, QWEN_MAX_RETRIES, QWEN_MODEL, QWEN_SEED
+from .config import (
+    QWEN_MAX_LLM_CALLS,
+    QWEN_MAX_RETRIES,
+    QWEN_MODEL,
+    QWEN_REQUEST_TIMEOUT_SECONDS,
+    QWEN_SEED,
+)
 from .service import ChatBIService
 from .departure_dates import resolve_departure_date
 from .holidays import HOLIDAY_CALENDARS, WEEKDAY_NAMES, resolve_public_holiday
@@ -1665,7 +1671,10 @@ def build_qwen_agent(service: ChatBIService, model: str = QWEN_MODEL) -> GuidedH
         f"{SYSTEM_PROMPT}\n\n# 当前日期上下文\n{build_departure_date_guidance()}"
         f"\n\n# 已收录节假日摘要\n{build_public_holiday_guidance()}"
     )
-    generate_cfg: dict[str, Any] = {"max_retries": QWEN_MAX_RETRIES}
+    generate_cfg: dict[str, Any] = {
+        "max_retries": QWEN_MAX_RETRIES,
+        "request_timeout": QWEN_REQUEST_TIMEOUT_SECONDS,
+    }
     if QWEN_SEED is not None:
         generate_cfg["seed"] = QWEN_SEED
     logger.info("构建 Qwen Agent model=%s seed=%s", model, QWEN_SEED)

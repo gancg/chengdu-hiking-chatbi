@@ -25,18 +25,22 @@ body,
 }
 
 .gradio-container {
-  padding: max(8px, env(safe-area-inset-top)) 8px
+  padding: max(2px, env(safe-area-inset-top)) 8px
     calc(8px + env(safe-area-inset-bottom)) !important;
+}
+
+.gradio-container main.fillable {
+  padding-inline: 8px !important;
 }
 
 .h5-shell {
   display: grid !important;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(100%, 720px);
-  height: calc(100dvh - max(16px, env(safe-area-inset-top)) - env(safe-area-inset-bottom));
+  height: calc(100dvh - max(10px, env(safe-area-inset-top)) - env(safe-area-inset-bottom));
   min-height: 0 !important;
   margin: 0 auto;
-  gap: 8px !important;
+  gap: 4px !important;
 }
 
 .h5-header {
@@ -44,7 +48,7 @@ body,
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 8px 0;
+  padding: 0 8px;
 }
 
 .h5-header__text {
@@ -57,7 +61,7 @@ body,
   overflow: hidden;
   color: var(--h5-ink);
   font-size: 19px;
-  line-height: 30px;
+  line-height: 26px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -67,7 +71,7 @@ body,
   overflow: hidden;
   color: var(--h5-muted);
   font-size: 12px;
-  line-height: 18px;
+  line-height: 16px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -80,6 +84,24 @@ body,
   border-radius: 16px !important;
   background: var(--h5-surface) !important;
   box-shadow: 0 8px 24px rgba(35, 91, 118, 0.08) !important;
+}
+
+.h5-chatbot .wrap,
+.h5-chatbot .wrap.svelte-1byz9vf {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: none !important;
+  padding-inline: 5px !important;
+}
+
+.h5-chatbot .bot-row.bubble > .avatar-container {
+  margin-right: 5px !important;
+}
+
+.h5-chatbot .message-row.bot-row .message.bot {
+  width: calc(100% - 53px) !important;
+  max-width: calc(100% - 53px) !important;
+  flex: 0 0 calc(100% - 53px) !important;
 }
 
 .h5-composer {
@@ -96,6 +118,16 @@ body,
 .h5-suggestions {
   min-width: 0 !important;
   overflow: visible;
+  border-color: var(--h5-line) !important;
+  border-radius: 12px !important;
+}
+
+.h5-suggestions > button {
+  min-height: 32px;
+  padding-block: 2px !important;
+  color: var(--h5-ink) !important;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .h5-suggestions::-webkit-scrollbar {
@@ -126,6 +158,30 @@ body,
 .h5-composer textarea,
 .h5-composer input {
   border-radius: 12px !important;
+}
+
+.h5-input {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.h5-input .input-content {
+  min-width: 0;
+}
+
+.h5-input .controls {
+  align-items: center !important;
+  margin-top: 0 !important;
+}
+
+.h5-input .input-tools:empty {
+  display: none !important;
+}
+
+.h5-input .submit-button {
+  min-height: 100% !important;
 }
 
 .gradio-container footer,

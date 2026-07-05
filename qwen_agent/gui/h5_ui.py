@@ -22,6 +22,11 @@ H5_HISTORY_MAX_BYTES = 512 * 1024
 H5_HISTORY_STORAGE_KEY = "chengdu-hiking-chatbi-h5-history-v1"
 
 
+def collapse_h5_suggestions() -> dict[str, Any]:
+    """返回用于收起 H5 快捷提问面板的组件更新。"""
+    return {"open": False, "__type__": "update"}
+
+
 def empty_h5_history_state() -> dict[str, Any]:
     """返回可覆盖浏览器缓存的空 H5 会话状态。"""
     return {"version": H5_HISTORY_VERSION, "saved_at": 0, "history": []}
@@ -230,6 +235,7 @@ class H5WebUI(WebUI):
                         height=640,
                         avatar_image_width=48,
                         flushing=False,
+                        bubble_full_width=True,
                         show_copy_button=True,
                         elem_classes="h5-chatbot",
                     )
@@ -238,14 +244,17 @@ class H5WebUI(WebUI):
                         input_box = mgr.MultimodalInput(
                             placeholder=self.input_placeholder,
                             sources=[],
+                            elem_classes="h5-input",
                         )
-                        with gr.Column(
-                            visible=bool(self.prompt_suggestions),
-                            elem_classes="h5-suggestions",
-                        ):
-                            if self.prompt_suggestions:
+                        suggestions = None
+                        if self.prompt_suggestions:
+                            with gr.Accordion(
+                                label="快捷提问",
+                                open=True,
+                                elem_classes="h5-suggestions",
+                            ) as suggestions:
                                 gr.Examples(
-                                    label="快捷提问",
+                                    label=None,
                                     examples=self.prompt_suggestions[:3],
                                     inputs=[input_box],
                                 )
@@ -257,6 +266,12 @@ class H5WebUI(WebUI):
                         outputs=[input_box, audio_input, chatbot, history],
                         queue=False,
                     )
+                    if suggestions is not None:
+                        input_promise = input_promise.then(
+                            collapse_h5_suggestions,
+                            outputs=[suggestions],
+                            queue=False,
+                        )
                     input_promise = input_promise.then(
                         save_h5_history,
                         [history],
