@@ -588,6 +588,25 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("只确认具体出发日期", guidance, "目的地明确后只应补问日期")
         self.assertIn("不得询问体力、经验、人数、距离、爬升、难度、风景、设施", guidance)
 
+    def test_named_destination_weather_without_date_only_confirms_date(self) -> None:
+        """点名目的地询问天气但缺少日期时，必须先确认具体出发日期。"""
+        routes = self.service.routes()
+
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "想去爬巴朗山，不知道天气怎么样"}],
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("只询问用户计划哪一天出发", guidance, "必须先确认出发日期")
+        self.assertIn("不得调用任何工具", guidance, "日期确认前不得查询天气")
+        self.assertIn("不得使用默认日期", guidance, "不得擅自假设天气查询日期")
+        self.assertNotIn(
+            "准确 route_id=",
+            guidance,
+            "确认日期时不应暴露路线 ID 诱导模型提前调用工具",
+        )
+
     def test_named_destination_recommends_immediately_after_date(self) -> None:
         """点名库内目的地且日期已确定后，应立即推荐而不是继续追问。"""
         route_search_terms = build_route_search_terms(self.service.routes())
@@ -641,7 +660,7 @@ class QwenChatBITest(unittest.TestCase):
         """点名库内目的地时，应向模型提供准确路线 ID，避免使用自然语言名称调用工具。"""
         routes = self.service.routes()
         guidance = build_interview_guidance(
-            [{"role": "user", "content": "想去巴朗山看看天气"}],
+            [{"role": "user", "content": "7月10日想去巴朗山看看天气"}],
             build_route_search_terms(routes),
             routes,
         )

@@ -40,8 +40,9 @@ class LinuxDockerPackagingTest(unittest.TestCase):
             "playwright install --with-deps chromium": "应安装 Chromium 及其系统依赖",
             "CHATBI_HOST=0.0.0.0": "API 应监听所有容器网卡",
             "CHATBI_WEB_HOST=0.0.0.0": "WebUI 应监听所有容器网卡",
+            "CHATBI_H5_HOST=0.0.0.0": "H5 应监听所有容器网卡",
             "CHATBI_DB_PATH=/app/runtime/chatbi.db": "数据库应写入持久化目录",
-            "EXPOSE 8000 7860": "应声明 API 和 WebUI 端口",
+            "EXPOSE 8000 7860 7861": "应声明 API、WebUI 和 H5 端口",
             "HEALTHCHECK": "应配置容器健康检查",
             'CMD ["python", "-m", "hiking_chatbi", "app"]': "应默认同时启动 API 和 WebUI",
         }
@@ -72,6 +73,7 @@ class LinuxDockerPackagingTest(unittest.TestCase):
             "- .env": "Compose 应明确指定 .env 文件",
             '"8000:8000"': "Compose 应映射 API 端口",
             '"7860:7860"': "Compose 应映射 WebUI 端口",
+            '"7861:7861"': "Compose 应映射 H5 端口",
             "chatbi-runtime:/app/runtime": "Compose 应持久化运行目录",
         }.items():
             with self.subTest(fragment=fragment):

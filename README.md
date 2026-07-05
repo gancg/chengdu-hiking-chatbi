@@ -45,6 +45,7 @@ docker compose up --build -d
 启动后访问：
 
 - WebUI：<http://127.0.0.1:7860>
+- 移动端 H5：<http://127.0.0.1:7861>
 - API 健康检查：<http://127.0.0.1:8000/health>
 
 查看日志或停止服务：
@@ -69,8 +70,9 @@ docker run --rm --name hiking-chatbi `
   --env-file .env `
   -e CHATBI_HOST=0.0.0.0 `
   -e CHATBI_WEB_HOST=0.0.0.0 `
+  -e CHATBI_H5_HOST=0.0.0.0 `
   -e CHATBI_DB_PATH=/app/runtime/chatbi.db `
-  -p 8000:8000 -p 7860:7860 `
+  -p 8000:8000 -p 7860:7860 -p 7861:7861 `
   -v chatbi-runtime:/app/runtime `
   chengdu-hiking-chatbi:local
 ```
@@ -100,7 +102,7 @@ docker pull ghcr.io/gancg/chengdu-hiking-chatbi:latest
 docker volume create chatbi-runtime
 docker run -d --name hiking-chatbi --restart unless-stopped \
   --env-file /opt/hiking-chatbi/.env \
-  -p 8000:8000 -p 7860:7860 \
+  -p 8000:8000 -p 7860:7860 -p 7861:7861 \
   -v chatbi-runtime:/app/runtime \
   ghcr.io/gancg/chengdu-hiking-chatbi:latest
 ```

@@ -11,6 +11,8 @@ from .config import (
     DAE_MAX_LINKS,
     DAE_TIMEOUT_SECONDS,
     DAE_URL,
+    H5_HOST,
+    H5_PORT,
     HOST,
     MIDO_MAX_LINKS,
     MIDO_TIMEOUT_SECONDS,
@@ -53,7 +55,8 @@ def main() -> None:
     importer.add_argument("path")
     sub.add_parser("qwen-chat", help="启动 Qwen Agent 终端对话")
     sub.add_parser("qwen-web", help="启动 Qwen Agent WebUI")
-    sub.add_parser("app", help="一键启动 HTTP API 和 Qwen Agent WebUI")
+    sub.add_parser("qwen-h5", help="启动 Qwen Agent 移动端 H5")
+    sub.add_parser("app", help="一键启动 HTTP API、WebUI 和移动端 H5")
     args = parser.parse_args()
 
     service = ChatBIService(
@@ -82,7 +85,7 @@ def main() -> None:
     )
     logger.info(
         "应用命令启动 command=%s db_path=%s traffic_provider=%s alert_provider=%s "
-        "qwen_model=%s qwen_seed=%s api=%s:%s web=%s:%s python=%s",
+        "qwen_model=%s qwen_seed=%s api=%s:%s web=%s:%s h5=%s:%s python=%s",
         args.command,
         DB_PATH,
         TRAFFIC_PROVIDER,
@@ -93,6 +96,8 @@ def main() -> None:
         PORT,
         WEB_HOST,
         WEB_PORT,
+        H5_HOST,
+        H5_PORT,
         sys.executable,
     )
     if args.command == "init":
@@ -101,18 +106,29 @@ def main() -> None:
     elif args.command == "import":
         count = import_file(DB_PATH, Path(args.path))
         logger.info("路线文件导入完成 count=%s source=%s", count, args.path)
-    elif args.command in {"qwen-chat", "qwen-web", "app"}:
+    elif args.command in {"qwen-chat", "qwen-web", "qwen-h5", "app"}:
         service.seed(SAMPLE_DATA_PATH)
-        from .qwen_chatbi import run_qwen_chat, run_qwen_web
+        from .qwen_chatbi import run_qwen_chat, run_qwen_h5, run_qwen_web
 
         if args.command == "qwen-chat":
             run_qwen_chat(service, QWEN_MODEL)
         elif args.command == "qwen-web":
             run_qwen_web(service, QWEN_MODEL, WEB_HOST, WEB_PORT)
+        elif args.command == "qwen-h5":
+            run_qwen_h5(service, QWEN_MODEL, H5_HOST, H5_PORT)
         else:
-            from .app import run_app
+            from .app import run_dual_ui_app
 
-            run_app(service, HOST, PORT, WEB_HOST, WEB_PORT, QWEN_MODEL)
+            run_dual_ui_app(
+                service,
+                HOST,
+                PORT,
+                WEB_HOST,
+                WEB_PORT,
+                H5_HOST,
+                H5_PORT,
+                QWEN_MODEL,
+            )
     else:
         service.seed(SAMPLE_DATA_PATH)
         serve(service, HOST, PORT)

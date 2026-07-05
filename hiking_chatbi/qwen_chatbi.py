@@ -134,7 +134,9 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     `recommend_hiking_routes`，未提供的筛选条件使用系统默认值。
 31. 用户已经提供出发日期或相对日期、说明需要适合新手或入门的路线并明确要求推荐时，信息已经足够。
     不得再询问强度、经验、距离、爬升或难度；完成日期和节假日解析后，直接使用保守的 `easy`
-    最高难度调用 `recommend_hiking_routes`。"""
+    最高难度调用 `recommend_hiking_routes`。
+32. 用户点名已审核目的地并询问天气，但没有提供具体或相对出发日期时，必须先询问用户计划哪一天出发。
+    日期确认前不得调用任何工具，不得使用今天、周末或其他默认日期，也不得追加询问交通方式或路线偏好。"""
 
 
 SYSTEM_PROMPT += """
@@ -601,10 +603,25 @@ def build_interview_guidance(
         expression in latest_user_content
         for expression in ("周六", "周日", "周末", "明天", "后天")
     )
+    has_explicit_date = has_relative_date or re.search(
+        r"\d{4}-\d{1,2}-\d{1,2}|\d{1,2}月\d{1,2}[日号]",
+        latest_user_content,
+    ) is not None
     has_weather_request = "天气" in latest_user_content
     has_group_tour_request = any(
         expression in latest_user_content for expression in ("报团", "抱团")
     )
+    if (
+        (matched_route_id is not None or matched_destination_terms)
+        and has_weather_request
+        and not has_explicit_date
+    ):
+        return (
+            "用户点名了已审核目的地并询问天气，但没有提供具体或相对出发日期。"
+            "本轮只询问用户计划哪一天出发，例如：‘你计划哪一天去巴朗山？’"
+            "在用户确认具体出发日期前，不得调用任何工具，不得查询或概括天气，"
+            "不得使用默认日期，也不得询问交通方式、体力、经验或其他路线偏好。"
+        )
     if (
         matched_route_id is not None
         and has_relative_date
@@ -627,10 +644,6 @@ def build_interview_guidance(
             "任一步失败都要停止依赖该结果的后续调用，不得自行推算日期、星期或日期类型，"
             "也不得把自然语言目的地名称当作 route_id。全部成功后再统一回答天气和报团链接。"
         )
-    has_explicit_date = has_relative_date or re.search(
-        r"\d{4}-\d{1,2}-\d{1,2}|\d{1,2}月\d{1,2}日",
-        latest_user_content,
-    ) is not None
     has_recommendation_request = "推荐" in latest_user_content
     if has_explicit_date and scenery_preferences and has_recommendation_request:
         scenery_text = "、".join(scenery_preferences)
@@ -1185,7 +1198,7 @@ class RecommendHikingRoutesTool(HikingTool):
             "name": "scenery_preferences",
             "type": "array",
             "items": {"type": "string"},
-            "description": "风景偏好，例如森林、雪山、湖泊",
+            "description": "风景偏好，例如森林、雪山、湖泊、草甸",
         },
         {"name": "is_holiday", "type": "boolean", "description": "是否为节假日"},
     ]
@@ -1455,7 +1468,7 @@ def build_qwen_agent(service: ChatBIService, model: str = QWEN_MODEL) -> GuidedH
             "model_type": "qwen_dashscope",
             "generate_cfg": generate_cfg,
         },
-        name="成都徒步 ChatBI 助手",
+        name="徒步助手",
         description="根据用户要求查询和推荐成都周边徒步路线",
         system_message=system_message,
         function_list=[
@@ -1514,13 +1527,15 @@ def run_qwen_web(
     model: str = QWEN_MODEL,
     host: str | None = None,
     port: int | None = None,
-) -> None:
+    *,
+    prevent_thread_lock: bool = False,
+) -> Any:
     """Run the Qwen Agent demonstration WebUI."""
     require_dashscope_api_key()
     logger.info("Qwen Agent WebUI 正在启动 host=%s port=%s model=%s", host, port, model)
     from qwen_agent.gui import WebUI
 
-    WebUI(
+    return WebUI(
         build_qwen_agent(service, model),
         chatbot_config={
             **WEB_CHATBOT_CONFIG,
@@ -1530,5 +1545,35 @@ def run_qwen_web(
                 "本周日出发，有草甸的徒步路线推荐",
                 "周六想去爬巴朗山，不知道天气怎么样",
             ]
+        },
+    ).run(
+        server_name=host,
+        server_port=port,
+        prevent_thread_lock=prevent_thread_lock,
+    )
+
+
+def run_qwen_h5(
+    service: ChatBIService,
+    model: str = QWEN_MODEL,
+    host: str | None = None,
+    port: int | None = None,
+) -> Any:
+    """Run the independent mobile H5 chat page."""
+    require_dashscope_api_key()
+    logger.info("Qwen Agent H5 正在启动 host=%s port=%s model=%s", host, port, model)
+    from qwen_agent.gui import H5WebUI
+
+    return H5WebUI(
+        build_qwen_agent(service, model),
+        chatbot_config={
+            **WEB_CHATBOT_CONFIG,
+            "header.title": "成都徒步ChatBI助手",
+            "header.subtitle": "成都周边徒步路线、天气与出行助手",
+            "prompt.suggestions": [
+                "本周六从成都出发，推荐适合新手的路线",
+                "路程不超过10公里或者爬升不超过 800 米的路线",
+                "想去爬巴朗山，不知道天气怎么样",
+            ],
         },
     ).run(server_name=host, server_port=port)

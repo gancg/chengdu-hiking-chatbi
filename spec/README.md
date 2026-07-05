@@ -47,6 +47,7 @@ python -m hiking_chatbi serve
 python -m hiking_chatbi import data/sample_routes.json
 python -m hiking_chatbi qwen-chat
 python -m hiking_chatbi qwen-web
+python -m hiking_chatbi qwen-h5
 python -m hiking_chatbi app
 ```
 
@@ -55,7 +56,8 @@ python -m hiking_chatbi app
 - `import <path>`：验证并导入指定 JSON 文件。
 - `qwen-chat`：启动 Qwen Agent 终端连续对话。
 - `qwen-web`：启动 Qwen Agent 自带的 WebUI 演示界面。
-- `app`：一键启动后台 HTTP API 和前台 Qwen WebUI；前台退出时自动关闭后台。
+- `qwen-h5`：启动独立的移动端 H5 对话界面。
+- `app`：一键启动后台 HTTP API、WebUI 和移动端 H5；H5 退出时自动关闭其余服务。
 
 ### 3.3 环境配置
 
@@ -67,6 +69,8 @@ python -m hiking_chatbi app
 | `CHATBI_PORT` | `8000` | HTTP 服务监听端口 |
 | `CHATBI_WEB_HOST` | `127.0.0.1` | Qwen WebUI 监听地址 |
 | `CHATBI_WEB_PORT` | `7860` | Qwen WebUI 监听端口 |
+| `CHATBI_H5_HOST` | `127.0.0.1` | 移动端 H5 监听地址 |
+| `CHATBI_H5_PORT` | `7861` | 移动端 H5 监听端口 |
 | `DASHSCOPE_API_KEY` | 无 | Qwen Agent 调用 DashScope 所需密钥 |
 | `CHATBI_QWEN_MODEL` | `qwen-plus` | Qwen Agent 使用的模型 |
 
@@ -76,6 +80,7 @@ python -m hiking_chatbi app
 
 - 后台 API：`http://127.0.0.1:8000`
 - 前台 WebUI：`http://127.0.0.1:7860`
+- 移动端 H5：`http://127.0.0.1:7861`
 
 ### 3.4 Qwen Agent ChatBI
 

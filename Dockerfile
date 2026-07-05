@@ -8,6 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CHATBI_PORT=8000 \
     CHATBI_WEB_HOST=0.0.0.0 \
     CHATBI_WEB_PORT=7860 \
+    CHATBI_H5_HOST=0.0.0.0 \
+    CHATBI_H5_PORT=7861 \
     CHATBI_DB_PATH=/app/runtime/chatbi.db
 
 WORKDIR /app
@@ -25,7 +27,7 @@ COPY .env.example ./
 
 RUN mkdir -p /app/runtime
 
-EXPOSE 8000 7860
+EXPOSE 8000 7860 7861
 VOLUME ["/app/runtime"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

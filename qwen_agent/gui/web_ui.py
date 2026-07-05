@@ -16,7 +16,7 @@ import os
 import pprint
 import re
 from html import escape
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from qwen_agent import Agent, MultiAgentHub
 from qwen_agent.agents.user_agent import PENDING_USER_INPUT
@@ -92,6 +92,7 @@ class WebUI:
             server_port: int = None,
             concurrency_limit: int = 10,
             enable_mention: bool = False,
+            prevent_thread_lock: bool = False,
             **kwargs):
         self.run_kwargs = kwargs
 
@@ -227,9 +228,13 @@ class WebUI:
 
             demo.load(None)
 
-        demo.queue(default_concurrency_limit=concurrency_limit).launch(share=share,
-                                                                       server_name=server_name,
-                                                                       server_port=server_port)
+        demo.queue(default_concurrency_limit=concurrency_limit).launch(
+            share=share,
+            server_name=server_name,
+            server_port=server_port,
+            prevent_thread_lock=prevent_thread_lock,
+        )
+        return demo
 
     def change_agent(self, agent_selector):
         yield agent_selector, self._create_agent_info_block(agent_selector), self._create_agent_plugins_block(

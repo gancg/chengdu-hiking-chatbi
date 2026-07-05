@@ -14,10 +14,12 @@
 
 from qwen_agent.gui.gradio_dep import gr, mgr, ms
 from qwen_agent.gui.web_ui import WebUI
+from qwen_agent.gui.h5_ui import H5WebUI
 
 __all__ = [
     'gr',
     'ms',
     'mgr',
     'WebUI',
+    'H5WebUI',
 ]
