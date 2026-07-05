@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
+from collections.abc import Iterator
 from html import escape
 from typing import Any, List
 
@@ -88,10 +90,94 @@ def _trim_h5_history(
     return trimmed
 
 
+def _h5_message_text(message: dict[str, Any]) -> str:
+    """提取 H5 历史消息中的纯文本内容。"""
+    content = message.get("content", "")
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+    return " ".join(
+        str(item.get("text", ""))
+        for item in content
+        if isinstance(item, dict) and item.get("text")
+    )
+
+
+def _h5_transport_choice(
+    user_content: str, previous_assistant_content: str
+) -> str | None:
+    """识别用户唯一明确选择的自驾或报团方式。"""
+    normalized = user_content.replace(" ", "")
+    modes = {
+        mode
+        for labels, mode in ((('自驾',), "self_drive"), (("报团", "抱团"), "group_tour"))
+        if any(label in normalized for label in labels)
+    }
+    if len(modes) == 1:
+        mode = next(iter(modes))
+        labels = ("自驾",) if mode == "self_drive" else ("报团", "抱团")
+        if not any(
+            re.search(rf"(?:不|不要|不想|并非|不是|取消).{{0,2}}{label}", normalized)
+            for label in labels
+        ):
+            return mode
+
+    selected = re.fullmatch(r"\s*(\d+)\s*", user_content)
+    if selected is None:
+        return None
+    selected_number = int(selected.group(1))
+    option_markers = list(
+        re.finditer(r"(?<!\d)(\d+)\s*[.、．)）:：]\s*", previous_assistant_content)
+    )
+    for index, marker in enumerate(option_markers):
+        if int(marker.group(1)) != selected_number:
+            continue
+        end = (
+            option_markers[index + 1].start()
+            if index + 1 < len(option_markers)
+            else len(previous_assistant_content)
+        )
+        option = previous_assistant_content[marker.end():end]
+        option_modes = {
+            mode
+            for label, mode in (("自驾", "self_drive"), ("报团", "group_tour"), ("抱团", "group_tour"))
+            if label in option
+        }
+        return next(iter(option_modes)) if len(option_modes) == 1 else None
+    return None
+
+
+def _has_completed_h5_transport_confirmation(
+    history: list[dict[str, Any]],
+) -> bool:
+    """判断最近一次明确出行方式选择是否已经得到助手文本回答。"""
+    previous_assistant_content = ""
+    is_waiting_for_assistant = False
+    has_completed_confirmation = False
+    for message in history:
+        role = message.get("role")
+        content = _h5_message_text(message)
+        if role == "assistant":
+            if is_waiting_for_assistant and content.strip():
+                has_completed_confirmation = True
+                is_waiting_for_assistant = False
+            previous_assistant_content = content
+            continue
+        if role != "user":
+            continue
+        if _h5_transport_choice(content, previous_assistant_content) is not None:
+            has_completed_confirmation = False
+            is_waiting_for_assistant = True
+    return has_completed_confirmation
+
+
 def save_h5_history(history: Any, now: float | None = None) -> dict[str, Any]:
-    """构建带时间、版本和容量限制的浏览器聊天缓存。"""
-    saved_at = int(time.time() if now is None else now)
+    """仅为已回答的明确出行方式选择构建浏览器聊天缓存。"""
     normalized = _normalize_h5_history(history)
+    if not _has_completed_h5_transport_confirmation(normalized):
+        return empty_h5_history_state()
+    saved_at = int(time.time() if now is None else now)
     return {
         "version": H5_HISTORY_VERSION,
         "saved_at": saved_at,
@@ -133,6 +219,8 @@ def restore_h5_history(
         if saved_at <= 0 or current_time - saved_at > H5_HISTORY_TTL_SECONDS:
             raise ValueError("H5 聊天缓存已过期")
         history = _normalize_h5_history(state.get("history"))
+        if not _has_completed_h5_transport_confirmation(history):
+            raise ValueError("H5 聊天缓存缺少已回答的明确出行方式")
         if _history_state_size(history, int(saved_at)) > H5_HISTORY_MAX_BYTES:
             raise ValueError("H5 聊天缓存超过容量限制")
         if len(history) > H5_HISTORY_MAX_MESSAGES:
@@ -189,6 +277,34 @@ H5_PAGE_JS = r"""
 
 class H5WebUI(WebUI):
     """Mobile-first chat page with no agent sidebar or plugin controls."""
+
+    def run_h5_agent_safely(
+        self, chatbot: list[Any], history: list[Any]
+    ) -> Iterator[tuple[list[Any], list[Any]]]:
+        """运行 H5 Agent，并在模型失败时返回可继续交互的组件状态。"""
+        try:
+            yield from self.agent_run(chatbot, history)
+        except Exception as exc:
+            logger.warning(
+                "H5 模型调用失败，已恢复页面交互 exception_type=%s",
+                type(exc).__name__,
+            )
+            error_message = "服务暂时无法完成回答，请稍后重新提交这个问题。"
+            agent_count = max(1, len(self.agent_list))
+            if chatbot:
+                chatbot[-1][1] = [error_message] + [None] * (agent_count - 1)
+            else:
+                chatbot.append([None, [error_message] + [None] * (agent_count - 1)])
+            agent_name = (
+                getattr(self.agent_list[0], "name", None)
+                if self.agent_list
+                else None
+            )
+            error_response = {"role": "assistant", "content": error_message}
+            if agent_name:
+                error_response["name"] = agent_name
+            history.append(error_response)
+            yield chatbot, history
 
     def run(
         self,
@@ -279,7 +395,7 @@ class H5WebUI(WebUI):
                         queue=False,
                     )
                     input_promise = input_promise.then(
-                        self.agent_run,
+                        self.run_h5_agent_safely,
                         [chatbot, history],
                         [chatbot, history],
                     )

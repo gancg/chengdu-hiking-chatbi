@@ -2,12 +2,37 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from qwen_agent.gui.h5_ui import H5WebUI
+from qwen_agent.gui.web_ui import WebUI
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class QwenH5UiTest(unittest.TestCase):
+    def test_h5_model_failure_returns_retry_message_instead_of_raising(self) -> None:
+        """DashScope 最终失败时，H5 应结束生成并允许事件链继续解锁输入框。"""
+        ui = object.__new__(H5WebUI)
+        ui.agent_list = [SimpleNamespace(name="徒步助手")]
+        chatbot = [[SimpleNamespace(text="周末想徒步"), None]]
+        history = [{"role": "user", "content": "周末想徒步"}]
+
+        def broken_agent_run(*_args, **_kwargs):
+            raise ConnectionError("upstream disconnected")
+            yield
+
+        with patch.object(WebUI, "agent_run", broken_agent_run):
+            results = list(ui.run_h5_agent_safely(chatbot, history))
+
+        self.assertEqual(1, len(results), "失败时必须正常产出一次组件更新")
+        updated_chatbot, updated_history = results[0]
+        self.assertIn("暂时无法完成回答", str(updated_chatbot), "页面必须展示可重试提示")
+        self.assertEqual("assistant", updated_history[-1]["role"], "失败轮次必须由助手消息结束")
+        self.assertNotIn("upstream disconnected", str(updated_chatbot), "不得向用户暴露上游异常")
+
     def test_h5_uses_an_independent_minimal_component_tree(self) -> None:
         """H5 应使用独立页面，并且不创建助手侧栏和插件列表。"""
         source = (ROOT / "qwen_agent" / "gui" / "h5_ui.py").read_text(encoding="utf-8")
