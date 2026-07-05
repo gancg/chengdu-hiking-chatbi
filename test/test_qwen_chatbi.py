@@ -98,6 +98,61 @@ class QwenChatBITest(unittest.TestCase):
                 messages=[{"role": "user", "content": "我们0个人去徒步"}],
             )
 
+    def test_recommend_tool_removes_unfounded_optional_constraints(self) -> None:
+        """模型不得补造用户未表达的预算、距离、爬升和单程车程限制。"""
+        messages = [
+            {"role": "user", "content": "本周日出发，有草甸的徒步路线推荐"},
+            {"role": "assistant", "content": "请确认新的未来日期"},
+            {"role": "user", "content": "下周日"},
+            {"role": "assistant", "content": "1. 轻松 2. 适中 3. 挑战"},
+            {"role": "user", "content": "2"},
+        ]
+        with patch.object(self.service, "recommendations", return_value=[]) as call:
+            RecommendHikingRoutesTool(self.service).call(
+                {
+                    "departure_at": self.departure,
+                    "max_distance_km": 20,
+                    "max_ascent_m": 1000,
+                    "max_budget_cny": 500,
+                    "max_one_way_minutes": 120,
+                    "max_difficulty": "moderate",
+                },
+                messages=messages,
+            )
+
+        normalized_query = call.call_args.args[0]
+        for field in (
+            "max_distance_km",
+            "max_ascent_m",
+            "max_budget_cny",
+            "max_one_way_minutes",
+        ):
+            self.assertNotIn(field, normalized_query, f"不得保留模型补造的条件：{field}")
+        self.assertEqual("moderate", normalized_query["max_difficulty"])
+
+    def test_recommend_tool_keeps_user_grounded_optional_constraints(self) -> None:
+        """用户明确给出的预算、距离、爬升和单程车程限制必须保留。"""
+        with patch.object(self.service, "recommendations", return_value=[]) as call:
+            RecommendHikingRoutesTool(self.service).call(
+                {
+                    "departure_at": self.departure,
+                    "max_distance_km": 15,
+                    "max_ascent_m": 800,
+                    "max_budget_cny": 300,
+                    "max_one_way_minutes": 180,
+                },
+                messages=[{
+                    "role": "user",
+                    "content": "距离15公里内，爬升不超过800米，预算300元，单程最多180分钟",
+                }],
+            )
+
+        normalized_query = call.call_args.args[0]
+        self.assertEqual(15, normalized_query["max_distance_km"])
+        self.assertEqual(800, normalized_query["max_ascent_m"])
+        self.assertEqual(300, normalized_query["max_budget_cny"])
+        self.assertEqual(180, normalized_query["max_one_way_minutes"])
+
     def test_recommend_tool_rejects_disabled_public_transit(self) -> None:
         """模型暂时不得通过推荐工具选择公共交通。"""
         with self.assertRaisesRegex(ValueError, "公共交通出行方式暂未开放"):
@@ -552,6 +607,39 @@ class QwenChatBITest(unittest.TestCase):
             "最终响应应保留先前流片段中的问题",
         )
 
+    def test_agent_waits_after_direct_reply_instruction_without_question_mark(self) -> None:
+        """“直接回复数字”即使没有问号，也必须等待用户回答。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        choice_output = [Message(
+            role=ASSISTANT,
+            content="这次徒步强度你更倾向：\n1. 适中\n2. 挑战\n直接回复 1 或 2 即可。",
+        )]
+        later_tool_output = [Message(
+            role=ASSISTANT,
+            content="",
+            function_call={"name": "recommend_hiking_routes", "arguments": "{}"},
+        )]
+
+        with (
+            patch.object(
+                agent,
+                "_call_llm",
+                return_value=iter([choice_output, later_tool_output]),
+            ),
+            patch.object(agent, "_call_tool") as call_tool,
+        ):
+            responses = list(agent._run_one_tool_at_a_time([], "zh"))
+
+        call_tool.assert_not_called()
+        self.assertTrue(
+            any(
+                "直接回复 1 或 2" in message.content
+                for response in responses
+                for message in response
+            ),
+            "应保留等待用户选择的提示",
+        )
+
     def test_interview_guidance_changes_with_conversation_rounds(self) -> None:
         """访谈提示应随用户轮次从探索逐步进入推荐阶段。"""
         first_round = build_interview_guidance([
@@ -692,6 +780,27 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("直接调用 recommend_hiking_routes", guidance)
         self.assertIn("不得再询问体力、距离、爬升或难度", guidance)
 
+    def test_date_and_scenery_intent_survives_follow_up_turns(self) -> None:
+        """用户补充日期和回复编号后，先前的草甸推荐意图不得丢失。"""
+        routes = self.service.routes()
+        messages = [
+            {"role": "user", "content": "本周日出发，有草甸的徒步路线推荐"},
+            {"role": "assistant", "content": "请确认新的未来日期"},
+            {"role": "user", "content": "下周日"},
+            {"role": "assistant", "content": "1. 轻松 2. 适中 3. 挑战"},
+            {"role": "user", "content": "2"},
+        ]
+
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("风景偏好：草甸", guidance)
+        self.assertIn("直接调用 recommend_hiking_routes", guidance)
+        self.assertIn("不得再询问体力、距离、爬升或难度", guidance)
+
     def test_date_and_beginner_request_recommends_without_follow_up(self) -> None:
         """日期和新手要求均明确时，应按保守难度直接推荐。"""
         routes = self.service.routes()
@@ -718,6 +827,49 @@ class QwenChatBITest(unittest.TestCase):
 
         self.assertEqual("easy", call.call_args.args[0]["max_difficulty"])
         self.assertNotIn("命中已审核路线", guidance)
+
+    def test_date_and_challenge_request_recommends_without_follow_up(self) -> None:
+        """日期和高难度偏好均明确时，应直接按 hard 推荐而非重复询问。"""
+        routes = self.service.routes()
+        messages = [{
+            "role": "user",
+            "content": "下周五想去徒步，想选难一些的路线，有推荐吗",
+        }]
+
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertIn("挑战偏好", guidance)
+        self.assertIn("直接调用 recommend_hiking_routes", guidance)
+        self.assertIn("max_difficulty=hard", guidance)
+        self.assertIn("不得再询问强度", guidance)
+
+        with patch.object(self.service, "recommendations", return_value=[]) as call:
+            RecommendHikingRoutesTool(self.service).call(
+                {"departure_at": self.departure},
+                messages=messages,
+            )
+
+        self.assertEqual("hard", call.call_args.args[0]["max_difficulty"])
+
+    def test_negative_difficulty_expression_is_not_challenge_preference(self) -> None:
+        """“不要太难”不得被错误映射为 hard。"""
+        routes = self.service.routes()
+        messages = [{
+            "role": "user",
+            "content": "下周五想去徒步，不要太难，有推荐吗",
+        }]
+
+        guidance = build_interview_guidance(
+            messages,
+            build_route_search_terms(routes),
+            routes,
+        )
+
+        self.assertNotIn("max_difficulty=hard", guidance)
 
     def test_agent_uses_guided_interview_prompt(self) -> None:
         """Qwen Agent 系统提示应允许带假设给出初步推荐。"""
@@ -878,6 +1030,105 @@ class QwenChatBITest(unittest.TestCase):
         self.assertEqual("2026-07-04", result["candidates"][0]["date"])
         self.assertEqual("星期六", result["candidates"][0]["weekday_name"])
 
+    def test_departure_date_tool_resolves_next_wednesday_in_chinese_natural_week(self) -> None:
+        """中文“下周三”应表示下一自然周的星期三。"""
+        result = json.loads(ResolveDepartureDateTool(self.service).call({
+            "expression": "下周三",
+            "reference_date": "2026-07-05",
+        }))
+
+        self.assertEqual("下周三", result["expression"])
+        self.assertEqual(1, len(result["candidates"]))
+        self.assertEqual(
+            "2026-07-08",
+            result["candidates"][0]["date"],
+            "下周三必须按下一自然周解析，不得错误顺延到 2026-07-15",
+        )
+        self.assertEqual("星期三", result["candidates"][0]["weekday_name"])
+
+    def test_current_saturday_requires_future_departure_confirmation(self) -> None:
+        """当前为周六时选择本周六，必须确认新的未来出行时间。"""
+        current_time = datetime.fromisoformat("2026-07-04T11:00:00+08:00")
+
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "本周六想去徒步"}],
+            current_datetime=current_time,
+        )
+
+        self.assertIn("出发时间必须严格晚于当前时间", guidance, "未来时间是硬约束")
+        self.assertIn("本周六", guidance, "应说明有问题的原始时间表达")
+        self.assertIn("只确认新的未来出发时间", guidance, "本轮只能确认时间")
+        self.assertIn("不得调用任何工具", guidance, "时间无效时不得开始查询")
+        self.assertNotIn("recommend_hiking_routes", guidance, "不得提前推荐路线")
+
+    def test_past_explicit_date_requires_future_departure_confirmation(self) -> None:
+        """用户填写过去的明确日期时，必须要求改为未来时间。"""
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "2026-07-03 想去青城后山"}],
+            current_datetime=datetime.fromisoformat("2026-07-04T11:00:00+08:00"),
+        )
+
+        self.assertIn("2026-07-03", guidance)
+        self.assertIn("时间设置可能有问题", guidance)
+        self.assertIn("不得调用任何工具", guidance)
+
+    def test_future_relative_date_keeps_normal_interview(self) -> None:
+        """解析结果为未来日期时，应保持正常访谈流程。"""
+        guidance = build_interview_guidance(
+            [{"role": "user", "content": "下周六想去徒步"}],
+            current_datetime=datetime.fromisoformat("2026-07-04T11:00:00+08:00"),
+        )
+
+        self.assertNotIn("时间设置可能有问题", guidance, "未来日期不得被误判")
+        self.assertIn("探索阶段", guidance, "未来日期应继续现有流程")
+
+    def test_departure_date_tool_marks_today_for_confirmation(self) -> None:
+        """相对日期解析为今天时，应标记需要确认未来具体时间。"""
+        result = json.loads(ResolveDepartureDateTool(self.service).call({
+            "expression": "本周六",
+            "reference_date": "2026-07-04",
+        }))
+
+        candidate = result["candidates"][0]
+        self.assertTrue(candidate["is_not_after_reference_date"])
+        self.assertTrue(candidate["requires_future_time_confirmation"])
+
+    def test_today_future_clock_is_allowed_but_past_clock_is_blocked(self) -> None:
+        """当天具体时刻应按当前时间判断，未来时刻放行、过去时刻阻断。"""
+        current_time = datetime.fromisoformat("2026-07-04T11:00:00+08:00")
+
+        future_guidance = build_interview_guidance(
+            [{"role": "user", "content": "今天下午5点想去徒步"}],
+            current_datetime=current_time,
+        )
+        past_guidance = build_interview_guidance(
+            [{"role": "user", "content": "今天上午9点想去徒步"}],
+            current_datetime=current_time,
+        )
+
+        self.assertNotIn("时间设置可能有问题", future_guidance, "当天未来时刻应允许继续")
+        self.assertIn("时间设置可能有问题", past_guidance, "当天过去时刻必须重新确认")
+
+    def test_non_future_departure_bypasses_model_and_tools(self) -> None:
+        """不满足未来时间硬约束时，应直接确认，不调用模型或工具。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        agent.current_datetime_provider = lambda: datetime.fromisoformat(
+            "2026-07-04T11:00:00+08:00"
+        )
+
+        with patch.object(agent, "_call_llm") as model_call:
+            responses = list(agent._run([
+                {"role": "user", "content": "本周六想去徒步"},
+            ]))
+
+        model_call.assert_not_called()
+        self.assertEqual(1, len(responses), "应直接返回一次确认回复")
+        response_content = responses[0][0].content
+        self.assertIn("本周六", response_content, "必须指出用户填写的具体时间内容")
+        self.assertIn("早于或等于当前时间", response_content, "必须明确解释时间错在哪里")
+        self.assertIn("晚于当前时间", response_content)
+        self.assertIn("请确认", response_content)
+
     def test_agent_prompt_requires_relative_date_tool(self) -> None:
         """Qwen Agent 不得自行推算本周末等相对日期。"""
         agent = build_qwen_agent(self.service, model="qwen-plus")
@@ -886,6 +1137,13 @@ class QwenChatBITest(unittest.TestCase):
         self.assertIn("必须先调用相对出发日期查询工具", agent.system_message)
         self.assertIn("不得自行推算具体日期", agent.system_message)
         self.assertIn("不得在调用工具前先输出", agent.system_message)
+
+    def test_agent_prompt_does_not_rename_plain_weekday_as_current_week(self) -> None:
+        """助手不得把用户说的“周六”擅自改写成含义不同的“本周六”。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+
+        self.assertIn("不得把无前缀的“周六”改写成“本周六”", agent.system_message)
+        self.assertIn("最近一个可出发的周六", agent.system_message)
 
     def test_agent_prompt_requires_tool_weekday_when_date_weekday_conflicts(self) -> None:
         """日期与星期冲突时，Qwen Agent 应以工具返回结果为准。"""

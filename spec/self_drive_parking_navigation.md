@@ -32,6 +32,14 @@
 - 仅当请求的 `transport_modes` 明确包含 `self_drive` 时，推荐结果包含
   `parking_points`；未指定交通方式或选择其他方式时不推断用户自驾。
 - 每个停车点返回原始结构化信息，并生成高德地图与百度地图 HTTPS 导航链接。
+- 两家地图使用各自的驾车参数，不得混用：高德 URI 使用 `mode=car`，百度 URI 使用
+  `mode=driving`。即使高德当前缺省模式为驾车，也必须显式传入 `mode=car`，避免默认值变化。
+- 停车点坐标为 GCJ-02：高德使用 `coordinate=gaode`，百度使用 `coord_type=gcj02`，
+  不得省略坐标系参数造成位置偏移。
 - 没有已审核停车点时返回空数组，不使用徒步起点坐标兜底，也不虚构停车位置。
 - Qwen 面向自驾用户展示停车点名称、导航链接和停车说明，并提醒以现场管制为准。
 
+## 验收
+
+- 高德链接使用 `/navigation`，包含 `mode=car`、`coordinate=gaode` 和 `callnative=1`。
+- 百度链接使用 `/direction`，包含 `mode=driving`、`coord_type=gcj02` 和 `output=html`。

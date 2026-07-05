@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-labelledby="title desc">
+  <title>成都徒步 ChatBI 系统架构</title>
+  <desc>用户通过终端、WebUI、移动 H5 或 HTTP API 访问系统。Qwen Agent 通过受控业务工具调用 ChatBIService，服务层连接推荐规则、SQLite、天气服务和商团平台。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7fbf8"/><stop offset="1" stop-color="#edf5f2"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#16352d" flood-opacity=".12"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#66837b"/></marker>
+    <style>
+      .label{font-family:"Microsoft YaHei","PingFang SC",sans-serif;fill:#173a32;text-anchor:middle}.small{font-size:16px}.normal{font-size:19px;font-weight:600}.title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#668078}.edge{stroke:#66837b;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.box{stroke-width:2;rx:16;filter:url(#shadow)}
+    </style>
+  </defs>
+  <rect width="1400" height="760" fill="url(#bg)" rx="22"/>
+  <text x="700" y="50" class="label title">成都徒步 ChatBI · 系统架构</text>
+  <text x="700" y="79" class="label sub">自然语言交互与可验证业务事实分层</text>
+
+  <rect x="42" y="120" width="210" height="560" rx="22" fill="#fff" stroke="#c9ddd6" stroke-width="2"/>
+  <text x="147" y="155" class="label normal">访问入口</text>
+  <g class="box" fill="#e9f6ef" stroke="#52a67f">
+    <rect x="72" y="190" width="150" height="64"/><rect x="72" y="290" width="150" height="64"/><rect x="72" y="390" width="150" height="64"/><rect x="72" y="490" width="150" height="64"/>
+  </g>
+  <text x="147" y="229" class="label normal">终端对话</text><text x="147" y="329" class="label normal">桌面 WebUI</text><text x="147" y="429" class="label normal">移动 H5</text><text x="147" y="529" class="label normal">HTTP API</text>
+  <text x="147" y="579" class="label sub">:8000 / :7860 / :7861</text>
+
+  <path class="edge" d="M222 222 H330 V292 H382"/><path class="edge" d="M222 322 H382"/><path class="edge" d="M222 422 H330 V352 H382"/><path class="edge" d="M222 522 H330 V565 H635"/>
+
+  <rect x="382" y="242" width="210" height="150" class="box" fill="#f0ebff" stroke="#8066c2"/>
+  <text x="487" y="296" class="label normal">Qwen Agent</text><text x="487" y="328" class="label small">理解需求 · 引导追问</text><text x="487" y="356" class="label small">组织回答 · 不直连数据</text>
+  <path class="edge" d="M592 317 H665"/>
+  <rect x="665" y="257" width="205" height="120" class="box" fill="#fff3d8" stroke="#d59b2b"/>
+  <text x="768" y="305" class="label normal">受控业务工具</text><text x="768" y="337" class="label small">推荐 / 天气 / 交通</text><text x="768" y="362" class="label small">停车 / 报团 / 日期</text>
+  <path class="edge" d="M768 377 V485"/>
+
+  <rect x="635" y="485" width="265" height="155" class="box" fill="#e3f1ff" stroke="#4d8ec6"/>
+  <text x="768" y="535" class="label normal">ChatBIService</text><text x="768" y="569" class="label small">统一业务服务门面</text><text x="768" y="598" class="label small">校验 · 编排 · 降级</text>
+
+  <path class="edge" d="M900 520 H1000 V170 H1052"/><path class="edge" d="M900 545 H1052"/><path class="edge" d="M900 575 H1000 V625 H1052"/><path class="edge" d="M900 605 H970 V715 H1260 V625"/>
+  <g class="box">
+    <rect x="1052" y="130" width="290" height="100" fill="#ecf8e8" stroke="#69a75b"/>
+    <rect x="1052" y="285" width="290" height="100" fill="#eef2f6" stroke="#7890a4"/>
+    <rect x="1052" y="440" width="290" height="100" fill="#e8f5ff" stroke="#5597c6"/>
+    <rect x="1052" y="595" width="290" height="100" fill="#fff0e7" stroke="#cf7c4d"/>
+  </g>
+  <text x="1197" y="173" class="label normal">推荐与费用规则</text><text x="1197" y="203" class="label small">过滤 · 评分 · 行程时间</text>
+  <text x="1197" y="328" class="label normal">SQLite</text><text x="1197" y="358" class="label small">审核路线 · 费用 · 反馈</text>
+  <text x="1197" y="483" class="label normal">和风天气</text><text x="1197" y="513" class="label small">天气预报 · 灾害预警</text>
+  <text x="1197" y="638" class="label normal">商团平台</text><text x="1197" y="668" class="label small">游侠客 · 大鹅 · 蜜多</text>
+
+  <rect x="382" y="500" width="180" height="125" class="box" fill="#f5f8f6" stroke="#7da091"/>
+  <text x="472" y="544" class="label normal">审核后的 JSON</text><text x="472" y="576" class="label small">校验与导入</text><path class="edge" d="M562 562 H635"/>
+</svg>

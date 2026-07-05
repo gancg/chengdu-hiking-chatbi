@@ -9,12 +9,12 @@ import uuid
 from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time as clock_time
 from pathlib import Path
 from typing import Any
 
 from qwen_agent.agents import Assistant
-from qwen_agent.llm.schema import FUNCTION, SYSTEM, Message
+from qwen_agent.llm.schema import ASSISTANT, FUNCTION, SYSTEM, Message
 from qwen_agent.tools.base import BaseTool
 
 from .config import QWEN_MAX_LLM_CALLS, QWEN_MAX_RETRIES, QWEN_MODEL, QWEN_SEED
@@ -71,11 +71,15 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     把复杂判断留给后台，面向用户只给简短选项。例如强度偏好应写成：
     “这次徒步强度你更倾向：1. 轻松 2. 适中 3. 挑战。直接回复 1、2 或 3 即可。”
     不得先展开长篇定义，再重复询问同一个问题。
-20. 用户使用“本周末”“下周末”“本周六”“明天”等相对日期表达时，必须先调用相对出发日期查询工具，
+20. 用户使用“本周末”“下周末”“本周六”“下周三”“明天”等相对日期表达时，必须先调用相对出发日期查询工具，
     并采用工具返回的候选日期、星期和日期类型；不得自行推算具体日期或星期。
     不得在调用工具前先输出自行推算的日期、星期或节假日判断。
     如果用户给出的日期和星期不一致，以工具返回的日期和星期为准，并向用户说明已按工具核验结果处理。
     如果工具返回多个仍可出发的候选日期且日期会影响结果，应使用数字编号请用户选择。
+    如果工具返回唯一且晚于当前时间的候选日期，应直接采用，不得再次询问用户该日期是否正确。
+    必须保留用户相对星期表达的原始前缀，不得把无前缀的“周六”改写成“本周六”或“下周六”。
+    无前缀“周六”解析到下一自然周时，应说“你说的周六按最近一个可出发的周六解析为具体日期”，
+    不得说“本周六是该日期”；“本周六”和“下周六”仍严格按自然周解释。
     用户只说“周末出行”“周末早上出发”等未明确具体日期的表达时，必须先询问清楚具体是哪一天。
     涉及交通、天气或路线推荐估算前，不得自行选择周六或周日作为出发日期。
 21. 所有路线推荐默认面向单日往返出行；调用推荐工具时未另有明确约束，应按单日路线理解。
@@ -143,6 +147,9 @@ SYSTEM_PROMPT += """
 32. 用户明确选择自驾后，如果停车点工具返回停车点，应展示首选停车点名称、导航链接和停车说明，并提醒用户以现场管制为准。没有已审核停车点但工具返回 `trailhead_reference` 时，应先明确暂无已审核停车场信息，再展示徒步起点参考；必须明确说明该位置仅供参考、不代表可以停车，请以现场停车标识和交通管制为准。不得把徒步起点称为推荐停车场，也不得自行编造停车位置。
 33. 用户已经选定具体路线并确认自驾后，工具必须严格串行调用：先调用 `estimate_route_weather`，天气成功返回后再调用 `find_route_parking_points`。不得先查停车点再查天气，也不得把两个工具并行调用。停车点有数据时展示名称、经纬度、非空停车说明和导航链接；无数据时按工具返回展示徒步起点参考及风险提示。不得凭模型知识补全。
 34. 已选路线的天气和停车点查询均完成后，必须直接输出最终路线总结。总结至少包含“路线信息”“天气信息”“推荐停车场”三部分：路线信息包含名称、起终点、距离、爬升、预计徒步时长、难度、设施和风险；天气信息包含官方预警、温度、天气现象和来源；推荐停车场包含名称、经纬度、停车说明和导航链接。工具未返回的内容必须明确说明暂无数据，不得自行补全。
+35. 出发时间必须严格晚于当前本地时间，这是所有路线推荐、天气和交通查询的硬约束。日期已经过去，
+    或日期为今天但用户没有提供能够验证为未来的具体时刻时，必须停止工具调用，只确认新的未来出发时间；
+    不得替用户顺延日期，不得使用默认出发时间，也不得同时询问其他偏好。
 """
 
 
@@ -168,7 +175,26 @@ def _requests_user_input(content: str) -> bool:
         return False
     return "？" in normalized or "?" in normalized or any(
         marker in normalized
-        for marker in ("请回复", "请选择", "请告诉我", "请确认")
+        for marker in ("请回复", "直接回复", "请选择", "请告诉我", "请确认")
+    )
+
+
+def _has_challenge_preference(content: str) -> bool:
+    """判断用户是否明确希望选择较高难度，并排除常见否定表达。"""
+    normalized = content.replace(" ", "")
+    negative_markers = (
+        "不要太难",
+        "不想太难",
+        "不能太难",
+        "别太难",
+        "不要难的",
+        "不选难的",
+    )
+    if any(marker in normalized for marker in negative_markers):
+        return False
+    return any(
+        marker in normalized
+        for marker in ("难一些", "难一点", "挑战", "高难度", "难度较高")
     )
 
 
@@ -383,6 +409,37 @@ def _remove_unfounded_invalid_counts(
             query.pop(field)
 
 
+def _remove_unfounded_optional_constraints(
+    query: dict[str, Any],
+    user_content: str,
+) -> None:
+    """删除模型生成、但在用户原话中找不到依据的数值筛选条件。"""
+    if not user_content.strip():
+        return
+    evidence_patterns = {
+        "max_distance_km": (
+            r"(?:距离|路程|徒步).{0,12}\d+(?:\.\d+)?\s*(?:公里|千米|km)"
+            r"|\d+(?:\.\d+)?\s*(?:公里|千米|km).{0,8}(?:以内|内|以下|距离|路程)"
+        ),
+        "max_ascent_m": (
+            r"(?:爬升|累计爬升).{0,12}\d+(?:\.\d+)?\s*(?:米|m)"
+            r"|\d+(?:\.\d+)?\s*(?:米|m).{0,8}(?:爬升|累计爬升)"
+        ),
+        "max_budget_cny": (
+            r"(?:预算|费用|花费).{0,12}\d+(?:\.\d+)?\s*(?:元|块|人民币)?"
+            r"|\d+(?:\.\d+)?\s*(?:元|块|人民币).{0,8}(?:预算|以内|内|以下)"
+        ),
+        "max_one_way_minutes": (
+            r"(?:单程|车程|交通时间).{0,12}\d+(?:\.\d+)?\s*(?:分钟|小时)"
+            r"|\d+(?:\.\d+)?\s*(?:分钟|小时).{0,8}(?:单程|车程|交通)"
+        ),
+    }
+    normalized_content = user_content.lower()
+    for field, pattern in evidence_patterns.items():
+        if field in query and re.search(pattern, normalized_content) is None:
+            query.pop(field)
+
+
 def _resolve_numbered_choice(
     content: str,
     previous_assistant_content: str,
@@ -574,10 +631,105 @@ def build_public_holiday_guidance() -> str:
     return "\n".join(lines)
 
 
+def _extract_departure_clock(content: str) -> clock_time | None:
+    """从用户文本提取可明确判断先后的 24 小时或中文时刻。"""
+    colon_match = re.search(r"(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)", content)
+    if colon_match:
+        return clock_time(int(colon_match.group(1)), int(colon_match.group(2)))
+
+    chinese_match = re.search(
+        r"(上午|早上|下午|晚上)(\d{1,2})点(?:(半)|(\d{1,2})分?)?",
+        content,
+    )
+    if not chinese_match:
+        return None
+    period, hour_text, half, minute_text = chinese_match.groups()
+    hour = int(hour_text)
+    if not 1 <= hour <= 12:
+        return None
+    if period in ("下午", "晚上") and hour < 12:
+        hour += 12
+    if period in ("上午", "早上") and hour == 12:
+        hour = 0
+    minute = 30 if half else int(minute_text or 0)
+    if minute > 59:
+        return None
+    return clock_time(hour, minute)
+
+
+def _build_non_future_departure_guidance(
+    content: str, current_datetime: datetime
+) -> str | None:
+    """若用户时间无法满足严格未来约束，返回阻断后续工具的确认策略。"""
+    current_date = current_datetime.date()
+    selected_expression: str | None = None
+    selected_date: date | None = None
+
+    iso_datetime_match = re.search(
+        r"\d{4}-\d{1,2}-\d{1,2}T\d{1,2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})?",
+        content,
+    )
+    if iso_datetime_match:
+        selected_expression = iso_datetime_match.group(0)
+        parsed_datetime = datetime.fromisoformat(selected_expression.replace("Z", "+00:00"))
+        if parsed_datetime.tzinfo is None and current_datetime.tzinfo is not None:
+            parsed_datetime = parsed_datetime.replace(tzinfo=current_datetime.tzinfo)
+        if parsed_datetime > current_datetime:
+            return None
+        selected_date = parsed_datetime.date()
+    else:
+        relative_matches = re.findall(
+            r"本周末|下周末|[本下]?周[一二三四五六日天]|今天|明天|后天",
+            content,
+        )
+        unique_relative = list(dict.fromkeys(relative_matches))
+        if len(unique_relative) == 1:
+            selected_expression = unique_relative[0]
+            candidates = resolve_departure_date(
+                selected_expression, current_date
+            )["candidates"]
+            if len(candidates) == 1:
+                selected_date = date.fromisoformat(candidates[0]["date"])
+
+        if selected_date is None:
+            iso_date_match = re.search(r"\d{4}-\d{1,2}-\d{1,2}", content)
+            chinese_date_match = re.search(r"(\d{1,2})月(\d{1,2})[日号]", content)
+            if iso_date_match:
+                selected_expression = iso_date_match.group(0)
+                selected_date = date.fromisoformat(selected_expression)
+            elif chinese_date_match:
+                selected_expression = chinese_date_match.group(0)
+                selected_date = date(
+                    current_date.year,
+                    int(chinese_date_match.group(1)),
+                    int(chinese_date_match.group(2)),
+                )
+
+        if selected_date is None or selected_date > current_date:
+            return None
+        if selected_date == current_date:
+            selected_clock = _extract_departure_clock(content)
+            if selected_clock is not None:
+                selected_datetime = datetime.combine(
+                    selected_date, selected_clock, tzinfo=current_datetime.tzinfo
+                )
+                if selected_datetime > current_datetime:
+                    return None
+
+    return (
+        f"用户填写的出发时间“{selected_expression}”不满足未来出行硬约束，时间设置可能有问题。"
+        "出发时间必须严格晚于当前时间。本轮只确认新的未来出发时间，且每轮只问一个问题。"
+        "明确提醒用户检查日期或时刻，并询问计划改为哪一天、几点出发。"
+        "确认有效未来时间前不得调用任何工具，不得推荐路线，不得查询天气或交通，"
+        "也不得询问体力、路线偏好或交通方式。"
+    )
+
+
 def build_interview_guidance(
     messages: list[Any],
     route_search_terms: list[str] | None = None,
     routes: list[dict[str, Any]] | None = None,
+    current_datetime: datetime | None = None,
 ) -> str:
     """Build turn-aware guidance for a natural hiking requirement interview."""
     user_turns = sum(_message_role(message) == "user" for message in messages)
@@ -590,22 +742,33 @@ def build_interview_guidance(
         ),
         "",
     )
+    user_content = " ".join(
+        _message_content(message)
+        for message in messages
+        if _message_role(message) == "user"
+    )
+    if current_datetime is not None:
+        non_future_guidance = _build_non_future_departure_guidance(
+            latest_user_content, current_datetime
+        )
+        if non_future_guidance is not None:
+            return non_future_guidance
     matched_route_id = _match_route_id(latest_user_content, routes or [])
     matched_destination_terms = _matched_group_tour_search_terms(
         latest_user_content,
         routes or [],
     )
     scenery_preferences = _extract_scenery_preferences(
-        latest_user_content,
+        user_content,
         routes or [],
     )
-    has_relative_date = any(
-        expression in latest_user_content
-        for expression in ("周六", "周日", "周末", "明天", "后天")
-    )
+    has_relative_date = re.search(
+        r"本周末|下周末|[本下]?周[一二三四五六日天]|今天|明天|后天",
+        user_content,
+    ) is not None
     has_explicit_date = has_relative_date or re.search(
         r"\d{4}-\d{1,2}-\d{1,2}|\d{1,2}月\d{1,2}[日号]",
-        latest_user_content,
+        user_content,
     ) is not None
     has_weather_request = "天气" in latest_user_content
     has_group_tour_request = any(
@@ -644,7 +807,7 @@ def build_interview_guidance(
             "任一步失败都要停止依赖该结果的后续调用，不得自行推算日期、星期或日期类型，"
             "也不得把自然语言目的地名称当作 route_id。全部成功后再统一回答天气和报团链接。"
         )
-    has_recommendation_request = "推荐" in latest_user_content
+    has_recommendation_request = "推荐" in user_content
     if has_explicit_date and scenery_preferences and has_recommendation_request:
         scenery_text = "、".join(scenery_preferences)
         return (
@@ -655,7 +818,7 @@ def build_interview_guidance(
             "推荐出多条路线后只展示候选并请用户选择，不得替用户选择。"
         )
     is_beginner_request = any(
-        marker in latest_user_content for marker in ("新手", "入门", "第一次徒步")
+        marker in user_content for marker in ("新手", "入门", "第一次徒步")
     )
     if has_explicit_date and is_beginner_request and has_recommendation_request:
         return (
@@ -664,6 +827,18 @@ def build_interview_guidance(
             "如果日期是相对日期，先调用 resolve_departure_date；取得具体日期后调用 resolve_public_holiday；"
             "随后直接调用 recommend_hiking_routes，并使用 max_difficulty=easy。"
             "未提供的其他条件使用系统默认值。推荐出多条路线后只展示候选并请用户选择。"
+        )
+    if (
+        has_explicit_date
+        and _has_challenge_preference(user_content)
+        and has_recommendation_request
+    ):
+        return (
+            "用户已经提供出发日期、明确挑战偏好并要求推荐路线，现有信息已经足够。"
+            "不得再询问强度、体力、经验、距离、爬升或难度，也不得要求用户重复选择适中或挑战。"
+            "如果日期是相对日期，先调用 resolve_departure_date；取得具体日期后调用 resolve_public_holiday；"
+            "随后直接调用 recommend_hiking_routes，并使用 max_difficulty=hard。"
+            "未提供的其他筛选条件使用系统默认值。推荐出多条路线后只展示候选并请用户选择。"
         )
     if state.transport_mode == "public_transit" and state.has_current_transport_choice:
         return (
@@ -1035,11 +1210,40 @@ class GuidedHikingAssistant(Assistant):
                 guided_messages,
                 getattr(self, "route_catalog", []),
             )
+            current_datetime_provider = getattr(
+                self, "current_datetime_provider", None
+            )
+            current_datetime = (
+                current_datetime_provider()
+                if callable(current_datetime_provider)
+                else datetime.now().astimezone()
+            )
             guidance = build_interview_guidance(
                 guided_messages,
                 getattr(self, "route_search_terms", []),
                 getattr(self, "route_catalog", []),
+                current_datetime=current_datetime,
             )
+            if "时间设置可能有问题" in guidance:
+                invalid_time_match = re.search(
+                    r"出发时间“([^”]+)”", guidance
+                )
+                invalid_time = (
+                    invalid_time_match.group(1)
+                    if invalid_time_match is not None
+                    else "该时间"
+                )
+                output_batches += 1
+                yield [Message(
+                    role=ASSISTANT,
+                    name=self.name,
+                    content=(
+                        f"你填写的出发时间“{invalid_time}”有问题：“{invalid_time}”"
+                        "对应的时间早于或等于当前时间。"
+                        "出发时间必须晚于当前时间，请确认一下新的出发日期和时间。"
+                    ),
+                )]
+                return
             if guided_messages and _message_role(guided_messages[0]) == SYSTEM:
                 guided_messages[0].content = (
                     f"{guided_messages[0].content}\n\n# 当前对话策略\n{guidance}"
@@ -1223,13 +1427,16 @@ class RecommendHikingRoutesTool(HikingTool):
             if _message_role(message) == "user"
         )
         _remove_unfounded_invalid_counts(query, user_content)
+        _remove_unfounded_optional_constraints(query, user_content)
         if any(
             marker in latest_user_content
             for marker in ("新手", "入门", "第一次徒步")
         ):
             query["max_difficulty"] = "easy"
+        elif _has_challenge_preference(user_content):
+            query["max_difficulty"] = "hard"
         extracted_scenery = _extract_scenery_preferences(
-            latest_user_content,
+            user_content,
             routes,
         )
         if extracted_scenery:
@@ -1423,12 +1630,12 @@ class ResolvePublicHolidayTool(HikingTool):
 
 class ResolveDepartureDateTool(HikingTool):
     name = "resolve_departure_date"
-    description = "根据当前日期解析本周末、下周末、本周六、明天等相对出发日期表达。"
+    description = "按中文自然周解析本周末、下周末、下周三、明天等相对出发日期表达。"
     parameters = [
         {
             "name": "expression",
             "type": "string",
-            "description": "相对日期表达，例如本周末、下周末、本周六、明天",
+            "description": "相对日期表达，例如本周末、下周末、下周三、本周六、明天",
             "required": True,
         },
         {

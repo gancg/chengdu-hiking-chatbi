@@ -6,6 +6,7 @@ import unittest
 from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from test_data import SAMPLE_DATA_PATH
 from hiking_chatbi.db import connect, initialize
@@ -134,8 +135,18 @@ class ParkingPointTest(unittest.TestCase):
         })[0]
 
         parking_point = result["parking_points"][0]
-        self.assertIn("uri.amap.com/navigation", parking_point["navigation_links"]["amap"])
-        self.assertIn("api.map.baidu.com/direction", parking_point["navigation_links"]["baidu"])
+        amap_url = parking_point["navigation_links"]["amap"]
+        baidu_url = parking_point["navigation_links"]["baidu"]
+        self.assertIn("uri.amap.com/navigation", amap_url)
+        self.assertIn("api.map.baidu.com/direction", baidu_url)
+        amap_query = parse_qs(urlparse(amap_url).query)
+        baidu_query = parse_qs(urlparse(baidu_url).query)
+        self.assertEqual(["car"], amap_query["mode"], "高德必须显式使用驾车模式 car")
+        self.assertEqual(["gaode"], amap_query["coordinate"], "高德必须声明高德坐标")
+        self.assertEqual(["1"], amap_query["callnative"], "高德移动端应尝试调起客户端")
+        self.assertEqual(["driving"], baidu_query["mode"], "百度必须使用驾车模式 driving")
+        self.assertEqual(["gcj02"], baidu_query["coord_type"], "百度必须声明输入为 GCJ-02 坐标")
+        self.assertEqual(["html"], baidu_query["output"], "百度 Web URI 必须输出 HTML")
         self.assertIn("以现场管制为准", parking_point["note"])
 
     def test_non_self_drive_recommendation_hides_parking_points(self) -> None:

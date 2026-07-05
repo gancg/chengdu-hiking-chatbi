@@ -7,6 +7,23 @@ from hiking_chatbi.departure_dates import resolve_departure_date
 
 
 class DepartureDateTest(unittest.TestCase):
+    def test_plain_saturday_keeps_distinct_wording_from_current_week(self) -> None:
+        """无前缀“周六”应说明为最近周六，不得冒充自然周中的“本周六”。"""
+        result = resolve_departure_date("周六想去爬山", date(2026, 7, 5))
+
+        self.assertEqual("周六", result["expression"])
+        self.assertEqual("2026-07-11", result["candidates"][0]["date"])
+        self.assertEqual("从参考日期起最近的星期六", result["interpretation"])
+
+    def test_current_week_saturday_remains_in_reference_calendar_week(self) -> None:
+        """“本周六”必须严格落在参考日期所在自然周，过期时不得顺延。"""
+        result = resolve_departure_date("本周六", date(2026, 7, 5))
+
+        self.assertEqual("2026-07-04", result["candidates"][0]["date"])
+        self.assertTrue(
+            result["candidates"][0]["is_before_reference_date"],
+            "本周六已经过去时必须明确标记",
+        )
     def test_current_weekend_uses_reference_calendar_week(self) -> None:
         """本周末应返回参考日期所在自然周的星期六和星期日。"""
         result = resolve_departure_date("本周末", date(2026, 6, 13))
