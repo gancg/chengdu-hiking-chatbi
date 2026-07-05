@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --h5-sky: #2189d8;
   --h5-pine: #16745b;
   --h5-ink: #183447;
@@ -112,20 +113,25 @@ body,
   min-width: 0 !important;
   gap: 6px !important;
   padding-top: 4px;
-  background: var(--h5-surface);
+  color: var(--h5-ink) !important;
+  background: var(--h5-surface) !important;
 }
 
 .h5-suggestions {
   min-width: 0 !important;
   overflow: visible;
-  border-color: var(--h5-line) !important;
+  color: var(--h5-ink) !important;
+  border: 1px solid var(--h5-line) !important;
   border-radius: 12px !important;
+  background: var(--h5-surface) !important;
 }
 
 .h5-suggestions > button {
   min-height: 32px;
   padding-block: 2px !important;
   color: var(--h5-ink) !important;
+  -webkit-text-fill-color: var(--h5-ink);
+  background: var(--h5-surface) !important;
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -151,6 +157,10 @@ body,
 
 .h5-suggestions .gallery > * button {
   width: 100% !important;
+  color: var(--h5-ink) !important;
+  -webkit-text-fill-color: var(--h5-ink);
+  border: 1px solid var(--h5-line) !important;
+  background: #ffffff !important;
   white-space: normal;
   text-align: left;
 }

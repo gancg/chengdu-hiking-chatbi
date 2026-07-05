@@ -78,6 +78,24 @@ class QwenH5UiTest(unittest.TestCase):
         self.assertIn("flex-direction: column", css, "快捷提问必须纵向排列")
         self.assertIn("width: 100% !important", css, "每条快捷提问必须占满一行")
 
+    def test_h5_suggestions_remain_readable_in_wechat_dark_mode(self) -> None:
+        """微信跟随系统深色模式时，快捷提问仍应使用高对比度浅色主题。"""
+        css = (ROOT / "qwen_agent" / "gui" / "assets" / "appH5.css").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("color-scheme: light", css, "H5 页面必须声明使用浅色配色")
+        self.assertIn(
+            "background: var(--h5-surface) !important",
+            css,
+            "快捷提问面板必须显式使用浅色背景",
+        )
+        self.assertIn(
+            "-webkit-text-fill-color: var(--h5-ink)",
+            css,
+            "快捷问题文字必须抵抗微信 WebView 的深色模式文字覆盖",
+        )
+
     def test_h5_chat_content_wrap_uses_more_horizontal_space(self) -> None:
         """聊天内容包装层应横向铺满，并减少两侧无效留白。"""
         source = (ROOT / "qwen_agent" / "gui" / "h5_ui.py").read_text(
