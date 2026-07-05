@@ -17,6 +17,21 @@ class QwenH5UiTest(unittest.TestCase):
         self.assertNotIn("visible=False", source, "对话后必须继续显示快捷问题")
         self.assertNotIn("_add_h5_text", source, "H5 应直接复用提交逻辑，不得隐藏快捷问题")
         self.assertIn("H5_PAGE_JS", source, "必须在页面加载后移除 Gradio 页脚")
+        self.assertIn(
+            "removeMobileQueueWarning",
+            source,
+            "H5 必须移除 Gradio 的移动端队列通用警告",
+        )
+        self.assertIn(
+            ".toast-body.warning",
+            source,
+            "只能在 Warning 提示中识别移动端队列警告",
+        )
+        self.assertIn(
+            "队列中失去位置",
+            source,
+            "必须按警告文本精确识别，不得隐藏所有业务警告",
+        )
         self.assertNotIn("_create_agent_plugins_block", source, "H5 不得创建插件列表")
         self.assertNotIn("_create_agent_info_block", source, "H5 不得创建助手侧栏")
 
@@ -51,6 +66,20 @@ class QwenH5UiTest(unittest.TestCase):
 
         self.assertIn("flex-direction: column", css, "快捷提问必须纵向排列")
         self.assertIn("width: 100% !important", css, "每条快捷提问必须占满一行")
+
+    def test_h5_chatbot_grows_and_keeps_suggestions_at_bottom(self) -> None:
+        """聊天框应填满剩余高度，输入框和快捷提问整体位于底部。"""
+        css = (ROOT / "qwen_agent" / "gui" / "assets" / "appH5.css").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("display: grid !important", css, "H5 主容器必须使用网格布局")
+        self.assertIn(
+            "grid-template-rows: auto minmax(0, 1fr) auto",
+            css,
+            "聊天框必须占用标题和底部输入区域之间的剩余高度",
+        )
+        self.assertIn("flex: 0 0 auto !important", css, "底部输入区域不得参与拉伸")
 
     def test_h5_css_is_mobile_first_and_hides_gradio_footer(self) -> None:
         """H5 独立样式应适配动态视口、安全区域和长内容。"""

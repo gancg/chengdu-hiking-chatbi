@@ -1468,7 +1468,7 @@ def build_qwen_agent(service: ChatBIService, model: str = QWEN_MODEL) -> GuidedH
             "model_type": "qwen_dashscope",
             "generate_cfg": generate_cfg,
         },
-        name="徒步助手",
+        name="ChatBI",
         description="根据用户要求查询和推荐成都周边徒步路线",
         system_message=system_message,
         function_list=[

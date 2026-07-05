@@ -15,8 +15,24 @@ H5_PAGE_JS = r"""
   const removeFooter = () => {
     document.querySelectorAll('footer').forEach((element) => element.remove());
   };
-  removeFooter();
-  const observer = new MutationObserver(removeFooter);
+  const removeMobileQueueWarning = () => {
+    document.querySelectorAll('.toast-body.warning').forEach((element) => {
+      const text = element.textContent || '';
+      const isMobileQueueWarning =
+        text.includes('队列中失去位置') ||
+        text.includes('连接可能会中断') ||
+        text.includes('connection can break');
+      if (isMobileQueueWarning) {
+        element.parentElement?.remove();
+      }
+    });
+  };
+  const cleanPage = () => {
+    removeFooter();
+    removeMobileQueueWarning();
+  };
+  cleanPage();
+  const observer = new MutationObserver(cleanPage);
   observer.observe(document.body, { childList: true, subtree: true });
   return [];
 }
