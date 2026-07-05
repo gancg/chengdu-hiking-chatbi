@@ -17,6 +17,9 @@ class QwenH5UiTest(unittest.TestCase):
         self.assertNotIn("visible=False", source, "对话后必须继续显示快捷问题")
         self.assertNotIn("_add_h5_text", source, "H5 应直接复用提交逻辑，不得隐藏快捷问题")
         self.assertIn("H5_PAGE_JS", source, "必须在页面加载后移除 Gradio 页脚")
+        self.assertIn("gr.BrowserState", source, "H5 必须使用浏览器本地状态保存聊天记录")
+        self.assertIn("restore_h5_history", source, "页面加载时必须恢复有效聊天记录")
+        self.assertIn("save_h5_history", source, "用户和助手消息完成后必须保存聊天记录")
         self.assertIn(
             "removeMobileQueueWarning",
             source,
@@ -34,6 +37,14 @@ class QwenH5UiTest(unittest.TestCase):
         )
         self.assertNotIn("_create_agent_plugins_block", source, "H5 不得创建插件列表")
         self.assertNotIn("_create_agent_info_block", source, "H5 不得创建助手侧栏")
+
+    def test_h5_external_links_open_in_new_window(self) -> None:
+        """H5 的 HTTP 外链应在新窗口打开，避免替换当前聊天页面。"""
+        source = (ROOT / "qwen_agent" / "gui" / "h5_ui.py").read_text(encoding="utf-8")
+
+        self.assertIn("setExternalLinkTargets", source, "必须处理动态生成的外部链接")
+        self.assertIn("target', '_blank'", source, "外链必须在新窗口打开")
+        self.assertIn("noopener noreferrer", source, "外链必须隔离 opener")
 
     def test_h5_header_uses_short_title_without_agent_logo(self) -> None:
         """H5 应使用短标题，并且不在右上角展示助手图标。"""
