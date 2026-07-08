@@ -3,6 +3,7 @@ FROM python:3.11-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    TZ=Asia/Shanghai \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     CHATBI_HOST=0.0.0.0 \
     CHATBI_PORT=8000 \
