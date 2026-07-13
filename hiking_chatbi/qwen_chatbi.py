@@ -602,17 +602,36 @@ def _find_named_route_terms(
     return [term for term in route_search_terms if term.replace(" ", "") in user_content]
 
 
-def build_departure_date_guidance(current_date: date | None = None) -> str:
+def build_departure_date_guidance(
+    current_date: date | None = None,
+    current_datetime: datetime | None = None,
+) -> str:
     """Build current-date context for interpreting departure dates."""
-    today = current_date or datetime.now().astimezone().date()
+    local_now = current_datetime or datetime.now().astimezone()
+    today = current_date or local_now.date()
     day_after_tomorrow = date.fromordinal(today.toordinal() + 2)
+    current_time_context = (
+        f"当前本地时间是 {local_now.strftime('%Y-%m-%d %H:%M')}。"
+        if current_datetime is not None or current_date is None
+        else ""
+    )
     return (
-        f"当前日期是 {today.isoformat()}（{WEEKDAY_NAMES[today.weekday()]}），当前年度是 {today.year}。"
+        current_time_context
+        + f"当前日期是 {today.isoformat()}（{WEEKDAY_NAMES[today.weekday()]}），当前年度是 {today.year}。"
         f"后天是 {day_after_tomorrow.isoformat()}（{WEEKDAY_NAMES[day_after_tomorrow.weekday()]}）。"
         f"用户提供月日但没有明确年份时，一律理解为当前年度；"
         f"例如用户说“6.15 号出发”，应理解为 {today.year}-06-15。"
         "出发时间通常应晚于当前时间；如果按当前年度理解后日期已过，应向用户确认，"
         "不要自行推断为下一年度。用户明确提供年份时，以用户提供的年份为准。"
+    )
+
+
+def build_qwen_system_message(current_datetime: datetime | None = None) -> str:
+    """Build the full system prompt with runtime current datetime context."""
+    return (
+        f"{SYSTEM_PROMPT}\n\n# 当前日期上下文\n"
+        f"{build_departure_date_guidance(current_datetime=current_datetime)}"
+        f"\n\n# 已收录节假日摘要\n{build_public_holiday_guidance()}"
     )
 
 
@@ -1045,6 +1064,17 @@ def build_interview_guidance(
 class GuidedHikingAssistant(Assistant):
     """Qwen Assistant with turn-aware hiking interview guidance."""
 
+    def _current_datetime(self) -> datetime:
+        current_datetime_provider = getattr(self, "current_datetime_provider", None)
+        if callable(current_datetime_provider):
+            return current_datetime_provider()
+        return datetime.now().astimezone()
+
+    def run(self, messages: list[Any], **kwargs: Any) -> Iterator[list[Any]]:
+        """Refresh runtime datetime context before the base agent prepends it."""
+        self.system_message = build_qwen_system_message(self._current_datetime())
+        return super().run(messages=messages, **kwargs)
+
     def _required_self_drive_tool(self, messages: list[Any]) -> str | None:
         """Return the next mandatory tool for a confirmed self-drive trip."""
         state = build_conversation_state(
@@ -1216,14 +1246,7 @@ class GuidedHikingAssistant(Assistant):
                 guided_messages,
                 getattr(self, "route_catalog", []),
             )
-            current_datetime_provider = getattr(
-                self, "current_datetime_provider", None
-            )
-            current_datetime = (
-                current_datetime_provider()
-                if callable(current_datetime_provider)
-                else datetime.now().astimezone()
-            )
+            current_datetime = self._current_datetime()
             guidance = build_interview_guidance(
                 guided_messages,
                 getattr(self, "route_search_terms", []),
@@ -1667,10 +1690,7 @@ class ResolveDepartureDateTool(HikingTool):
 
 def build_qwen_agent(service: ChatBIService, model: str = QWEN_MODEL) -> GuidedHikingAssistant:
     """Build a Qwen Agent that can only call read-only hiking tools."""
-    system_message = (
-        f"{SYSTEM_PROMPT}\n\n# 当前日期上下文\n{build_departure_date_guidance()}"
-        f"\n\n# 已收录节假日摘要\n{build_public_holiday_guidance()}"
-    )
+    system_message = build_qwen_system_message()
     generate_cfg: dict[str, Any] = {
         "max_retries": QWEN_MAX_RETRIES,
         "request_timeout": QWEN_REQUEST_TIMEOUT_SECONDS,

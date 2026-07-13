@@ -27,6 +27,7 @@ from hiking_chatbi.qwen_chatbi import (
     build_interview_guidance,
     build_route_search_terms,
     build_public_holiday_guidance,
+    build_qwen_system_message,
     build_qwen_agent,
 )
 from hiking_chatbi.service import ChatBIService
@@ -901,6 +902,29 @@ class QwenChatBITest(unittest.TestCase):
 
         self.assertIn("当前日期上下文", agent.system_message)
         self.assertIn(f"当前年度是 {current_year}", agent.system_message)
+
+    def test_agent_refreshes_current_datetime_before_each_run(self) -> None:
+        """中文测试：长期运行的 Agent 每轮调用前都应刷新当前本地时间上下文。"""
+        agent = build_qwen_agent(self.service, model="qwen-plus")
+        agent.system_message = build_qwen_system_message(
+            datetime.fromisoformat("2026-07-08T09:00:00+08:00")
+        )
+        agent.current_datetime_provider = lambda: datetime.fromisoformat(
+            "2026-07-13T11:30:00+08:00"
+        )
+
+        with patch.object(
+            agent,
+            "_run",
+            return_value=iter([[Message(role=ASSISTANT, content="ok")]]),
+        ) as run_call:
+            list(agent.run([{"role": "user", "content": "请输出当前时间"}], lang="zh"))
+
+        sent_messages = run_call.call_args.kwargs["messages"]
+        system_content = sent_messages[0].content
+        self.assertIn("当前本地时间是 2026-07-13 11:30", system_content)
+        self.assertIn("当前日期是 2026-07-13", system_content)
+        self.assertNotIn("当前日期是 2026-07-08", system_content)
 
     def test_agent_prompt_hides_internal_query_language_from_users(self) -> None:
         """Qwen Agent 面向用户回答时不应暴露内部查询字段和筛选逻辑。"""
