@@ -139,6 +139,8 @@ SYSTEM_PROMPT = """你是成都周边徒步 ChatBI 助手。
     有依赖关系的工具放在同一批并行调用。
     任一步失败时，必须停止依赖该结果的后续工具调用，说明失败或请用户确认；不得自行推算日期、星期、
     日期类型，也不得把自然语言目的地名称当作 `route_id`。
+    只有用户原话明确点名想去、爬、登或选择的地点时，才可传递 `destination_name`；用户只提供森林、花海、
+    草原、雪山等风景或地貌偏好时，不得填写 `destination_name`，只能传递 `scenery_preferences`。
 30. 用户已经提供出发日期或相对日期、明确风景偏好并要求推荐路线时，信息已经足够。
     不得再询问体力、距离、爬升、难度或其他普通偏好；完成日期和节假日解析后，必须直接调用
     `recommend_hiking_routes`，未提供的筛选条件使用系统默认值。
@@ -378,6 +380,57 @@ def _matched_group_tour_search_terms(
     return sorted(terms, key=len, reverse=True)
 
 
+def _is_destination_name_grounded(
+    messages: list[Any],
+    destination_name: str,
+) -> bool:
+    """Return whether user text explicitly presents a value as a destination."""
+    normalized_name = destination_name.replace(" ", "").strip()
+    if not normalized_name:
+        return False
+    escaped_name = re.escape(normalized_name)
+    intent_before_name = re.compile(
+        rf"(?:想|要|计划|准备|打算|决定|就)?"
+        rf"(?:去|爬|登|游|到|走|选|选择)[^，。！？?]{{0,8}}{escaped_name}"
+    )
+    destination_use_after_name = re.compile(
+        rf"{escaped_name}(?:徒步|爬山|登山|路线|线路|一日游|天气|怎么去)"
+    )
+    explicit_destination_label = re.compile(
+        rf"(?:目的地|地点|地方|路线)[是为选：:]{{0,3}}{escaped_name}"
+    )
+    preference_markers = (
+        "喜欢", "偏好", "风景", "景观", "地貌", "想看", "希望有", "想要有",
+    )
+    has_user_message = False
+    for index, message in enumerate(messages):
+        if _message_role(message) != "user":
+            continue
+        has_user_message = True
+        content = _message_content(message).replace(" ", "")
+        if normalized_name not in content:
+            continue
+        if (
+            intent_before_name.search(content) is not None
+            or explicit_destination_label.search(content) is not None
+        ):
+            return True
+        if any(marker in content for marker in preference_markers):
+            continue
+        previous_content = (
+            _message_content(messages[index - 1]).replace(" ", "")
+            if index > 0 and _message_role(messages[index - 1]) == "assistant"
+            else ""
+        )
+        if content == normalized_name:
+            if any(marker in previous_content for marker in preference_markers):
+                continue
+            return True
+        if destination_use_after_name.search(content) is not None:
+            return True
+    return not has_user_message
+
+
 def _extract_scenery_preferences(
     content: str,
     routes: list[dict[str, Any]],
@@ -599,7 +652,12 @@ def _find_named_route_terms(
         for message in messages
         if _message_role(message) == "user"
     )
-    return [term for term in route_search_terms if term.replace(" ", "") in user_content]
+    return [
+        term
+        for term in route_search_terms
+        if term.replace(" ", "") in user_content
+        and _is_destination_name_grounded(messages, term)
+    ]
 
 
 def build_departure_date_guidance(
@@ -1390,7 +1448,11 @@ class RecommendHikingRoutesTool(HikingTool):
         {
             "name": "destination_name",
             "type": "string",
-            "description": "从用户原话提炼的明确目的地名称，例如从“去爬巴朗山”提炼“巴朗山”",
+            "description": (
+                "仅当用户明确说出想去、爬、登或选择的地点时填写；"
+                "从“去爬巴朗山”提炼“巴朗山”。用户未点名地点时必须省略，"
+                "森林、花海、草原、雪山等风景或地貌偏好只能填写 scenery_preferences"
+            ),
         },
         {
             "name": "departure_at",
@@ -1473,8 +1535,18 @@ class RecommendHikingRoutesTool(HikingTool):
                 *query.get("scenery_preferences", []),
                 *extracted_scenery,
             })
+        conversation_messages = kwargs.get("messages", [])
         destination_name = str(query.pop("destination_name", "")).strip()
-        if destination_name:
+        is_destination_grounded = _is_destination_name_grounded(
+            conversation_messages,
+            destination_name,
+        )
+        if destination_name and not is_destination_grounded:
+            logger.warning(
+                "忽略无用户原话依据的目的地参数 destination_name=%s",
+                destination_name,
+            )
+        if destination_name and is_destination_grounded:
             destination_matches = self.service.routes_by_group_tour_search_term(
                 destination_name,
             )
@@ -1501,9 +1573,14 @@ class RecommendHikingRoutesTool(HikingTool):
                 query["route_id"] = next(iter(parameter_route_ids))
             elif len(parameter_route_ids) > 1:
                 raise ValueError("目的地检索词命中多条路线，请用户进一步确认具体路线")
+        grounded_destination_terms = [
+            term
+            for term in _matched_group_tour_search_terms(user_content, routes)
+            if _is_destination_name_grounded(conversation_messages, term)
+        ]
         matched_route_ids = {
             str(route["id"])
-            for term in _matched_group_tour_search_terms(user_content, routes)
+            for term in grounded_destination_terms
             for route in self.service.routes_by_group_tour_search_term(term)
         }
         if len(matched_route_ids) == 1:

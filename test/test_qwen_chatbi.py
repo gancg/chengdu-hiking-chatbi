@@ -198,11 +198,14 @@ class QwenChatBITest(unittest.TestCase):
     def test_recommend_tool_resolves_extracted_destination_name(self) -> None:
         """模型提炼出的目的地名称应通过报团检索词转换为路线 ID。"""
         tool = RecommendHikingRoutesTool(self.service)
-        result = json.loads(tool.call({
-            "destination_name": "巴朗山",
-            "departure_at": self.departure,
-            "transport_modes": ["group_tour"],
-        }))
+        result = json.loads(tool.call(
+            {
+                "destination_name": "巴朗山",
+                "departure_at": self.departure,
+                "transport_modes": ["group_tour"],
+            },
+            messages=[{"role": "user", "content": "周六想去爬巴朗山"}],
+        ))
 
         self.assertIn(
             "destination_name",
@@ -214,6 +217,59 @@ class QwenChatBITest(unittest.TestCase):
             "wenchuan-balangshan-panda-peak",
             result["items"][0]["route"]["id"],
         )
+
+    def test_recommend_tool_ignores_ungrounded_scenery_destination(self) -> None:
+        """用户只提供风景偏好时，模型误填的目的地不得锁定路线或触发歧义异常。"""
+        messages = [
+            {"role": "user", "content": "7月20日出发"},
+            {"role": "assistant", "content": "偏好什么风景？"},
+            {"role": "user", "content": "森林"},
+            {"role": "assistant", "content": "难度偏好呢？"},
+            {"role": "user", "content": "适中"},
+        ]
+        ambiguous_matches = [{"id": "forest-a"}, {"id": "forest-b"}]
+        with (
+            patch.object(
+                self.service,
+                "routes_by_group_tour_search_term",
+                return_value=ambiguous_matches,
+            ),
+            patch.object(self.service, "recommendations", return_value=[]) as call,
+        ):
+            RecommendHikingRoutesTool(self.service).call(
+                {
+                    "destination_name": "森林",
+                    "departure_at": self.departure,
+                    "max_difficulty": "moderate",
+                },
+                messages=messages,
+            )
+
+        normalized_query = call.call_args.args[0]
+        self.assertNotIn("route_id", normalized_query, "无依据的风景词不得锁定路线")
+        self.assertNotIn("destination_name", normalized_query, "内部查询不得保留模型误填字段")
+        self.assertIn(
+            "不得填写 `destination_name`",
+            qwen_chatbi.SYSTEM_PROMPT,
+            "对话策略必须明确禁止把风景偏好当作目的地",
+        )
+
+    def test_recommend_tool_keeps_grounded_ambiguous_destination_error(self) -> None:
+        """用户确实点名的目的地命中多条路线时，仍应要求用户确认。"""
+        ambiguous_matches = [{"id": "forest-a"}, {"id": "forest-b"}]
+        with patch.object(
+            self.service,
+            "routes_by_group_tour_search_term",
+            return_value=ambiguous_matches,
+        ):
+            with self.assertRaisesRegex(ValueError, "目的地名称命中多条路线"):
+                RecommendHikingRoutesTool(self.service).call(
+                    {
+                        "destination_name": "森林公园",
+                        "departure_at": self.departure,
+                    },
+                    messages=[{"role": "user", "content": "我想去森林公园徒步"}],
+                )
 
     def test_recommend_tool_does_not_match_route_name(self) -> None:
         """推荐工具点名匹配不得使用路线 name 字段。"""
