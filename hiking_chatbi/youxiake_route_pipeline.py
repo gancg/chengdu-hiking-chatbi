@@ -11,41 +11,41 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if __package__:
     from .config import (
         COLLECTOR_BROWSER_TIMEOUT_SECONDS,
-        COLLECTOR_DEFAULT_COUNT,
-        COLLECTOR_INPUT_PATH,
         COLLECTOR_LINK_TIMEOUT_SECONDS,
+        COLLECTOR_MAX_PAGES,
         COLLECTOR_MODEL,
-        COLLECTOR_OUTPUT_PATH,
         COLLECTOR_REQUEST_TIMEOUT_SECONDS,
         DASHSCOPE_CHAT_COMPLETIONS_URL,
         YOUXIAKE_LIST_URL,
     )
+    from .importer import load_import_file
     from .validation import validate_import_item
 else:
     sys.path.insert(0, str(ROOT))
     from hiking_chatbi.config import (
         COLLECTOR_BROWSER_TIMEOUT_SECONDS,
-        COLLECTOR_DEFAULT_COUNT,
-        COLLECTOR_INPUT_PATH,
         COLLECTOR_LINK_TIMEOUT_SECONDS,
+        COLLECTOR_MAX_PAGES,
         COLLECTOR_MODEL,
-        COLLECTOR_OUTPUT_PATH,
         COLLECTOR_REQUEST_TIMEOUT_SECONDS,
         DASHSCOPE_CHAT_COMPLETIONS_URL,
         YOUXIAKE_LIST_URL,
     )
+    from hiking_chatbi.importer import load_import_file
     from hiking_chatbi.validation import validate_import_item
 
 
-INPUT_PATH = COLLECTOR_INPUT_PATH
-OUTPUT_PATH = COLLECTOR_OUTPUT_PATH
 MODEL_NAME = COLLECTOR_MODEL
 LIST_URL = YOUXIAKE_LIST_URL
+SELECT_OUTPUT_PATH = ROOT / "data" / "sample_routes_select.json"
+RUNTIME_OUTPUT_PATH = ROOT / "data" / "sample_routes.json"
+HIKING_WORDS = ("徒步", "轻徒", "登山", "古道", "穿越", "爬山", "溯溪", "攀登", "牧场")
 ROUTE_COST_TYPES = {"ticket", "parking", "shuttle", "waste", "other"}
 TRANSPORT_COST_TYPES = {"fuel", "toll", "train", "bus", "other"}
 BILLING_UNITS = {"person", "vehicle", "group"}
@@ -122,6 +122,20 @@ def build_page_url(page_number: int, page_url: str = LIST_URL) -> str:
     return result
 
 
+def validate_page_url(page_url: str) -> str:
+    """校验并返回可用于采集的游侠客 HTTPS 筛选页。"""
+    normalized = page_url.strip()
+    parsed = urlparse(normalized)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in {"www.youxiake.com", "m.youxiake.com"}
+        or not parsed.path.startswith("/search/results/")
+    ):
+        raise ValueError("page-url 必须是 HTTPS 游侠客筛选页地址")
+    build_page_url(1, normalized)
+    return normalized
+
+
 def normalize_route_link(url: str) -> tuple[str, str] | None:
     """规范化游侠客详情链接并返回活动 ID。"""
     from urllib.parse import parse_qs, urljoin, urlparse
@@ -182,10 +196,10 @@ class RouteLinkFetcher:
             self._playwright.stop()
 
     def fetch(self, count: int) -> list[dict[str, str]]:
-        """抓取动态配置数量的活动链接。"""
+        """按页面顺序抓取候选，详情筛选阶段再确定前 N 条合格路线。"""
         all_candidates: list[dict[str, str]] = []
         previous_ids: set[str] = set()
-        for page_number in range(1, 101):
+        for page_number in range(1, COLLECTOR_MAX_PAGES + 1):
             page_url = build_page_url(page_number, self.page_url)
             self._open_page(page_url)
             self._reject_blocked_page(page_url)
@@ -199,11 +213,10 @@ class RouteLinkFetcher:
                 break
             previous_ids = page_ids
             all_candidates.extend(page_candidates)
-            routes = select_unique_routes(all_candidates, count)
-            if len(routes) == count:
-                return routes
-        routes = select_unique_routes(all_candidates, count)
-        raise RuntimeError(f"游侠客公开页面路线不足 {count} 条，实际抓取 {len(routes)} 条")
+        routes = select_unique_routes(all_candidates, count=len(all_candidates))
+        if len(routes) < count:
+            raise RuntimeError(f"游侠客公开页面候选不足 {count} 条，实际抓取 {len(routes)} 条")
+        return routes
 
     def _open_page(self, url: str) -> None:
         try:
@@ -230,12 +243,25 @@ class RouteLinkFetcher:
         )
 
 
-def write_links(path: Path, routes: list[dict[str, str]]) -> None:
+def write_links(
+    path: Path,
+    routes: list[dict[str, str]],
+    target_count: int,
+    source_page_url: str,
+) -> None:
     """保存第一阶段的链接检查点。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(
-        json.dumps({"routes": routes}, ensure_ascii=False, indent=2) + "\n",
+        json.dumps(
+            {
+                "source_page_url": source_page_url,
+                "target_count": target_count,
+                "routes": routes,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ) + "\n",
         encoding="utf-8",
     )
     temporary.replace(path)
@@ -269,22 +295,48 @@ def extract_route_name(product_name: str) -> str:
 
 
 def default_links_path(count: int) -> Path:
-    """返回指定数量的链接检查点路径，并兼容已有 40 条文件。"""
-    return INPUT_PATH if count == 40 else ROOT / "data" / f"youxiake_route_links_{count}.json"
+    """返回指定数量的候选链接检查点路径。"""
+    return ROOT / "data" / f"youxiake_route_links_{count}.json"
 
 
-def default_output_path(count: int) -> Path:
-    """返回指定数量的最终输出路径，并兼容已有 40 条文件。"""
-    return OUTPUT_PATH if count == 40 else ROOT / "data" / f"youxiake_routes_enriched_{count}.json"
+def default_checkpoint_path(count: int) -> Path:
+    """返回指定数量的核验进度检查点路径。"""
+    return ROOT / "data" / f"youxiake_routes_checkpoint_{count}.json"
+
+
+def load_candidate_checkpoint(
+    path: Path,
+    expected_count: int,
+    source_page_url: str,
+) -> list[dict[str, str]]:
+    """读取候选检查点并拒绝复用不同采集条件的数据。"""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    routes = payload.get("routes") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict) or payload.get("target_count") != expected_count:
+        raise ValueError("候选检查点的目标数量与本次 count 不一致，请使用 --refresh-links")
+    if payload.get("source_page_url") != source_page_url:
+        raise ValueError("候选检查点的来源页面不一致，请使用 --refresh-links")
+    if not isinstance(routes, list) or len(routes) < expected_count:
+        actual = len(routes) if isinstance(routes, list) else 0
+        raise ValueError(f"候选检查点至少需要 {expected_count} 条 routes，实际为 {actual}")
+    selected = select_unique_routes(
+        [{"name": str(item["name"]), "url": str(item["url"])} for item in routes],
+        count=len(routes),
+    )
+    if len(selected) < expected_count:
+        raise ValueError(
+            f"候选检查点规范化后不足 {expected_count} 条，实际为 {len(selected)}"
+        )
+    return selected
 
 
 def load_links(path: Path, expected_count: int) -> list[dict[str, str]]:
-    """读取并校验动态数量的名称与链接。"""
+    """兼容调用方读取旧链接文件；新流水线使用带元数据的检查点。"""
     payload = json.loads(path.read_text(encoding="utf-8"))
     routes = payload.get("routes") if isinstance(payload, dict) else None
-    if not isinstance(routes, list) or len(routes) != expected_count:
+    if not isinstance(routes, list) or len(routes) < expected_count:
         actual = len(routes) if isinstance(routes, list) else 0
-        raise ValueError(f"链接文件必须包含 {expected_count} 条 routes，实际为 {actual}")
+        raise ValueError(f"链接文件至少包含 {expected_count} 条 routes，实际为 {actual}")
     return [{"name": str(item["name"]), "url": str(item["url"])} for item in routes]
 
 
@@ -301,7 +353,66 @@ def _json_from_model_text(content: str) -> dict[str, Any]:
     return value
 
 
-def build_prompt(short_name: str, product: dict[str, str], detail_text: str) -> str:
+def is_eligible_product(product_name: str, detail_text: str) -> bool:
+    """判断正文是否明确支持成都出发、单日及徒步三个条件。"""
+    combined = re.sub(r"\s+", "", f"{product_name}\n{detail_text}")
+    has_hiking = any(word in combined for word in HIKING_WORDS)
+    has_chengdu_departure = any(
+        re.search(pattern, combined) is not None
+        for pattern in (
+            r"成都(?:集合|出发|往返|统一出发|上车)",
+            r"(?:集合地|出发地|出发城市)[：:]?成都",
+        )
+    )
+    has_one_day = any(
+        marker in combined
+        for marker in ("一日", "1日", "1天", "当天往返", "当日往返", "当天返回", "当日返回")
+    )
+    has_multiple_days = re.search(r"(?:[2-9]|[二三四五六七八九十])(?:日|天)", combined) is not None
+    return has_hiking and has_chengdu_departure and has_one_day and not has_multiple_days
+
+
+def extract_site_route_fields(
+    product_name: str,
+    source_url: str,
+    detail_text: str,
+) -> dict[str, Any]:
+    """从详情正文提取可锁定的路线事实。"""
+    fields: dict[str, Any] = {
+        "name": extract_route_name(product_name),
+        "source_url": source_url,
+        "source_name": "游侠客",
+        "duration_days": 1,
+        "transport_modes": ["group_tour"],
+    }
+    patterns: tuple[tuple[str, str, Callable[[str], Any]], ...] = (
+        ("distance_km", r"(?:徒步(?:距离)?|往返|全程)[^\d]{0,12}(\d+(?:\.\d+)?)\s*(?:km|公里)", float),
+        ("ascent_m", r"(?:累计)?爬升[^\d]{0,8}\+?(\d+)\s*(?:m|米)", int),
+        ("highest_altitude_m", r"(?:最高海拔|最高点)[^\d]{0,8}(\d{3,4})\s*(?:m|米)", int),
+        ("hiking_minutes", r"徒步[^\d]{0,10}(\d+(?:\.\d+)?)\s*(?:小时|h)", lambda value: round(float(value) * 60)),
+    )
+    for field, pattern, converter in patterns:
+        match = re.search(pattern, detail_text, re.I)
+        if match:
+            fields[field] = converter(match.group(1))
+    return fields
+
+
+def merge_site_and_model(site: dict[str, Any], model: dict[str, Any]) -> dict[str, Any]:
+    """用网页非空事实覆盖模型值，其余字段由模型补全。"""
+    merged = dict(model)
+    for key, value in site.items():
+        if value not in (None, "", []):
+            merged[key] = value
+    return merged
+
+
+def build_prompt(
+    short_name: str,
+    product: dict[str, str],
+    detail_text: str,
+    site_fields: dict[str, Any] | None = None,
+) -> str:
     """构造严格的联网补全提示词。"""
     return f"""你是户外路线数据核验员。根据游侠客详情正文和联网搜索，生成一条可导入的路线 JSON。
 只返回 JSON，不要 Markdown。顶层必须恰好包含 route、costs、traffic。
@@ -311,10 +422,12 @@ def build_prompt(short_name: str, product: dict[str, str], detail_text: str) -> 
 游侠客详情 URL：{product['url']}
 详情正文：
 {detail_text[:45000]}
+网页已提取且不得覆盖的事实：
+{json.dumps(site_fields or {}, ensure_ascii=False)}
 
 约束：
 1. 完全遵循 sample_routes_select.json 的字段、类型和枚举；所有字段必须出现且不得为 null。
-2. 产品真实天数优先，不得假设都是成都一日游。distance_km、ascent_m、海拔和徒步时间必须对应同一种走法。
+2. 本产品已确认是成都出发一日徒步，duration_days 必须为 1。distance_km、ascent_m、海拔和徒步时间必须对应同一种走法。
 3. route.id 使用小写英文 slug；route.name 固定为“{short_name}”或增加必要的走法后缀。
 4. source_url 优先使用上面的游侠客详情 URL；联网补充必须使用真实可访问的直接来源 URL，禁止 example.org。
 5. 交通时间以产品真实出发城市到徒步起点的单程公路交通为口径；无法证实的费用数组可为空，不得编造收费。
@@ -343,15 +456,16 @@ def prepare_detail_text(text: str, url: str) -> str:
 
 
 def call_qwen(prompt: str, api_key: str) -> dict[str, Any]:
-    """调用开启联网检索的 qwen3.7-max。"""
+    """以思考模式流式调用开启联网检索的 qwen3.7-max。"""
     body = json.dumps(
         {
             "model": MODEL_NAME,
             "messages": [{"role": "user", "content": prompt}],
             "enable_search": True,
+            "enable_thinking": True,
+            "stream": True,
             "temperature": 0.0,
             "max_tokens": 6000,
-            "response_format": {"type": "json_object"},
         },
         ensure_ascii=False,
     ).encode("utf-8")
@@ -365,30 +479,100 @@ def call_qwen(prompt: str, api_key: str) -> dict[str, Any]:
         with urllib.request.urlopen(
             request, timeout=COLLECTOR_REQUEST_TIMEOUT_SECONDS
         ) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-        return _json_from_model_text(payload["choices"][0]["message"]["content"])
-    except (urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
+            content_parts: list[str] = []
+            for raw_line in response:
+                line = raw_line.decode("utf-8").strip()
+                if not line.startswith("data:"):
+                    continue
+                event_data = line[5:].strip()
+                if event_data == "[DONE]":
+                    break
+                try:
+                    event = json.loads(event_data)
+                    if not isinstance(event, dict):
+                        raise TypeError("事件根节点必须是对象")
+                    if "error" in event:
+                        raise RuntimeError(f"DashScope 流式响应错误: {event['error']}")
+                    if event.get("code") and event.get("message"):
+                        raise RuntimeError(
+                            f"DashScope 流式响应错误 code={event['code']}: {event['message']}"
+                        )
+                    choices = event.get("choices")
+                    if choices is None and "usage" in event:
+                        continue
+                    if not isinstance(choices, list):
+                        raise TypeError("choices 必须是数组")
+                    if not choices:
+                        continue
+                    for choice in choices:
+                        if not isinstance(choice, dict):
+                            raise TypeError("choices 每一项必须是对象")
+                        delta = choice.get("delta")
+                        if delta is None and choice.get("finish_reason") is not None:
+                            continue
+                        if not isinstance(delta, dict):
+                            raise TypeError("choices.delta 必须是对象")
+                        content = delta.get("content", "")
+                        if isinstance(content, str) and content:
+                            content_parts.append(content)
+                except (KeyError, TypeError, json.JSONDecodeError) as exc:
+                    raise RuntimeError(f"DashScope 流式响应格式无效: {exc}") from exc
+        content = "".join(content_parts).strip()
+        if not content:
+            raise RuntimeError("DashScope 流式响应未返回正文")
+        return _json_from_model_text(content)
+    except urllib.error.HTTPError as exc:
+        try:
+            error_body = exc.read().decode("utf-8", errors="replace")
+        except Exception:
+            error_body = ""
+        detail = f"，响应={error_body[:1000]}" if error_body else ""
+        raise RuntimeError(f"DashScope HTTP 请求失败 status={exc.code}{detail}") from exc
+    except TimeoutError as exc:
+        raise RuntimeError(
+            f"DashScope 请求超时，超时配置为 {COLLECTOR_REQUEST_TIMEOUT_SECONDS} 秒: {exc}"
+        ) from exc
+    except urllib.error.URLError as exc:
         raise RuntimeError(f"DashScope 路线补全失败: {exc}") from exc
+    except OSError as exc:
+        raise RuntimeError(f"DashScope 连接中断: {exc}") from exc
 
 
-def finalize_item(item: dict[str, Any], short_name: str, source_url: str) -> dict[str, Any]:
+def finalize_item(
+    item: dict[str, Any],
+    short_name: str,
+    source_url: str,
+    site_fields: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """锁定权威字段并执行严格校验。"""
     if not {"route", "costs", "traffic"} <= item.keys():
         raise ValueError("模型结果缺少 route、costs 或 traffic")
-    route = item["route"]
+    if not all(isinstance(item[key], dict) for key in ("route", "costs", "traffic")):
+        raise ValueError("route、costs 和 traffic 必须是对象")
+    route = merge_site_and_model(site_fields or {}, item["route"])
+    item["route"] = route
     route["name"] = short_name
     route["source_url"] = source_url
-    route["reviewed"] = False
+    route["reviewed"] = True
     now = datetime.now().astimezone().replace(microsecond=0).isoformat()
     route["collected_at"] = now
     route.setdefault("updated_at", now)
     if "group_tour" not in route.get("transport_modes", []):
         route.setdefault("transport_modes", []).append("group_tour")
     normalize_costs(item["costs"], route["transport_modes"])
-    if float(route.get("confidence", 0)) < 0.8:
-        raise ValueError(f"路线 {short_name} 置信度低于 0.8")
-    if float(item["traffic"].get("confidence", 0)) < 0.8:
-        raise ValueError(f"路线 {short_name} 的交通置信度低于 0.8")
+    if route.get("duration_days") != 1:
+        raise ValueError(f"路线 {short_name} 必须是单日路线")
+    if route.get("difficulty") not in {"easy", "moderate", "hard", "expert"}:
+        raise ValueError(f"路线 {short_name} 的 difficulty 无效")
+    route_type = route.get("route_type")
+    if route_type not in {"loop", "out_and_back", "point_to_point"}:
+        raise ValueError(f"路线 {short_name} 的 route_type 无效")
+    if route.get("is_traverse") != (route_type == "point_to_point"):
+        raise ValueError(f"路线 {short_name} 的 is_traverse 与 route_type 不一致")
+    if float(route.get("confidence", 0)) <= 0.8:
+        raise ValueError(f"路线 {short_name} 置信度必须严格大于 0.8")
+    if float(item["traffic"].get("confidence", 0)) <= 0.8:
+        raise ValueError(f"路线 {short_name} 的交通置信度必须严格大于 0.8")
     validate_import_item(item)
     return item
 
@@ -461,6 +645,7 @@ def generate_validated_item(
     source_url: str,
     qwen_caller: Callable[[str], dict[str, Any]],
     max_attempts: int = 3,
+    site_fields: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """生成并按精确校验错误让模型修复，直到通过或达到重试上限。"""
     current_prompt = prompt
@@ -470,7 +655,7 @@ def generate_validated_item(
         item = qwen_caller(current_prompt)
         previous_item = item
         try:
-            return finalize_item(item, short_name, source_url)
+            return finalize_item(item, short_name, source_url, site_fields)
         except (TypeError, ValueError) as exc:
             last_error = exc
             if attempt == max_attempts:
@@ -527,90 +712,274 @@ class DetailFetcher:
         return prepare_detail_text(text, url)
 
 
-def write_output(path: Path, items: list[dict[str, Any]]) -> None:
-    """原子式保存当前进度。"""
+def normalize_source_url(url: str) -> str:
+    """规范化通用来源 URL，以便执行稳定的增量匹配。"""
+    parsed = urlparse(url.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError(f"来源 URL 无效: {url}")
+    normalized_youxiake = normalize_route_link(url)
+    if normalized_youxiake is not None:
+        return normalized_youxiake[0]
+    hostname = parsed.hostname.lower()
+    netloc = hostname
+    if parsed.port:
+        netloc = f"{hostname}:{parsed.port}"
+    path = parsed.path.rstrip("/") or "/"
+    query = urlencode(sorted(parse_qsl(parsed.query, keep_blank_values=True)))
+    return urlunparse((parsed.scheme.lower(), netloc, path, "", query, ""))
+
+
+def validate_route_collection(items: list[dict[str, Any]]) -> None:
+    """全量校验正式路线库的结构和唯一性。"""
+    if not isinstance(items, list):
+        raise ValueError("正式路线数据根节点必须是数组")
+    ids: set[str] = set()
+    urls: set[str] = set()
+    for index, item in enumerate(items, 1):
+        try:
+            validate_import_item(item)
+            route = item["route"]
+            route_id = str(route.get("id", "")).strip()
+            if not route_id:
+                raise ValueError("route.id 不得为空")
+            normalized_url = normalize_source_url(str(route.get("source_url", "")))
+            if route_id in ids:
+                raise ValueError(f"route.id 重复: {route_id}")
+            if normalized_url in urls:
+                raise ValueError(f"route.source_url 重复: {normalized_url}")
+            ids.add(route_id)
+            urls.add(normalized_url)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"第 {index} 条正式路线校验失败: {exc}") from exc
+
+
+def merge_route_collections(
+    existing: list[dict[str, Any]],
+    incoming: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """按来源 URL 优先、路线 ID 次优先更新，并保留未命中的旧路线。"""
+    merged = json.loads(json.dumps(existing, ensure_ascii=False))
+    url_to_index: dict[str, int] = {}
+    id_to_index: dict[str, int] = {}
+    for index, item in enumerate(merged):
+        route = item["route"]
+        route_id = str(route["id"])
+        normalized_url = normalize_source_url(str(route["source_url"]))
+        if route_id in id_to_index or normalized_url in url_to_index:
+            raise ValueError("现有路线库包含重复 ID 或来源 URL，无法安全增量更新")
+        id_to_index[route_id] = index
+        url_to_index[normalized_url] = index
+
+    seen_incoming_ids: set[str] = set()
+    seen_incoming_urls: set[str] = set()
+    for item in incoming:
+        candidate = json.loads(json.dumps(item, ensure_ascii=False))
+        route = candidate["route"]
+        route["reviewed"] = True
+        route_id = str(route["id"])
+        normalized_url = normalize_source_url(str(route["source_url"]))
+        if route_id in seen_incoming_ids or normalized_url in seen_incoming_urls:
+            raise ValueError(f"本次路线存在重复身份: {route_id}")
+        seen_incoming_ids.add(route_id)
+        seen_incoming_urls.add(normalized_url)
+
+        url_index = url_to_index.get(normalized_url)
+        id_index = id_to_index.get(route_id)
+        if url_index is not None and id_index is not None and url_index != id_index:
+            raise ValueError(
+                f"路线身份冲突：来源 URL 命中第 {url_index + 1} 条，ID 命中第 {id_index + 1} 条"
+            )
+        target_index = url_index if url_index is not None else id_index
+        if target_index is None:
+            target_index = len(merged)
+            merged.append(candidate)
+        else:
+            old_route = merged[target_index]["route"]
+            old_id = str(old_route["id"])
+            old_url = normalize_source_url(str(old_route["source_url"]))
+            if url_index is not None:
+                route["id"] = old_id
+            merged[target_index] = candidate
+            id_to_index.pop(old_id, None)
+            url_to_index.pop(old_url, None)
+        id_to_index[str(route["id"])] = target_index
+        url_to_index[normalized_url] = target_index
+
+    validate_route_collection(merged)
+    return merged
+
+
+def _serialized_routes(items: list[dict[str, Any]]) -> str:
+    validate_route_collection(items)
+    return json.dumps(items, ensure_ascii=False, indent=2) + "\n"
+
+
+def publish_route_files(
+    items: list[dict[str, Any]],
+    select_path: Path = SELECT_OUTPUT_PATH,
+    runtime_path: Path = RUNTIME_OUTPUT_PATH,
+) -> None:
+    """校验后分别原子发布完全一致的候选文件和运行文件。"""
+    content = _serialized_routes(items)
+    temporary_paths: list[tuple[Path, Path]] = []
+    for path in (select_path, runtime_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(content, encoding="utf-8")
+        temporary_paths.append((temporary, path))
+    for temporary, path in temporary_paths:
+        temporary.replace(path)
+
+
+def write_progress_checkpoint(
+    path: Path,
+    source_page_url: str,
+    target_count: int,
+    processed_count: int,
+    items: list[dict[str, Any]],
+) -> None:
+    """原子保存核验进度，但不触碰正式路线文件。"""
+    payload = {
+        "source_page_url": source_page_url,
+        "target_count": target_count,
+        "processed_candidate_count": processed_count,
+        "items": items,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(items, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(path)
 
 
-def main() -> int:
+def load_progress_checkpoint(
+    path: Path,
+    source_page_url: str,
+    target_count: int,
+) -> tuple[int, list[dict[str, Any]]]:
+    """读取并校验核验进度检查点。"""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("核验检查点根节点必须是对象")
+    if payload.get("source_page_url") != source_page_url:
+        raise ValueError("核验检查点的来源页面不一致，请使用 --restart")
+    if payload.get("target_count") != target_count:
+        raise ValueError("核验检查点的目标数量不一致，请使用 --restart")
+    processed_count = payload.get("processed_candidate_count")
+    items = payload.get("items")
+    if not isinstance(processed_count, int) or processed_count < 0 or not isinstance(items, list):
+        raise ValueError("核验检查点格式无效")
+    for item in items:
+        validate_import_item(item)
+    if len(items) > target_count:
+        raise ValueError("核验检查点路线数量超过本次目标")
+    return processed_count, items
+
+
+def build_argument_parser() -> argparse.ArgumentParser:
+    """构建统一流水线命令行参数。"""
     parser = argparse.ArgumentParser(description="抓取并核验游侠客路线，生成完整 JSON")
     parser.add_argument(
         "--count",
         type=int,
-        default=COLLECTOR_DEFAULT_COUNT,
-        help="路线数量，默认由 CHATBI_COLLECTOR_DEFAULT_COUNT 配置",
+        required=True,
+        help="需要采集的成都一日徒步路线数量（必填）",
     )
     parser.add_argument("--page-url", default=LIST_URL, help="游侠客筛选页 URL")
     parser.add_argument("--links-file", type=Path, help="第一阶段链接检查点路径")
-    parser.add_argument("--output", type=Path, help="最终完整路线 JSON 路径")
+    parser.add_argument("--checkpoint-file", type=Path, help="逐条核验进度检查点路径")
+    parser.add_argument("--select-output", type=Path, default=SELECT_OUTPUT_PATH, help="合并后候选路线文件")
+    parser.add_argument("--runtime-output", type=Path, default=RUNTIME_OUTPUT_PATH, help="应用运行路线文件")
     parser.add_argument("--refresh-links", action="store_true", help="忽略链接检查点并重新抓取")
-    parser.add_argument("--links-only", action="store_true", help="只抓名称和链接，不执行核验")
     parser.add_argument("--restart", action="store_true", help="保留链接并从头重新核验")
-    args = parser.parse_args()
+    return parser
+
+
+def main() -> int:
+    args = build_argument_parser().parse_args()
     if args.count <= 0:
         raise ValueError("count 必须为正整数")
+    page_url = validate_page_url(args.page_url)
     links_path = args.links_file or default_links_path(args.count)
-    output_path = args.output or default_output_path(args.count)
+    checkpoint_path = args.checkpoint_file or default_checkpoint_path(args.count)
 
     if args.refresh_links or not links_path.exists():
-        link_fetcher = RouteLinkFetcher(page_url=args.page_url)
+        link_fetcher = RouteLinkFetcher(page_url=page_url)
         try:
             products = link_fetcher.fetch(args.count)
         finally:
             link_fetcher.close()
-        write_links(links_path, products)
-        print(f"第一阶段完成，已保存 {len(products)} 条名称和链接: {links_path}")
+        write_links(links_path, products, args.count, page_url)
+        print(f"第一阶段完成，已保存 {len(products)} 条候选名称和链接: {links_path}")
     else:
-        products = load_links(links_path, args.count)
-        print(f"检测到 {len(products)} 条链接检查点，将跳过路线抓取: {links_path}")
-
-    if args.links_only:
-        return 0
+        products = load_candidate_checkpoint(links_path, args.count, page_url)
+        print(f"检测到 {len(products)} 条候选检查点，将跳过列表抓取: {links_path}")
 
     api_key = os.getenv("DASHSCOPE_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("缺少 DASHSCOPE_API_KEY")
     completed: list[dict[str, Any]] = []
-    if output_path.exists() and not args.restart and not args.refresh_links:
-        completed = json.loads(output_path.read_text(encoding="utf-8"))
-        if not isinstance(completed, list):
-            raise ValueError("已有输出检查点必须是数组")
-        if len(completed) > args.count:
-            raise ValueError(f"已有输出为 {len(completed)} 条，超过本次 count={args.count}")
-        for index, item in enumerate(completed):
-            completed_url = str(item.get("route", {}).get("source_url", ""))
-            if completed_url != products[index]["url"]:
-                raise ValueError(
-                    f"第 {index + 1} 条核验检查点与链接文件不一致，请使用 --restart"
+    processed_count = 0
+    if checkpoint_path.exists() and not args.restart and not args.refresh_links:
+        processed_count, completed = load_progress_checkpoint(
+            checkpoint_path, page_url, args.count
+        )
+        if processed_count > len(products):
+            raise ValueError("核验检查点处理位置超过候选数量，请使用 --restart")
+        print(
+            f"检测到 {len(completed)} 条已校验路线，将从第 {processed_count + 1} 个候选继续"
+        )
+
+    if len(completed) < args.count:
+        fetcher = DetailFetcher()
+        try:
+            for candidate_index in range(processed_count, len(products)):
+                product = products[candidate_index]
+                detail_text = fetcher.fetch(product["url"])
+                next_processed_count = candidate_index + 1
+
+                short_name = extract_route_name(product["name"])
+                site_fields = extract_site_route_fields(
+                    product["name"], product["url"], detail_text
                 )
-        print(f"检测到 {len(completed)} 条已校验记录，将直接跳过并从第 {len(completed) + 1} 条继续")
-
-    if len(completed) == args.count:
-        print(f"两阶段均已完成，无需重复处理: {output_path}")
-        return 0
-
-    fetcher = DetailFetcher()
-    try:
-        for index, product in enumerate(products[len(completed):], len(completed) + 1):
-            short_name = extract_route_name(product["name"])
-            print(f"[{index}/{args.count}] 正在核验 {short_name}")
-            detail_text = fetcher.fetch(product["url"])
-            item = generate_validated_item(
-                build_prompt(short_name, product, detail_text),
-                short_name,
-                product["url"],
-                lambda prompt: call_qwen(prompt, api_key),
-            )
-            completed.append(item)
-            write_output(output_path, completed)
-    finally:
-        fetcher.close()
+                print(f"[{len(completed) + 1}/{args.count}] 正在核验 {short_name}")
+                item = generate_validated_item(
+                    build_prompt(short_name, product, detail_text, site_fields),
+                    short_name,
+                    product["url"],
+                    lambda prompt: call_qwen(prompt, api_key),
+                    site_fields=site_fields,
+                )
+                item_id = str(item["route"]["id"])
+                item_url = normalize_source_url(str(item["route"]["source_url"]))
+                is_duplicate = any(
+                    str(existing["route"]["id"]) == item_id
+                    or normalize_source_url(str(existing["route"]["source_url"])) == item_url
+                    for existing in completed
+                )
+                processed_count = next_processed_count
+                if is_duplicate:
+                    print(f"跳过重复路线: {short_name}")
+                else:
+                    completed.append(item)
+                write_progress_checkpoint(
+                    checkpoint_path, page_url, args.count, processed_count, completed
+                )
+                if len(completed) == args.count:
+                    break
+        finally:
+            fetcher.close()
 
     if len(completed) != args.count:
-        raise RuntimeError(f"最终路线数量必须为 {args.count}，实际为 {len(completed)}")
-    print(f"两阶段完成，已生成并校验 {args.count} 条路线: {output_path}")
+        raise RuntimeError(
+            f"符合成都出发一日徒步条件的路线不足 {args.count} 条，实际完成 {len(completed)} 条"
+        )
+    existing = load_import_file(args.runtime_output)
+    merged = merge_route_collections(existing, completed)
+    publish_route_files(merged, args.select_output, args.runtime_output)
+    print(
+        f"流水线完成：本次核验 {args.count} 条，合并后共 {len(merged)} 条；"
+        f"已同步 {args.select_output} 和 {args.runtime_output}"
+    )
     return 0
 
 

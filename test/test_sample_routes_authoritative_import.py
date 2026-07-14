@@ -16,6 +16,7 @@ SAMPLE_PATH = Path(__file__).resolve().parent.parent / "data" / "sample_routes.j
 class SampleRoutesAuthoritativeImportTest(unittest.TestCase):
     def test_replace_file_removes_old_routes_and_related_data(self) -> None:
         """中文测试：权威导入前应清除旧路线及其所有关联数据。"""
+        expected_count = len(load_import_file(SAMPLE_PATH))
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "test.db"
             old_item = copy.deepcopy(load_import_file(SAMPLE_PATH)[0])
@@ -46,7 +47,11 @@ class SampleRoutesAuthoritativeImportTest(unittest.TestCase):
                 feedback_count = connection.execute(
                     "SELECT COUNT(*) FROM trip_feedback"
                 ).fetchone()[0]
-            self.assertEqual(40, imported, "应完整导入最新样例中的40条路线")
+            self.assertEqual(
+                expected_count,
+                imported,
+                "应完整导入权威样例文件中的全部路线",
+            )
             self.assertNotIn(
                 "only-in-old-database", route_ids, "旧数据库独有路线必须被清除"
             )

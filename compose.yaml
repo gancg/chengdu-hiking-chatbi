@@ -19,7 +19,40 @@ services:
       - "7861:7861"
     volumes:
       - chatbi-runtime:/app/runtime
+      - chatbi-data:/app/data
+    restart: unless-stopped
+
+  route-scheduler:
+    image: chengdu-hiking-chatbi:local
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Shanghai
+      CHATBI_SAMPLE_DATA_PATH: /app/data/sample_routes.json
+    command:
+      - python
+      - -m
+      - hiking_chatbi.youxiake_route_scheduler
+      - --time
+      - ${CHATBI_ROUTE_SCHEDULE_TIME:-18:21}
+      - --count
+      - ${CHATBI_ROUTE_SCHEDULE_COUNT:-1}
+      - --log-file
+      - /app/runtime/youxiake_route_scheduler.log
+    depends_on:
+      chatbi:
+        condition: service_started
+    volumes:
+      - chatbi-runtime:/app/runtime
+      - chatbi-data:/app/data
+    healthcheck:
+      disable: true
     restart: unless-stopped
 
 volumes:
   chatbi-runtime:
+  chatbi-data:

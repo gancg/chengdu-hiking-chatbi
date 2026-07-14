@@ -5,6 +5,12 @@
 4.
 
 
+游侠客路线采集脚本执行：
+python -m hiking_chatbi.youxiake_route_pipeline --count 20
+
+
+
+
 //todo  当前官方天气预警以起点坐标作为查询位置参考，以后可以考虑扩展成轨迹折中位置。
 
 QWEATHER_API_KEY
@@ -19,11 +25,7 @@ python -m hiking_chatbi serve
 
 
 
-python -m hiking_chatbi.youxiake_collector
-# 获取40条路线信息
-python .\youxiake_route_links.py
-# 补全40条路线的其它信息
-python .\youxiake_route_enricher.py
+python -m hiking_chatbi.youxiake_route_pipeline --count 20
 
 
 

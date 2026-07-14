@@ -99,6 +99,7 @@ Copy-Item .env.example .env
 # 编辑 .env，填写所需密钥
 docker compose up --build -d
 docker compose logs -f chatbi
+docker compose logs -f route-scheduler
 ```
 
 停止服务：
@@ -107,7 +108,18 @@ docker compose logs -f chatbi
 docker compose down
 ```
 
-Compose 使用 `chatbi-runtime` 命名卷保存 `/app/runtime/chatbi.db`。普通重建或 `docker compose down` 不会删除该卷；`docker compose down --volumes` 会删除持久化数据，请谨慎执行。
+Compose 会同时启动主应用 `chatbi` 和每日路线调度服务 `route-scheduler`。在 `.env` 中配置：
+
+```dotenv
+CHATBI_ROUTE_SCHEDULE_TIME=18:21
+CHATBI_ROUTE_SCHEDULE_COUNT=1
+```
+
+调度服务会在每天北京时间 18:21 重新抓取并更新 1 条路线。修改参数后运行 `docker compose up -d` 重新创建服务即可。
+
+Compose 使用 `chatbi-runtime` 保存数据库和调度日志，使用 `chatbi-data` 让两个容器共享
+`/app/data/sample_routes.json`。普通重建或 `docker compose down` 不会删除命名卷；
+`docker compose down --volumes` 会删除数据库和共享路线文件，请谨慎执行。
 
 ## 命令行入口
 
@@ -130,6 +142,26 @@ python -m hiking_chatbi app
 | `qwen-web` | 只启动桌面 WebUI |
 | `qwen-h5` | 只启动移动端 H5 |
 | `app` | 同时启动 API、WebUI 和 H5 |
+
+游侠客成都一日徒步路线采集使用独立模块，并且必须显式指定本次需要的路线数量：
+
+```powershell
+python -m hiking_chatbi.youxiake_route_pipeline --count 20
+```
+
+流水线按网站展示顺序筛选合格路线，使用 `qwen3.7-max` 联网补全，并将结果增量合并后同步写入
+`data/sample_routes_select.json` 与 `data/sample_routes.json`。运行前必须配置 `DASHSCOPE_API_KEY`；
+采集失败或最终校验失败不会改动这两个正式文件。
+
+如需由常驻 Python 进程每天定时更新 10 条路线，例如每天北京时间 03:00 执行：
+
+```powershell
+python -m hiking_chatbi.youxiake_route_scheduler --time 03:00 --count 10
+```
+
+加上 `--run-now` 会在调度器启动后立即执行一次，然后继续等待每日时间点。调度器必须保持运行；按 `Ctrl+C`
+可正常退出。每次任务都会带 `--refresh-links` 重新读取网站，默认日志保存在
+`data/youxiake_route_scheduler.log`。
 
 ## 配置
 
@@ -200,9 +232,9 @@ SQLite 主要保存以下实体：
 
 ### 数据维护原则
 
-1. 外部采集结果只是候选数据，不能自动视为事实。
+1. 普通外部采集结果只是候选数据；游侠客统一流水线是经用户确认的例外，会在严格校验后标记为已审核并进入运行文件。
 2. 导入前完成字段校验与人工审核。
-3. 结构化路线通过 `python -m hiking_chatbi import <path>` 导入。
+3. 其他结构化路线通过 `python -m hiking_chatbi import <path>` 导入。
 4. 修改 `data/sample_routes.json` 会影响后续启动时同步进数据库的数据。
 5. 生产反馈或自行维护的数据需要单独备份，不应只依赖容器卷。
 

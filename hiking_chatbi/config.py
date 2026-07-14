@@ -99,23 +99,4 @@ COLLECTOR_BROWSER_TIMEOUT_SECONDS = positive_int_from_env(
 COLLECTOR_LINK_TIMEOUT_SECONDS = positive_int_from_env(
     "CHATBI_COLLECTOR_LINK_TIMEOUT_SECONDS", 45
 )
-COLLECTOR_DEFAULT_COUNT = positive_int_from_env("CHATBI_COLLECTOR_DEFAULT_COUNT", 40)
 COLLECTOR_MAX_PAGES = positive_int_from_env("CHATBI_COLLECTOR_MAX_PAGES", 30)
-COLLECTOR_INPUT_PATH = Path(
-    os.getenv(
-        "CHATBI_COLLECTOR_INPUT_PATH",
-        ROOT / "data" / "youxiake_chengdu_day_route_links_40.json",
-    )
-)
-COLLECTOR_OUTPUT_PATH = Path(
-    os.getenv(
-        "CHATBI_COLLECTOR_OUTPUT_PATH",
-        ROOT / "data" / "youxiake_routes_enriched_40.json",
-    )
-)
-COLLECTOR_LEGACY_OUTPUT_PATH = Path(
-    os.getenv(
-        "CHATBI_COLLECTOR_LEGACY_OUTPUT_PATH",
-        ROOT / "data" / "youxiake_chengdu_day_hikes_40.json",
-    )
-)

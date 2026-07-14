@@ -12,6 +12,7 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+*.log
 
 # Virtual environments
 .venv/
@@ -28,6 +29,8 @@ workspace/
 outputs/
 image_show/
 work/
+data/youxiake_route_links_*.json
+data/youxiake_routes_checkpoint_*.json
 
 # Editors and operating systems
 .idea/
