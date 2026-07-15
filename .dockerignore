@@ -18,6 +18,7 @@ __pycache__
 
 # Local data and runtime output
 *.db
+!data/chatbi.db
 *.sqlite
 *.sqlite3
 runtime

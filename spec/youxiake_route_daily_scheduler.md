@@ -32,6 +32,6 @@
 - 两个服务共同挂载 `chatbi-data:/app/data`，确保调度器更新的 `sample_routes.json` 对应用容器可见；首次创建
   命名卷时沿用镜像中的初始数据。
 - 两个服务共同挂载 `chatbi-runtime:/app/runtime`，调度日志写入
-  `/app/runtime/youxiake_route_scheduler.log`，并显式使用同一个 `/app/runtime/chatbi.db`，使文件校验通过后的
+  `/app/runtime/youxiake_route_scheduler.log`，并显式使用同一个 `/app/data/chatbi.db`，使文件校验通过后的
   路线能够被主应用立即读取。
 - 调度服务禁用镜像中面向 HTTP API 的健康检查，并使用 `restart: unless-stopped` 自动恢复常驻进程。

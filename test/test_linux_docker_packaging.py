@@ -41,7 +41,7 @@ class LinuxDockerPackagingTest(unittest.TestCase):
             "CHATBI_HOST=0.0.0.0": "API 应监听所有容器网卡",
             "CHATBI_WEB_HOST=0.0.0.0": "WebUI 应监听所有容器网卡",
             "CHATBI_H5_HOST=0.0.0.0": "H5 应监听所有容器网卡",
-            "CHATBI_DB_PATH=/app/runtime/chatbi.db": "数据库应写入持久化目录",
+            "CHATBI_DB_PATH=/app/data/chatbi.db": "数据库应写入共享数据目录",
             "EXPOSE 8000 7860 7861": "应声明 API、WebUI 和 H5 端口",
             "HEALTHCHECK": "应配置容器健康检查",
             'CMD ["python", "-m", "hiking_chatbi", "app"]': "应默认同时启动 API 和 WebUI",

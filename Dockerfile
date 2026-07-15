@@ -11,7 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CHATBI_WEB_PORT=7860 \
     CHATBI_H5_HOST=0.0.0.0 \
     CHATBI_H5_PORT=7861 \
-    CHATBI_DB_PATH=/app/runtime/chatbi.db
+    CHATBI_DB_PATH=/app/data/chatbi.db
 
 WORKDIR /app
 
@@ -26,6 +26,8 @@ COPY qwen_agent ./qwen_agent
 COPY data ./data
 COPY data/sample_routes.json /app/data/sample_routes.json
 COPY data/sample_routes.json /app/image-data/sample_routes.json
+COPY data/chatbi.db /app/data/chatbi.db
+COPY data/chatbi.db /app/image-data/chatbi.db
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY .env.example ./
 

@@ -124,6 +124,9 @@ Compose 使用 `chatbi-runtime` 保存数据库和调度日志，使用 `chatbi-
 `/app/data/sample_routes.json`。普通重建或 `docker compose down` 不会删除命名卷；
 `docker compose down --volumes` 会删除数据库和共享路线文件，请谨慎执行。
 
+镜像构建时会将 `data/chatbi.db` 作为初始数据库打包到 `/app/data/chatbi.db`。数据卷中尚无数据库时，
+容器入口会恢复该初始副本；已有持久化数据库不会被镜像内容覆盖。
+
 ## 命令行入口
 
 ```powershell

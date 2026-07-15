@@ -13,10 +13,11 @@ GitHub `main` 分支后自动测试、构建和发布同架构镜像到 GitHub C
 - 默认执行 `python -m hiking_chatbi app`，同时提供 8000 端口的 HTTP API 和 7860
   端口的 Qwen WebUI。
 - API 与 WebUI 在容器中监听 `0.0.0.0`。
-- SQLite 数据库默认写入 `/app/runtime/chatbi.db`；部署时挂载 `/app/runtime`，使数据
+- SQLite 数据库默认写入 `/app/data/chatbi.db`；部署时挂载 `/app/data`，使数据
   不随容器删除而丢失。
 - 容器通过 `GET http://127.0.0.1:8000/health` 检查健康状态。
-- `.env`、密钥、本地数据库、Git 元数据、虚拟环境、缓存和运行输出不得进入镜像。
+- 除明确作为初始数据发布的 `data/chatbi.db` 外，其他本地数据库、`.env`、密钥、Git 元数据、
+  虚拟环境、缓存和运行输出不得进入镜像。
 - `DASHSCOPE_API_KEY`、`QWEATHER_API_KEY` 等敏感配置只允许在启动容器时注入。
 
 ## 本地运行

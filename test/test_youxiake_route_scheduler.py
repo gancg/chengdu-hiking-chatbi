@@ -50,9 +50,9 @@ class YouxiakeRouteSchedulerTest(unittest.TestCase):
             "两个服务都必须挂载共享运行卷",
         )
         self.assertGreaterEqual(
-            compose.count("CHATBI_DB_PATH: /app/runtime/chatbi.db"),
+            compose.count("CHATBI_DB_PATH: /app/data/chatbi.db"),
             2,
-            "调度器必须与应用显式使用共享运行卷中的同一个数据库",
+            "调度器必须与应用显式使用共享数据卷中的同一个数据库",
         )
         self.assertIn("chatbi-data:", compose, "Compose 必须声明路线数据命名卷")
 
