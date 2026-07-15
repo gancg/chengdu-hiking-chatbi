@@ -17,6 +17,8 @@ from hiking_chatbi.youxiake_route_pipeline import (
     extract_route_name,
     finalize_item,
     generate_validated_item,
+    has_positive_hiking_distance,
+    keep_positive_hiking_routes,
     is_eligible_product,
     load_candidate_checkpoint,
     merge_route_collections,
@@ -38,6 +40,30 @@ def load_valid_item(index: int = 0) -> dict[str, object]:
 
 
 class YouxiakeRouteEnricherTest(unittest.TestCase):
+    def test_only_positive_hiking_distance_is_eligible_for_collection(self) -> None:
+        """中文测试：零、负数或非数字徒步距离必须作为非徒步活动跳过。"""
+        item = load_valid_item()
+        for distance, expected in (
+            (8.5, True),
+            (0, False),
+            (-1, False),
+            ("未知", False),
+        ):
+            with self.subTest(distance=distance):
+                item["route"]["distance_km"] = distance
+                self.assertEqual(expected, has_positive_hiking_distance(item))
+
+    def test_existing_non_hiking_routes_are_removed_before_merge(self) -> None:
+        """中文测试：正式文件中已有的非徒步活动必须在下次合并前清除。"""
+        valid = load_valid_item(0)
+        invalid = load_valid_item(1)
+        invalid["route"]["distance_km"] = 0
+
+        kept, removed = keep_positive_hiking_routes([valid, invalid])
+
+        self.assertEqual([valid], kept)
+        self.assertEqual([invalid], removed)
+
     def test_count_is_required_by_command_line(self) -> None:
         """中文测试：统一命令必须显式提供路线数量。"""
         with self.assertRaises(SystemExit):

@@ -577,6 +577,26 @@ def finalize_item(
     return item
 
 
+def has_positive_hiking_distance(item: dict[str, Any]) -> bool:
+    """判断核验结果是否包含严格大于零的徒步距离。"""
+    try:
+        return float(item["route"]["distance_km"]) > 0
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def keep_positive_hiking_routes(
+    items: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """将有效徒步路线与应清理的非徒步活动分开。"""
+    kept: list[dict[str, Any]] = []
+    removed: list[dict[str, Any]] = []
+    for item in items:
+        target = kept if has_positive_hiking_distance(item) else removed
+        target.append(item)
+    return kept, removed
+
+
 def _normalize_billing_unit(item: dict[str, Any]) -> None:
     value = str(item.get("billing_unit", "")).strip().lower()
     aliases = {
@@ -949,6 +969,20 @@ def main() -> int:
                     lambda prompt: call_qwen(prompt, api_key),
                     site_fields=site_fields,
                 )
+                if not has_positive_hiking_distance(item):
+                    processed_count = next_processed_count
+                    print(
+                        f"跳过非徒步活动: {short_name} "
+                        f"distance_km={item.get('route', {}).get('distance_km')!r}"
+                    )
+                    write_progress_checkpoint(
+                        checkpoint_path,
+                        page_url,
+                        args.count,
+                        processed_count,
+                        completed,
+                    )
+                    continue
                 item_id = str(item["route"]["id"])
                 item_url = normalize_source_url(str(item["route"]["source_url"]))
                 is_duplicate = any(
@@ -973,7 +1007,15 @@ def main() -> int:
         raise RuntimeError(
             f"符合成都出发一日徒步条件的路线不足 {args.count} 条，实际完成 {len(completed)} 条"
         )
-    existing = load_import_file(args.runtime_output)
+    existing, removed_existing = keep_positive_hiking_routes(
+        load_import_file(args.runtime_output)
+    )
+    for item in removed_existing:
+        route = item.get("route", {})
+        print(
+            f"移除正式文件中的非徒步活动: {route.get('name', route.get('id'))} "
+            f"distance_km={route.get('distance_km')!r}"
+        )
     merged = merge_route_collections(existing, completed)
     publish_route_files(merged, args.select_output, args.runtime_output)
     print(
