@@ -19,6 +19,16 @@ class DockerDatabasePackagingTest(unittest.TestCase):
             "Docker 构建上下文没有放行需要打包的 data/chatbi.db",
         )
 
+    def test_git_tracks_only_packaged_database_exception(self) -> None:
+        """中文测试：Git 必须放行待打包数据库，确保 CI 能取得真实文件。"""
+        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("*.db", gitignore, "Git 必须默认忽略本地数据库")
+        self.assertIn(
+            "!data/chatbi.db",
+            gitignore,
+            "Git 没有放行 data/chatbi.db，CI 将只能看到缺失或空数据库",
+        )
+
     def test_dockerfile_copies_database_to_runtime_and_backup_paths(self) -> None:
         """中文测试：镜像必须包含运行数据库及不受数据卷遮挡的初始副本。"""
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
@@ -50,8 +60,9 @@ class DockerDatabasePackagingTest(unittest.TestCase):
     def test_packaged_database_is_valid_and_contains_routes_table(self) -> None:
         """中文测试：被打包的数据库必须是有效 SQLite 文件并包含 routes 表。"""
         db_path = ROOT / "data" / "chatbi.db"
+        self.assertTrue(db_path.is_file(), "缺少待打包数据库 data/chatbi.db")
         try:
-            with sqlite3.connect(db_path) as connection:
+            with sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True) as connection:
                 integrity = connection.execute("PRAGMA integrity_check").fetchone()
                 routes_table = connection.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name='routes'"

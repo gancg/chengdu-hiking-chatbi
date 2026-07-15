@@ -21,6 +21,7 @@ env/
 
 # Local databases
 *.db
+!data/chatbi.db
 *.sqlite
 *.sqlite3
 
