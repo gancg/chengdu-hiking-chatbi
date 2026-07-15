@@ -17,6 +17,7 @@ from hiking_chatbi.youxiake_route_pipeline import (
     extract_route_name,
     finalize_item,
     generate_validated_item,
+    get_product_ineligibility_reasons,
     has_positive_hiking_distance,
     keep_positive_hiking_routes,
     is_eligible_product,
@@ -40,6 +41,37 @@ def load_valid_item(index: int = 0) -> dict[str, object]:
 
 
 class YouxiakeRouteEnricherTest(unittest.TestCase):
+    def test_ineligible_product_reports_each_rejection_reason(self) -> None:
+        """中文测试：非合格产品必须返回可排查的逐项拒绝原因。"""
+        self.assertEqual(
+            [],
+            get_product_ineligibility_reasons(
+                "龙窝子轻徒步一日",
+                "成都集合出发，当日往返，全程徒步8公里。",
+            ),
+        )
+        self.assertEqual(
+            ["缺少徒步活动特征"],
+            get_product_ineligibility_reasons(
+                "古镇一日游",
+                "成都集合出发，当日往返，参观古镇。",
+            ),
+        )
+        self.assertEqual(
+            ["未确认成都出发"],
+            get_product_ineligibility_reasons(
+                "山野徒步一日",
+                "重庆集合，当日往返，徒步8公里。",
+            ),
+        )
+        self.assertEqual(
+            ["未确认单日行程", "检测到多日行程"],
+            get_product_ineligibility_reasons(
+                "雪山徒步三日",
+                "成都集合出发，连续徒步三日。",
+            ),
+        )
+
     def test_only_positive_hiking_distance_is_eligible_for_collection(self) -> None:
         """中文测试：零、负数或非数字徒步距离必须作为非徒步活动跳过。"""
         item = load_valid_item()
@@ -249,14 +281,21 @@ class YouxiakeRouteEnricherTest(unittest.TestCase):
             prompts.append(prompt)
             return {"route": {}, "costs": {}, "traffic": {}}
 
-        with self.assertRaisesRegex(RuntimeError, "连续 2 次未通过校验"):
-            generate_validated_item(
-                "首次提示", "云中岭", "https://m.youxiake.com/lines.html?id=1",
-                fake_qwen, max_attempts=2,
-            )
+        with self.assertLogs(
+            "hiking_chatbi.youxiake_route_pipeline", level="WARNING"
+        ) as logs:
+            with self.assertRaisesRegex(RuntimeError, "连续 2 次未通过校验"):
+                generate_validated_item(
+                    "首次提示", "云中岭", "https://m.youxiake.com/lines.html?id=1",
+                    fake_qwen, max_attempts=2,
+                )
         self.assertEqual(2, len(prompts), "校验失败后应重试一次")
         self.assertIn("校验错误", prompts[1], "修复提示应包含精确校验错误")
         self.assertIn("必须是单日路线", prompts[1])
+        diagnostic_logs = "\n".join(logs.output)
+        self.assertIn("云中岭", diagnostic_logs)
+        self.assertIn("https://m.youxiake.com/lines.html?id=1", diagnostic_logs)
+        self.assertIn("attempt=1/2", diagnostic_logs)
 
     def test_confidence_equal_to_threshold_is_rejected(self) -> None:
         """中文测试：路线或交通置信度等于0.8仍应拒绝。"""

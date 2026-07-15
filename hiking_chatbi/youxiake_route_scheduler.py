@@ -69,12 +69,25 @@ def execute_pipeline(
     subprocess_runner: Callable[..., subprocess.CompletedProcess[object]] = subprocess.run,
 ) -> int:
     """在仓库根目录同步执行一次路线更新并返回退出码。"""
+    command = build_pipeline_command(count)
+    logger.info(
+        "启动游侠客路线流水线 command=%s cwd=%s count=%s",
+        subprocess.list2cmdline(command),
+        ROOT,
+        count,
+    )
     completed = subprocess_runner(
-        build_pipeline_command(count),
+        command,
         cwd=ROOT,
         check=False,
     )
-    return int(completed.returncode)
+    return_code = int(completed.returncode)
+    logger.info(
+        "游侠客路线流水线进程结束 return_code=%s count=%s",
+        return_code,
+        count,
+    )
+    return return_code
 
 
 def import_updated_routes(
@@ -82,7 +95,19 @@ def import_updated_routes(
     db_path: Path = DB_PATH,
 ) -> int:
     """完整校验路线文件后，将全部有效路线增量导入数据库。"""
-    return import_file(db_path, source_path)
+    logger.info(
+        "开始校验并导入更新后的路线 source_path=%s db_path=%s",
+        source_path,
+        db_path,
+    )
+    imported_count = import_file(db_path, source_path)
+    logger.info(
+        "更新后的路线导入完成 source_path=%s db_path=%s imported_count=%s",
+        source_path,
+        db_path,
+        imported_count,
+    )
+    return imported_count
 
 
 def run_scheduled_job(

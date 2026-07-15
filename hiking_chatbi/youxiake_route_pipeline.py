@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import logging
 import os
 import re
 import sys
@@ -25,6 +26,7 @@ if __package__:
         YOUXIAKE_LIST_URL,
     )
     from .importer import load_import_file
+    from .logging_config import configure_logging
     from .validation import validate_import_item
 else:
     sys.path.insert(0, str(ROOT))
@@ -38,6 +40,7 @@ else:
         YOUXIAKE_LIST_URL,
     )
     from hiking_chatbi.importer import load_import_file
+    from hiking_chatbi.logging_config import configure_logging
     from hiking_chatbi.validation import validate_import_item
 
 
@@ -45,6 +48,7 @@ MODEL_NAME = COLLECTOR_MODEL
 LIST_URL = YOUXIAKE_LIST_URL
 SELECT_OUTPUT_PATH = ROOT / "data" / "sample_routes_select.json"
 RUNTIME_OUTPUT_PATH = ROOT / "data" / "sample_routes.json"
+logger = logging.getLogger(__name__)
 HIKING_WORDS = ("徒步", "轻徒", "登山", "古道", "穿越", "爬山", "溯溪", "攀登", "牧场")
 ROUTE_COST_TYPES = {"ticket", "parking", "shuttle", "waste", "other"}
 TRANSPORT_COST_TYPES = {"fuel", "toll", "train", "bus", "other"}
@@ -201,6 +205,12 @@ class RouteLinkFetcher:
         previous_ids: set[str] = set()
         for page_number in range(1, COLLECTOR_MAX_PAGES + 1):
             page_url = build_page_url(page_number, self.page_url)
+            logger.info(
+                "开始抓取游侠客候选列表 page=%s/%s url=%s",
+                page_number,
+                COLLECTOR_MAX_PAGES,
+                page_url,
+            )
             self._open_page(page_url)
             self._reject_blocked_page(page_url)
             page_candidates = self._read_candidates()
@@ -209,11 +219,29 @@ class RouteLinkFetcher:
                 for item in page_candidates
                 if (normalized := normalize_route_link(item.get("url", ""))) is not None
             }
-            if not page_ids or (page_number > 1 and page_ids == previous_ids):
+            logger.info(
+                "游侠客候选列表抓取完成 page=%s url=%s raw_count=%s normalized_count=%s",
+                page_number,
+                page_url,
+                len(page_candidates),
+                len(page_ids),
+            )
+            if not page_ids:
+                logger.info("停止候选列表分页 reason=页面无有效活动 url=%s", page_url)
+                break
+            if page_number > 1 and page_ids == previous_ids:
+                logger.info("停止候选列表分页 reason=页面活动与上一页重复 url=%s", page_url)
                 break
             previous_ids = page_ids
             all_candidates.extend(page_candidates)
         routes = select_unique_routes(all_candidates, count=len(all_candidates))
+        logger.info(
+            "游侠客候选列表汇总完成 raw_count=%s unique_count=%s target_count=%s source_url=%s",
+            len(all_candidates),
+            len(routes),
+            count,
+            self.page_url,
+        )
         if len(routes) < count:
             raise RuntimeError(f"游侠客公开页面候选不足 {count} 条，实际抓取 {len(routes)} 条")
         return routes
@@ -353,8 +381,11 @@ def _json_from_model_text(content: str) -> dict[str, Any]:
     return value
 
 
-def is_eligible_product(product_name: str, detail_text: str) -> bool:
-    """判断正文是否明确支持成都出发、单日及徒步三个条件。"""
+def get_product_ineligibility_reasons(
+    product_name: str,
+    detail_text: str,
+) -> list[str]:
+    """返回产品不满足成都单日徒步条件的具体原因。"""
     combined = re.sub(r"\s+", "", f"{product_name}\n{detail_text}")
     has_hiking = any(word in combined for word in HIKING_WORDS)
     has_chengdu_departure = any(
@@ -369,7 +400,21 @@ def is_eligible_product(product_name: str, detail_text: str) -> bool:
         for marker in ("一日", "1日", "1天", "当天往返", "当日往返", "当天返回", "当日返回")
     )
     has_multiple_days = re.search(r"(?:[2-9]|[二三四五六七八九十])(?:日|天)", combined) is not None
-    return has_hiking and has_chengdu_departure and has_one_day and not has_multiple_days
+    reasons: list[str] = []
+    if not has_hiking:
+        reasons.append("缺少徒步活动特征")
+    if not has_chengdu_departure:
+        reasons.append("未确认成都出发")
+    if not has_one_day:
+        reasons.append("未确认单日行程")
+    if has_multiple_days:
+        reasons.append("检测到多日行程")
+    return reasons
+
+
+def is_eligible_product(product_name: str, detail_text: str) -> bool:
+    """判断正文是否明确支持成都出发、单日及徒步三个条件。"""
+    return not get_product_ineligibility_reasons(product_name, detail_text)
 
 
 def extract_site_route_fields(
@@ -672,12 +717,42 @@ def generate_validated_item(
     last_error: Exception | None = None
     previous_item: dict[str, Any] | None = None
     for attempt in range(1, max_attempts + 1):
+        logger.info(
+            "开始模型核验路线 name=%s url=%s attempt=%s/%s model=%s",
+            short_name,
+            source_url,
+            attempt,
+            max_attempts,
+            MODEL_NAME,
+        )
         item = qwen_caller(current_prompt)
         previous_item = item
         try:
-            return finalize_item(item, short_name, source_url, site_fields)
+            finalized = finalize_item(item, short_name, source_url, site_fields)
+            route = finalized["route"]
+            logger.info(
+                "模型核验路线通过 name=%s route_id=%s url=%s distance_km=%s "
+                "difficulty=%s confidence=%s attempt=%s/%s",
+                short_name,
+                route.get("id"),
+                source_url,
+                route.get("distance_km"),
+                route.get("difficulty"),
+                route.get("confidence"),
+                attempt,
+                max_attempts,
+            )
+            return finalized
         except (TypeError, ValueError) as exc:
             last_error = exc
+            logger.warning(
+                "模型核验路线未通过 name=%s url=%s attempt=%s/%s error=%s",
+                short_name,
+                source_url,
+                attempt,
+                max_attempts,
+                exc,
+            )
             if attempt == max_attempts:
                 break
             current_prompt = f"""修复下面的路线 JSON。只返回修复后的完整 JSON 对象，不要解释。
@@ -915,12 +990,25 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    configure_logging()
     args = build_argument_parser().parse_args()
     if args.count <= 0:
         raise ValueError("count 必须为正整数")
     page_url = validate_page_url(args.page_url)
     links_path = args.links_file or default_links_path(args.count)
     checkpoint_path = args.checkpoint_file or default_checkpoint_path(args.count)
+    logger.info(
+        "游侠客路线流水线启动 target_count=%s page_url=%s links_path=%s "
+        "checkpoint_path=%s select_output=%s runtime_output=%s refresh_links=%s restart=%s",
+        args.count,
+        page_url,
+        links_path,
+        checkpoint_path,
+        args.select_output,
+        args.runtime_output,
+        args.refresh_links,
+        args.restart,
+    )
 
     if args.refresh_links or not links_path.exists():
         link_fetcher = RouteLinkFetcher(page_url=page_url)
@@ -929,10 +1017,20 @@ def main() -> int:
         finally:
             link_fetcher.close()
         write_links(links_path, products, args.count, page_url)
-        print(f"第一阶段完成，已保存 {len(products)} 条候选名称和链接: {links_path}")
+        logger.info(
+            "候选链接检查点写入完成 candidate_count=%s path=%s source_url=%s",
+            len(products),
+            links_path,
+            page_url,
+        )
     else:
         products = load_candidate_checkpoint(links_path, args.count, page_url)
-        print(f"检测到 {len(products)} 条候选检查点，将跳过列表抓取: {links_path}")
+        logger.info(
+            "复用候选链接检查点 candidate_count=%s path=%s source_url=%s",
+            len(products),
+            links_path,
+            page_url,
+        )
 
     api_key = os.getenv("DASHSCOPE_API_KEY", "").strip()
     if not api_key:
@@ -945,8 +1043,13 @@ def main() -> int:
         )
         if processed_count > len(products):
             raise ValueError("核验检查点处理位置超过候选数量，请使用 --restart")
-        print(
-            f"检测到 {len(completed)} 条已校验路线，将从第 {processed_count + 1} 个候选继续"
+        logger.info(
+            "恢复路线核验检查点 completed_count=%s processed_candidate_count=%s "
+            "next_candidate_index=%s path=%s",
+            len(completed),
+            processed_count,
+            processed_count + 1,
+            checkpoint_path,
         )
 
     if len(completed) < args.count:
@@ -954,14 +1057,67 @@ def main() -> int:
         try:
             for candidate_index in range(processed_count, len(products)):
                 product = products[candidate_index]
+                logger.info(
+                    "开始抓取路线详情 candidate_index=%s/%s accepted_count=%s/%s "
+                    "product_name=%s url=%s",
+                    candidate_index + 1,
+                    len(products),
+                    len(completed),
+                    args.count,
+                    product["name"],
+                    product["url"],
+                )
                 detail_text = fetcher.fetch(product["url"])
                 next_processed_count = candidate_index + 1
+                logger.info(
+                    "路线详情抓取完成 candidate_index=%s product_name=%s url=%s text_length=%s",
+                    candidate_index + 1,
+                    product["name"],
+                    product["url"],
+                    len(detail_text),
+                )
+
+                rejection_reasons = get_product_ineligibility_reasons(
+                    product["name"], detail_text
+                )
+                if rejection_reasons:
+                    processed_count = next_processed_count
+                    logger.info(
+                        "跳过不合格候选 candidate_index=%s product_name=%s url=%s reasons=%s",
+                        candidate_index + 1,
+                        product["name"],
+                        product["url"],
+                        "；".join(rejection_reasons),
+                    )
+                    write_progress_checkpoint(
+                        checkpoint_path,
+                        page_url,
+                        args.count,
+                        processed_count,
+                        completed,
+                    )
+                    logger.debug(
+                        "路线核验检查点已更新 processed_candidate_count=%s completed_count=%s path=%s",
+                        processed_count,
+                        len(completed),
+                        checkpoint_path,
+                    )
+                    continue
 
                 short_name = extract_route_name(product["name"])
                 site_fields = extract_site_route_fields(
                     product["name"], product["url"], detail_text
                 )
-                print(f"[{len(completed) + 1}/{args.count}] 正在核验 {short_name}")
+                logger.info(
+                    "开始核验合格候选 accepted_index=%s/%s candidate_index=%s "
+                    "name=%s url=%s site_fields=%s",
+                    len(completed) + 1,
+                    args.count,
+                    candidate_index + 1,
+                    short_name,
+                    product["url"],
+                    json.dumps(site_fields, ensure_ascii=False, sort_keys=True),
+                )
                 item = generate_validated_item(
                     build_prompt(short_name, product, detail_text, site_fields),
                     short_name,
@@ -971,9 +1127,13 @@ def main() -> int:
                 )
                 if not has_positive_hiking_distance(item):
                     processed_count = next_processed_count
-                    print(
-                        f"跳过非徒步活动: {short_name} "
-                        f"distance_km={item.get('route', {}).get('distance_km')!r}"
+                    route = item.get("route", {})
+                    logger.info(
+                        "跳过非徒步活动 name=%s route_id=%s url=%s distance_km=%r",
+                        short_name,
+                        route.get("id"),
+                        product["url"],
+                        route.get("distance_km"),
                     )
                     write_progress_checkpoint(
                         checkpoint_path,
@@ -992,11 +1152,44 @@ def main() -> int:
                 )
                 processed_count = next_processed_count
                 if is_duplicate:
-                    print(f"跳过重复路线: {short_name}")
+                    duplicate = next(
+                        existing
+                        for existing in completed
+                        if str(existing["route"]["id"]) == item_id
+                        or normalize_source_url(
+                            str(existing["route"]["source_url"])
+                        ) == item_url
+                    )
+                    duplicate_route = duplicate["route"]
+                    logger.info(
+                        "跳过重复路线 name=%s route_id=%s url=%s matched_route_id=%s "
+                        "matched_url=%s",
+                        short_name,
+                        item_id,
+                        item_url,
+                        duplicate_route["id"],
+                        duplicate_route["source_url"],
+                    )
                 else:
                     completed.append(item)
+                    logger.info(
+                        "路线加入本次结果 accepted_count=%s/%s name=%s route_id=%s "
+                        "url=%s distance_km=%s",
+                        len(completed),
+                        args.count,
+                        short_name,
+                        item_id,
+                        item_url,
+                        item["route"].get("distance_km"),
+                    )
                 write_progress_checkpoint(
                     checkpoint_path, page_url, args.count, processed_count, completed
+                )
+                logger.debug(
+                    "路线核验检查点已更新 processed_candidate_count=%s completed_count=%s path=%s",
+                    processed_count,
+                    len(completed),
+                    checkpoint_path,
                 )
                 if len(completed) == args.count:
                     break
@@ -1010,17 +1203,36 @@ def main() -> int:
     existing, removed_existing = keep_positive_hiking_routes(
         load_import_file(args.runtime_output)
     )
+    logger.info(
+        "正式路线文件读取完成 existing_count=%s removed_non_hiking_count=%s path=%s",
+        len(existing),
+        len(removed_existing),
+        args.runtime_output,
+    )
     for item in removed_existing:
         route = item.get("route", {})
-        print(
-            f"移除正式文件中的非徒步活动: {route.get('name', route.get('id'))} "
-            f"distance_km={route.get('distance_km')!r}"
+        logger.info(
+            "移除正式文件中的非徒步活动 name=%s route_id=%s url=%s distance_km=%r",
+            route.get("name"),
+            route.get("id"),
+            route.get("source_url"),
+            route.get("distance_km"),
         )
     merged = merge_route_collections(existing, completed)
+    logger.info(
+        "路线合并完成 existing_count=%s incoming_count=%s merged_count=%s",
+        len(existing),
+        len(completed),
+        len(merged),
+    )
     publish_route_files(merged, args.select_output, args.runtime_output)
-    print(
-        f"流水线完成：本次核验 {args.count} 条，合并后共 {len(merged)} 条；"
-        f"已同步 {args.select_output} 和 {args.runtime_output}"
+    logger.info(
+        "游侠客路线流水线完成 accepted_count=%s merged_count=%s "
+        "select_output=%s runtime_output=%s",
+        args.count,
+        len(merged),
+        args.select_output,
+        args.runtime_output,
     )
     return 0
 
