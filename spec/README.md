@@ -52,7 +52,7 @@ python -m hiking_chatbi app
 ```
 
 - `init`：初始化数据库并导入样例数据。
-- `serve`：启动 HTTP 服务；当审核通过的路线为空时，自动导入样例数据。
+- `serve`：启动 HTTP 服务，只初始化数据库表结构，不自动导入样例数据。
 - `import <path>`：验证并导入指定 JSON 文件。
 - `qwen-chat`：启动 Qwen Agent 终端连续对话。
 - `qwen-web`：启动 Qwen Agent 自带的 WebUI 演示界面。

@@ -90,7 +90,8 @@ python -m hiking_chatbi app
 | WebUI | <http://127.0.0.1:7860> | 桌面端对话 |
 | H5 | <http://127.0.0.1:7861> | 移动端对话 |
 
-应用启动时会用 `data/sample_routes.json` 初始化/同步样例路线。
+应用启动时只初始化数据库表结构，不会自动导入或同步 `data/sample_routes.json`。需要载入样例路线时，
+请显式执行 `python -m hiking_chatbi init`；也可以使用 `import <path>` 手工导入其他路线文件。
 
 ### 2. Docker 运行
 
@@ -115,7 +116,9 @@ CHATBI_ROUTE_SCHEDULE_TIME=18:21
 CHATBI_ROUTE_SCHEDULE_COUNT=1
 ```
 
-调度服务会在每天北京时间 18:21 重新抓取并更新 1 条路线。修改参数后运行 `docker compose up -d` 重新创建服务即可。
+调度服务会在每天北京时间 18:21 重新抓取并更新 1 条路线；完整校验更新后的
+`sample_routes.json` 后，会将路线增量导入主应用使用的 `chatbi.db`。修改参数后运行
+`docker compose up -d` 重新创建服务即可。
 
 Compose 使用 `chatbi-runtime` 保存数据库和调度日志，使用 `chatbi-data` 让两个容器共享
 `/app/data/sample_routes.json`。普通重建或 `docker compose down` 不会删除命名卷；
@@ -170,7 +173,7 @@ python -m hiking_chatbi.youxiake_route_scheduler --time 03:00 --count 10
 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `CHATBI_DB_PATH` | `data/chatbi.db` | SQLite 数据库路径 |
-| `CHATBI_SAMPLE_DATA_PATH` | `data/sample_routes.json` | 启动时导入的数据文件 |
+| `CHATBI_SAMPLE_DATA_PATH` | `data/sample_routes.json` | 执行 `init` 时导入的数据文件 |
 | `CHATBI_HOST` / `CHATBI_PORT` | `127.0.0.1` / `8000` | API 监听地址 |
 | `CHATBI_WEB_HOST` / `CHATBI_WEB_PORT` | `127.0.0.1` / `7860` | WebUI 监听地址 |
 | `CHATBI_H5_HOST` / `CHATBI_H5_PORT` | `127.0.0.1` / `7861` | H5 监听地址 |
@@ -235,7 +238,7 @@ SQLite 主要保存以下实体：
 1. 普通外部采集结果只是候选数据；游侠客统一流水线是经用户确认的例外，会在严格校验后标记为已审核并进入运行文件。
 2. 导入前完成字段校验与人工审核。
 3. 其他结构化路线通过 `python -m hiking_chatbi import <path>` 导入。
-4. 修改 `data/sample_routes.json` 会影响后续启动时同步进数据库的数据。
+4. 修改 `data/sample_routes.json` 只会影响后续显式执行 `init` 时导入数据库的数据。
 5. 生产反馈或自行维护的数据需要单独备份，不应只依赖容器卷。
 
 采集管道、停车点补全和各平台链接规则分别记录在 `spec/youxiake_route_pipeline.md`、`spec/qwen_parking_points_enrichment.md` 和相关规格中。

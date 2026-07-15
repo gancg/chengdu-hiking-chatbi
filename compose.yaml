@@ -32,6 +32,7 @@ services:
       - .env
     environment:
       TZ: Asia/Shanghai
+      CHATBI_DB_PATH: /app/runtime/chatbi.db
       CHATBI_SAMPLE_DATA_PATH: /app/data/sample_routes.json
     command:
       - python

@@ -9,7 +9,8 @@ import sys
 import time as time_module
 from typing import Callable, Protocol
 
-from .config import ROOT
+from .config import DB_PATH, ROOT, SAMPLE_DATA_PATH
+from .importer import import_file
 
 
 DEFAULT_LOG_PATH = ROOT / "data" / "youxiake_route_scheduler.log"
@@ -76,12 +77,21 @@ def execute_pipeline(
     return int(completed.returncode)
 
 
+def import_updated_routes(
+    source_path: Path = SAMPLE_DATA_PATH,
+    db_path: Path = DB_PATH,
+) -> int:
+    """完整校验路线文件后，将全部有效路线增量导入数据库。"""
+    return import_file(db_path, source_path)
+
+
 def run_scheduled_job(
     count: int,
     job_runner: Callable[[int], int],
     job_logger: JobLogger = logger,
+    route_importer: Callable[[], int] = import_updated_routes,
 ) -> bool:
-    """运行单次任务；记录失败但不向调度循环传播。"""
+    """运行路线更新和数据库导入；记录失败但不向调度循环传播。"""
     job_logger.info("开始执行每日游侠客路线更新 count=%s", count)
     try:
         return_code = job_runner(count)
@@ -95,7 +105,21 @@ def run_scheduled_job(
             return_code,
         )
         return False
-    job_logger.info("每日游侠客路线更新完成 count=%s", count)
+    try:
+        imported_count = route_importer()
+    except Exception:
+        job_logger.exception(
+            "sample_routes.json 完整性校验或数据库导入失败，调度器将在下一周期重试"
+        )
+        return False
+    job_logger.info(
+        "每日游侠客路线更新并导入数据库完成 update_count=%s imported_count=%s "
+        "source_path=%s db_path=%s",
+        count,
+        imported_count,
+        SAMPLE_DATA_PATH,
+        DB_PATH,
+    )
     return True
 
 

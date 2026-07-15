@@ -3,14 +3,17 @@ from __future__ import annotations
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import Mock
 
+from hiking_chatbi.db import list_routes
 from hiking_chatbi.youxiake_route_scheduler import (
     build_argument_parser,
     build_pipeline_command,
     calculate_next_run,
     execute_pipeline,
+    import_updated_routes,
     parse_daily_time,
     run_scheduled_job,
 )
@@ -45,6 +48,11 @@ class YouxiakeRouteSchedulerTest(unittest.TestCase):
             compose.count("chatbi-runtime:/app/runtime"),
             2,
             "两个服务都必须挂载共享运行卷",
+        )
+        self.assertGreaterEqual(
+            compose.count("CHATBI_DB_PATH: /app/runtime/chatbi.db"),
+            2,
+            "调度器必须与应用显式使用共享运行卷中的同一个数据库",
         )
         self.assertIn("chatbi-data:", compose, "Compose 必须声明路线数据命名卷")
 
@@ -110,9 +118,65 @@ class YouxiakeRouteSchedulerTest(unittest.TestCase):
     def test_scheduled_job_reports_failure_without_raising(self) -> None:
         """中文测试：单次路线更新失败不得导致常驻调度器退出。"""
         logger = Mock()
-        is_success = run_scheduled_job(10, lambda _count: 2, logger)
+        importer = Mock()
+        is_success = run_scheduled_job(10, lambda _count: 2, logger, importer)
         self.assertFalse(is_success)
         logger.error.assert_called_once()
+        importer.assert_not_called()
+
+    def test_successful_pipeline_imports_updated_routes_once(self) -> None:
+        """中文测试：路线文件更新成功后必须校验并导入数据库一次。"""
+        logger = Mock()
+        importer = Mock(return_value=23)
+
+        is_success = run_scheduled_job(10, lambda _count: 0, logger, importer)
+
+        self.assertTrue(is_success)
+        importer.assert_called_once_with()
+        self.assertTrue(
+            any("数据库" in str(call) and "23" in str(call) for call in logger.info.call_args_list),
+            "导入成功日志必须包含数据库导入数量",
+        )
+
+    def test_invalid_updated_routes_are_not_written_to_database(self) -> None:
+        """中文测试：样例路线结构不完整时不得创建或修改数据库。"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source_path = root / "sample_routes.json"
+            db_path = root / "chatbi.db"
+            source_path.write_text('[{"route": {"id": "broken"}}]', encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "必须包含|缺少字段"):
+                import_updated_routes(source_path, db_path)
+
+            self.assertFalse(db_path.exists(), "完整性校验失败前不得创建或修改数据库")
+
+    def test_valid_updated_routes_are_imported_to_database(self) -> None:
+        """中文测试：完整样例路线应在校验后全部增量导入目标数据库。"""
+        source_path = ROOT / "data" / "sample_routes.json"
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "chatbi.db"
+
+            imported_count = import_updated_routes(source_path, db_path)
+
+            self.assertGreater(imported_count, 0, "完整样例路线不应导入为空")
+            self.assertEqual(
+                imported_count,
+                len(list_routes(db_path, reviewed_only=False)),
+                "数据库中的路线数量应与完整校验后的导入数量一致",
+            )
+
+    def test_database_import_failure_is_reported_without_stopping_scheduler(self) -> None:
+        """中文测试：数据库导入失败应记录异常并留待下一周期重试。"""
+        logger = Mock()
+
+        def broken_importer() -> int:
+            raise RuntimeError("模拟数据库写入失败")
+
+        self.assertFalse(
+            run_scheduled_job(10, lambda _count: 0, logger, broken_importer)
+        )
+        logger.exception.assert_called_once()
 
     def test_scheduled_job_catches_unexpected_exception(self) -> None:
         """中文测试：子任务异常应记录堆栈并留待下一天重试。"""
@@ -121,8 +185,10 @@ class YouxiakeRouteSchedulerTest(unittest.TestCase):
         def broken_runner(_count: int) -> int:
             raise RuntimeError("模拟网络失败")
 
-        self.assertFalse(run_scheduled_job(10, broken_runner, logger))
+        importer = Mock()
+        self.assertFalse(run_scheduled_job(10, broken_runner, logger, importer))
         logger.exception.assert_called_once()
+        importer.assert_not_called()
 
 
 if __name__ == "__main__":
