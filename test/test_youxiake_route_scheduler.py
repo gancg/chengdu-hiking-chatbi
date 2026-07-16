@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 from datetime import datetime, time, timedelta, timezone
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -139,17 +141,53 @@ class YouxiakeRouteSchedulerTest(unittest.TestCase):
         )
 
     def test_invalid_updated_routes_are_not_written_to_database(self) -> None:
-        """中文测试：样例路线结构不完整时不得创建或修改数据库。"""
+        """中文测试：全部路线均无效时应逐条跳过且不得创建数据库。"""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source_path = root / "sample_routes.json"
             db_path = root / "chatbi.db"
             source_path.write_text('[{"route": {"id": "broken"}}]', encoding="utf-8")
 
-            with self.assertRaisesRegex(ValueError, "必须包含|缺少字段"):
-                import_updated_routes(source_path, db_path)
+            with self.assertLogs("hiking_chatbi.importer", level="WARNING") as logs:
+                imported_count = import_updated_routes(source_path, db_path)
 
+            self.assertEqual(0, imported_count)
+            self.assertTrue(any("broken" in message for message in logs.output))
             self.assertFalse(db_path.exists(), "完整性校验失败前不得创建或修改数据库")
+
+    def test_invalid_hiking_minutes_is_skipped_before_database_import(self) -> None:
+        """中文测试：徒步时长不大于零的路线应跳过，其余路线继续导入。"""
+        source_items = json.loads(
+            (ROOT / "test" / "fixtures" / "sample_routes.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        valid_item = copy.deepcopy(source_items[0])
+        invalid_item = copy.deepcopy(source_items[1])
+        invalid_item["route"]["id"] = "invalid-zero-hiking-minutes"
+        invalid_item["route"]["hiking_minutes"] = 0
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source_path = root / "sample_routes.json"
+            db_path = root / "chatbi.db"
+            source_path.write_text(
+                json.dumps([invalid_item, valid_item], ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            with self.assertLogs("hiking_chatbi.importer", level="WARNING") as logs:
+                imported_count = import_updated_routes(source_path, db_path)
+
+            routes = list_routes(db_path, reviewed_only=False)
+            self.assertEqual(1, imported_count)
+            self.assertEqual([valid_item["route"]["id"]], [route["id"] for route in routes])
+            self.assertTrue(
+                any(
+                    "invalid-zero-hiking-minutes" in message
+                    and "hiking_minutes 必须为正整数" in message
+                    for message in logs.output
+                )
+            )
 
     def test_valid_updated_routes_are_imported_to_database(self) -> None:
         """中文测试：完整样例路线应在校验后全部增量导入目标数据库。"""

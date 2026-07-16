@@ -78,6 +78,32 @@ def validate_import_item(item: dict[str, Any]) -> None:
     _parse_time(traffic["updated_at"], "traffic.updated_at")
 
 
+def validate_database_import_item(item: dict[str, Any]) -> None:
+    """校验单条路线能否满足数据库的基础数值约束。"""
+    validate_import_item(item)
+    route = item["route"]
+    _require_positive_number(route["distance_km"], "distance_km")
+    _require_nonnegative_integer(route["ascent_m"], "ascent_m")
+    _require_nonnegative_integer(route["highest_altitude_m"], "highest_altitude_m")
+    _require_positive_integer(route["hiking_minutes"], "hiking_minutes")
+    _require_positive_integer(route["duration_days"], "duration_days")
+
+
+def _require_positive_number(value: Any, label: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        raise ValueError(f"{label} 必须为正数")
+
+
+def _require_positive_integer(value: Any, label: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{label} 必须为正整数")
+
+
+def _require_nonnegative_integer(value: Any, label: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{label} 必须为非负整数")
+
+
 def _validate_parking_points(value: Any) -> None:
     if not isinstance(value, list):
         raise ValueError("parking_points 必须为数组")

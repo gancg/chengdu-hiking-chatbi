@@ -12,7 +12,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if __package__:
@@ -111,21 +111,6 @@ SCHEMA_TEMPLATE: dict[str, Any] = {
 }
 
 
-def build_page_url(page_number: int, page_url: str = LIST_URL) -> str:
-    """根据游侠客筛选路径中的第 4 个数字生成分页 URL。"""
-    if page_number <= 0:
-        raise ValueError("page_number 必须为正整数")
-    result, replaced = re.subn(
-        r"(/search/results/\d+-\d+-\d+-)\d+(-\d+-\d+/)",
-        rf"\g<1>{page_number}\g<2>",
-        page_url,
-        count=1,
-    )
-    if replaced != 1:
-        raise ValueError(f"无法识别游侠客筛选页分页结构: {page_url}")
-    return result
-
-
 def validate_page_url(page_url: str) -> str:
     """校验并返回可用于采集的游侠客 HTTPS 筛选页。"""
     normalized = page_url.strip()
@@ -136,8 +121,69 @@ def validate_page_url(page_url: str) -> str:
         or not parsed.path.startswith("/search/results/")
     ):
         raise ValueError("page-url 必须是 HTTPS 游侠客筛选页地址")
-    build_page_url(1, normalized)
     return normalized
+
+
+def normalize_next_page_url(href: str, current_url: str) -> str | None:
+    """将页面中的下一页 href 规范化为安全的游侠客筛选页地址。"""
+    normalized_href = href.strip()
+    if not normalized_href:
+        return None
+    absolute = urljoin(current_url, normalized_href)
+    parsed = urlparse(absolute)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or parsed.hostname not in {"www.youxiake.com", "m.youxiake.com"}
+        or not parsed.path.startswith("/search/results/")
+    ):
+        raise RuntimeError(
+            f"下一页链接必须是 HTTPS 游侠客筛选页: href={href} current_url={current_url}"
+        )
+    normalized = urlunparse(
+        ("https", parsed.netloc, parsed.path, parsed.params, parsed.query, "")
+    )
+    current = urlparse(current_url)
+    normalized_current = urlunparse(
+        (current.scheme, current.netloc, current.path, current.params, current.query, "")
+    )
+    return None if normalized == normalized_current else normalized
+
+
+def find_next_page_href(anchors: Iterable[dict[str, Any]]) -> str | None:
+    """从页面锚点信息中找到可见且未禁用的下一页真实 href。"""
+    for anchor in anchors:
+        href = str(anchor.get("href", "")).strip()
+        if not href or bool(anchor.get("is_disabled", False)):
+            continue
+        text = re.sub(r"\s+", "", str(anchor.get("text", ""))).lower()
+        label = re.sub(r"\s+", "", str(anchor.get("aria_label", ""))).lower()
+        title = re.sub(r"\s+", "", str(anchor.get("title", ""))).lower()
+        rel_tokens = str(anchor.get("rel", "")).strip().lower().split()
+        class_tokens = str(anchor.get("class_name", "")).strip().lower().split()
+        has_disabled_class = any(
+            re.search(r"(?:^|[-_])disabled(?:$|[-_])", name) is not None
+            for name in class_tokens
+        )
+        if has_disabled_class:
+            continue
+        is_next = (
+            "next" in rel_tokens
+            or text in {"下一页", "后一页", "下页", "next", "nextpage"}
+            or text.startswith(("下一页", "后一页"))
+            or "下一页" in label
+            or "后一页" in label
+            or label == "next"
+            or "下一页" in title
+            or "后一页" in title
+            or title == "next"
+            or any(
+                re.search(r"(?:^|[-_])next(?:$|[-_])", name) is not None
+                for name in class_tokens
+            )
+        )
+        if is_next:
+            return href
+    return None
 
 
 def normalize_route_link(url: str) -> tuple[str, str] | None:
@@ -203,8 +249,13 @@ class RouteLinkFetcher:
         """按页面顺序抓取候选，详情筛选阶段再确定前 N 条合格路线。"""
         all_candidates: list[dict[str, str]] = []
         previous_ids: set[str] = set()
+        page_url = self.page_url
+        visited_page_urls: set[str] = set()
         for page_number in range(1, COLLECTOR_MAX_PAGES + 1):
-            page_url = build_page_url(page_number, self.page_url)
+            if page_url in visited_page_urls:
+                logger.info("停止候选列表分页 reason=下一页链接形成循环 url=%s", page_url)
+                break
+            visited_page_urls.add(page_url)
             logger.info(
                 "开始抓取游侠客候选列表 page=%s/%s url=%s",
                 page_number,
@@ -234,6 +285,21 @@ class RouteLinkFetcher:
                 break
             previous_ids = page_ids
             all_candidates.extend(page_candidates)
+            routes = select_unique_routes(all_candidates, count=count)
+            if len(routes) == count:
+                logger.info(
+                    "停止候选列表分页 reason=累计候选已达到目标 unique_count=%s "
+                    "target_count=%s url=%s",
+                    len(routes),
+                    count,
+                    page_url,
+                )
+                break
+            next_page_url = self._read_next_page_url(page_url)
+            if next_page_url is None:
+                logger.info("停止候选列表分页 reason=当前页面没有可用下一页 url=%s", page_url)
+                break
+            page_url = next_page_url
         routes = select_unique_routes(all_candidates, count=len(all_candidates))
         logger.info(
             "游侠客候选列表汇总完成 raw_count=%s unique_count=%s target_count=%s source_url=%s",
@@ -269,6 +335,32 @@ class RouteLinkFetcher:
                 url: a.href || a.getAttribute('href') || ''
             })).filter(item => item.name && item.url)"""
         )
+
+    def _read_next_page_url(self, current_url: str) -> str | None:
+        """从当前页面可见且未禁用的下一页锚点读取真实 href。"""
+        anchors = self._page.locator("a[href]").evaluate_all(
+            """els => els.map(anchor => {
+                const href = anchor.getAttribute('href') || '';
+                return {
+                    href: anchor.href || href,
+                    text: (anchor.innerText || anchor.textContent || '').trim(),
+                    rel: anchor.getAttribute('rel') || '',
+                    aria_label: anchor.getAttribute('aria-label') || '',
+                    title: anchor.getAttribute('title') || '',
+                    class_name: anchor.getAttribute('class') || '',
+                    is_disabled: anchor.offsetParent === null
+                        || (anchor.getAttribute('aria-disabled') || '').toLowerCase() === 'true'
+                        || !href || href === '#'
+                        || href.toLowerCase().startsWith('javascript:')
+                };
+            })"""
+        )
+        if not isinstance(anchors, list):
+            return None
+        href = find_next_page_href(anchors)
+        if href is None:
+            return None
+        return normalize_next_page_url(href, current_url)
 
 
 def write_links(
@@ -385,7 +477,7 @@ def get_product_ineligibility_reasons(
     product_name: str,
     detail_text: str,
 ) -> list[str]:
-    """返回产品不满足成都单日徒步条件的具体原因。"""
+    """返回产品不满足成都出发徒步条件的具体原因。"""
     combined = re.sub(r"\s+", "", f"{product_name}\n{detail_text}")
     has_hiking = any(word in combined for word in HIKING_WORDS)
     has_chengdu_departure = any(
@@ -395,25 +487,16 @@ def get_product_ineligibility_reasons(
             r"(?:集合地|出发地|出发城市)[：:]?成都",
         )
     )
-    has_one_day = any(
-        marker in combined
-        for marker in ("一日", "1日", "1天", "当天往返", "当日往返", "当天返回", "当日返回")
-    )
-    has_multiple_days = re.search(r"(?:[2-9]|[二三四五六七八九十])(?:日|天)", combined) is not None
     reasons: list[str] = []
     if not has_hiking:
         reasons.append("缺少徒步活动特征")
     if not has_chengdu_departure:
         reasons.append("未确认成都出发")
-    if not has_one_day:
-        reasons.append("未确认单日行程")
-    if has_multiple_days:
-        reasons.append("检测到多日行程")
     return reasons
 
 
 def is_eligible_product(product_name: str, detail_text: str) -> bool:
-    """判断正文是否明确支持成都出发、单日及徒步三个条件。"""
+    """判断正文是否明确支持成都出发及徒步两个条件。"""
     return not get_product_ineligibility_reasons(product_name, detail_text)
 
 

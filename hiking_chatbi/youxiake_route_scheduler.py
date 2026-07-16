@@ -10,7 +10,7 @@ import time as time_module
 from typing import Callable, Protocol
 
 from .config import DB_PATH, ROOT, SAMPLE_DATA_PATH
-from .importer import import_file
+from .importer import import_valid_file
 
 
 DEFAULT_LOG_PATH = ROOT / "data" / "youxiake_route_scheduler.log"
@@ -94,13 +94,13 @@ def import_updated_routes(
     source_path: Path = SAMPLE_DATA_PATH,
     db_path: Path = DB_PATH,
 ) -> int:
-    """完整校验路线文件后，将全部有效路线增量导入数据库。"""
+    """逐条预检路线文件，跳过不合格记录并增量导入其余路线。"""
     logger.info(
         "开始校验并导入更新后的路线 source_path=%s db_path=%s",
         source_path,
         db_path,
     )
-    imported_count = import_file(db_path, source_path)
+    imported_count = import_valid_file(db_path, source_path)
     logger.info(
         "更新后的路线导入完成 source_path=%s db_path=%s imported_count=%s",
         source_path,

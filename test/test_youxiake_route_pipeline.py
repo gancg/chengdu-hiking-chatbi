@@ -5,16 +5,16 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, call, patch
 
 from hiking_chatbi.youxiake_route_pipeline import (
     build_argument_parser,
-    build_page_url,
     build_prompt,
     call_qwen,
     default_links_path,
     default_checkpoint_path,
     extract_route_name,
+    find_next_page_href,
     finalize_item,
     generate_validated_item,
     get_product_ineligibility_reasons,
@@ -28,7 +28,9 @@ from hiking_chatbi.youxiake_route_pipeline import (
     normalize_costs,
     prepare_detail_text,
     publish_route_files,
+    RouteLinkFetcher,
     select_unique_routes,
+    normalize_next_page_url,
     validate_page_url,
 )
 
@@ -47,28 +49,30 @@ class YouxiakeRouteEnricherTest(unittest.TestCase):
             [],
             get_product_ineligibility_reasons(
                 "龙窝子轻徒步一日",
-                "成都集合出发，当日往返，全程徒步8公里。",
+                "成都集合出发，行程天数：1天，全程徒步8公里。",
             ),
         )
         self.assertEqual(
             ["缺少徒步活动特征"],
             get_product_ineligibility_reasons(
                 "古镇一日游",
-                "成都集合出发，当日往返，参观古镇。",
+                "成都集合出发，行程天数：1天，参观古镇。",
             ),
         )
         self.assertEqual(
             ["未确认成都出发"],
             get_product_ineligibility_reasons(
                 "山野徒步一日",
-                "重庆集合，当日往返，徒步8公里。",
+                "重庆集合，行程天数：1天，徒步8公里。",
             ),
         )
+    def test_duration_text_does_not_affect_eligibility(self) -> None:
+        """中文测试：候选统一按单日处理，任何行程天数文本都不得参与资格筛选。"""
         self.assertEqual(
-            ["未确认单日行程", "检测到多日行程"],
+            [],
             get_product_ineligibility_reasons(
-                "雪山徒步三日",
-                "成都集合出发，连续徒步三日。",
+                "海子计划·甲尔猛措 | 速登极虐线",
+                "成都集合出发，正文出现行程天数：3天和7月26日，全程徒步。",
             ),
         )
 
@@ -110,11 +114,78 @@ class YouxiakeRouteEnricherTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "HTTPS 游侠客"):
             validate_page_url("http://example.com/routes")
 
-    def test_build_page_url_uses_dynamic_page_number(self) -> None:
-        """中文测试：链接抓取阶段应正确生成动态分页 URL。"""
+    def test_next_page_url_accepts_real_relative_youxiake_href(self) -> None:
+        """中文测试：页面中的相对下一页 href 应转换为真实游侠客绝对地址。"""
+        current_url = "https://www.youxiake.com/search/results/0-0-0-1-0-0/a.html"
         self.assertEqual(
-            "https://www.youxiake.com/search/results/0-0-0-3-0-0/azEtaTE.html",
-            build_page_url(3),
+            "https://www.youxiake.com/search/results/changed-page/b.html?from=list",
+            normalize_next_page_url(
+                "/search/results/changed-page/b.html?from=list", current_url
+            ),
+        )
+
+    def test_next_page_url_upgrades_real_youxiake_http_href(self) -> None:
+        """中文测试：网站真实 HTTP 分页 href 应安全升级为 HTTPS。"""
+        self.assertEqual(
+            "https://www.youxiake.com/search/results/list.html?keyword=&page=2",
+            normalize_next_page_url(
+                "http://www.youxiake.com/search/results/list.html?keyword=&page=2",
+                "https://www.youxiake.com/search/results/list.html",
+            ),
+        )
+
+    def test_finds_real_youxiake_next_anchor_text(self) -> None:
+        """中文测试：游侠客真实的“后一页”锚点必须被识别为下一页。"""
+        self.assertEqual(
+            "http://www.youxiake.com/search/results/list.html?page=2",
+            find_next_page_href(
+                [
+                    {
+                        "href": "http://www.youxiake.com/search/results/list.html?page=1",
+                        "text": "1",
+                    },
+                    {
+                        "href": "http://www.youxiake.com/search/results/list.html?page=2",
+                        "text": "后一页",
+                    },
+                ]
+            ),
+        )
+
+    def test_next_page_url_rejects_external_href(self) -> None:
+        """中文测试：下一页 href 指向站外地址时必须明确拒绝。"""
+        with self.assertRaisesRegex(RuntimeError, "下一页链接必须是 HTTPS 游侠客筛选页"):
+            normalize_next_page_url(
+                "https://example.com/search/results/2",
+                "https://www.youxiake.com/search/results/first",
+            )
+
+    def test_link_fetcher_follows_page_next_href_instead_of_building_page_number(self) -> None:
+        """中文测试：候选抓取必须跟随当前页面解析出的下一页真实 href。"""
+        first_url = "https://www.youxiake.com/search/results/first-page.html"
+        real_second_url = "https://www.youxiake.com/search/results/server-token-page.html"
+        fetcher = object.__new__(RouteLinkFetcher)
+        fetcher.page_url = first_url
+        fetcher._open_page = MagicMock()
+        fetcher._reject_blocked_page = MagicMock()
+        fetcher._read_candidates = MagicMock(
+            side_effect=[
+                [{"name": "路线甲", "url": "/lines.html?id=1"}],
+                [{"name": "路线乙", "url": "/lines.html?id=2"}],
+            ]
+        )
+        fetcher._read_next_page_url = MagicMock(return_value=real_second_url)
+
+        routes = fetcher.fetch(2)
+
+        self.assertEqual(2, len(routes))
+        self.assertEqual(
+            [call(first_url), call(real_second_url)],
+            fetcher._open_page.call_args_list,
+        )
+        self.assertEqual(
+            [call(first_url)],
+            fetcher._read_next_page_url.call_args_list,
         )
 
     def test_link_stage_deduplicates_route_ids(self) -> None:
@@ -154,13 +225,13 @@ class YouxiakeRouteEnricherTest(unittest.TestCase):
                     "https://www.youxiake.com/search/results/0-0-0-1-0-0/b.html",
                 )
 
-    def test_eligibility_requires_chengdu_one_day_and_hiking(self) -> None:
-        """中文测试：只有成都出发的一日徒步产品才可进入模型核验。"""
-        valid = "成都集合出发，当日往返。全程徒步8公里，累计爬升500米。"
+    def test_eligibility_requires_chengdu_and_hiking(self) -> None:
+        """中文测试：成都出发且具有徒步特征的产品才可进入模型核验。"""
+        valid = "成都集合出发。全程徒步8公里，累计爬升500米。"
         self.assertTrue(is_eligible_product("龙窝子轻徒步一日", valid))
-        self.assertFalse(is_eligible_product("九寨沟三日游", "成都出发，三日行程，观光游览"))
-        self.assertFalse(is_eligible_product("古镇一日游", "成都出发，当日往返，古镇纯玩"))
-        self.assertFalse(is_eligible_product("山野徒步一日", "重庆集合，当日往返，徒步8公里"))
+        self.assertFalse(is_eligible_product("九寨沟三日游", "成都出发，行程天数：3天，观光游览"))
+        self.assertFalse(is_eligible_product("古镇一日游", "成都出发，行程天数：1天，古镇纯玩"))
+        self.assertFalse(is_eligible_product("山野徒步一日", "重庆集合，行程天数：1天，徒步8公里"))
 
     def test_site_facts_override_model_values(self) -> None:
         """中文测试：详情页非空事实不得被模型生成值覆盖。"""
